@@ -21,6 +21,7 @@
   <ItemGroup>
     <CudaCompile Include="CostFunctionClass.cu" />
     <CudaCompile Include="main.cu" />
+    <CudaCompile Include="TestSuit.cu" />
   </ItemGroup>
   <ItemGroup>
     <None Include="allKernelFct.cuh" />
@@ -31,6 +32,7 @@
     <ClInclude Include="IO.h" />
     <ClInclude Include="mathcuda.h" />
     <ClInclude Include="struct_definitions.h" />
+    <ClInclude Include="TestSuit.h" />
     <ClInclude Include="_generate.h" />
   </ItemGroup>
   <ItemGroup>
@@ -104,6 +106,9 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <CodeGeneration>compute_20,sm_21</CodeGeneration>
+      <AdditionalOptions>--ftz=false --prec-div=true --prec-sqrt=true %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalCompilerOptions>
+      </AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

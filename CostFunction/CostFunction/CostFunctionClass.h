@@ -133,7 +133,7 @@ private:
 protected:
 	void init_mmkr16(void);
 	void init_mmkr16_q0(void);
-	void initCam(struct CAM* cam);
+	static void initCam(struct CAM* cam);
 	void initCameraPositions(struct POSITIONS* pos);
 	void adjustRobotTransformation(float* qvin);
 	void transformHumanIntoRobotSystem(float* qr, float* qh, float* robotToHuman);
@@ -145,7 +145,7 @@ protected:
 	void assignHumanPclIntoWS_shared(struct PCL* pcl, unsigned int* const H, float* h);
 	void printProgress(double ci, double ei, time_t start, const char* task);
 	void getCameraPosition(int id, float roll, float pitch, float yaw, struct PCL* pcl, float* h);
-	void updateCamera(struct CAM* cam, float *h);
+	static void updateCamera(struct CAM* cam, float *h);
 	void calculateKSDF(struct PCL* dst, struct OCCUPANCY_GRIDS* grid);
 	void adjustrobotpcl(struct PCL* dst);
 	void checkMemoryUsage(void);
@@ -172,6 +172,10 @@ public:
 	void optimize_single(void);
 	void optimize_all(void);
 	void optimize_all_memory(void);
+
+	static void testCudaFunctions();
+	static void testCudaInverse();
+	static void testUpdateCameraParameters();
 
 
 

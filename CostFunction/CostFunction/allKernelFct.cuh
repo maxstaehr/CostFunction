@@ -1746,6 +1746,8 @@ namespace cuda_calc{
 			dst[j] *= det;
 	}
 
+
+
 	__global__ void updateCameraParameters(
 			//struct CAM* cam,
 			float* C0,
@@ -1785,6 +1787,32 @@ namespace cuda_calc{
 		CP[2] = h[11];
 
 	}
+
+	__global__ void testMM16(float* h1, float* h2, float* r1)
+	{
+		mm16_device(h1, h2,r1); 
+	}
+
+	__global__ void testInvert4(float* h1, float* r1)
+	{
+		invert4_device(h1,r1); 
+	}
+
+	__global__ void gaussjordan(float *A,  float *I,int n, int i)
+	{
+		int x = blockIdx.x * blockDim.x + threadIdx.x;
+		int y = blockIdx.y * blockDim.y + threadIdx.y;
+		float P;
+
+		if(x<n && y<n)
+			if(x>i){ // this limits operation to rows below the pivot point
+				P=A[x*n+i]/A[i*n+i];
+				I[x*n+y] -= I[i*n+y]*P;  // apply for every row member
+				if(y>=i){ //limits  to row members to the right of the pivot
+					A[x*n+y] -= A[i*n+y]*P;  // apply only to members right of pivot
+				}
+			}
+	 }
 
 }
 

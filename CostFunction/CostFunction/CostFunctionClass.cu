@@ -721,7 +721,7 @@ void CostFunctionClass::adjustCameraParameters(int index)
 			robotpcl.d_i,
 			opt_data.s_mmkr16_q0.d_T,
 			opt_data.s_mmkr16.d_T+offset_T,
-			opt_data.d_h_camera+offset_H,
+			opt_data.d_h_camera,
 			pos.d_roll,
 			pos.d_pitch,
 			pos.d_yaw);
@@ -1000,7 +1000,7 @@ void CostFunctionClass::optimize_all_memory(void)
 
 			IO::compareIntValuesCuda(opt_data.allData.d_robotoccupancy, N_int, r*N_int, "robot occupancy","robotOccupancy.bin" );
 			IO::compareFloatValuesCuda(opt_data.allData.d_cp, CAM_ITE*3, (r)*cameraIndice*3, "Cp","CP.bin" );
-//			IO::compareFloatValuesCuda(opt_data.allData.d_mi, CAM_ITE*9, (r)*cameraIndice*9, "Mi","Mi.bin" );
+			IO::compareFloatValuesCuda(opt_data.allData.d_mi, CAM_ITE*9, (r)*cameraIndice*9, "Mi","Mi.bin" );
 			IO::compareFloatValuesCuda(opt_data.allData.d_c, CAM_ITE*12, (r)*cameraIndice*12, "C","C.bin" );
 
 
@@ -1985,5 +1985,184 @@ void CostFunctionClass::adjustrobotpcl(struct PCL* dst)
 		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus);
 
 	}
+
+}
+
+
+void CostFunctionClass::testCudaFunctions()
+{
+	float h1[16], h2[16], r1[16], r2[16];
+	for(unsigned int i=0; i<16; i++)
+	{
+		h1[i] = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+		h2[i] = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+	}
+
+	mm16(h1, h2, r1);
+
+	float *d_h1, *d_h2, *d_r2;
+	CudaMem::cudaMemAllocReport((void**)&d_h1, 16*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&d_h2, 16*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&d_r2, 16*sizeof(float));
+
+	CudaMem::cudaMemCpyReport(d_h1, h1, 16*sizeof(float), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(d_h2, h2, 16*sizeof(float), cudaMemcpyHostToDevice);
+
+	cudaError_t cudaStatus;
+	cuda_calc::testMM16<<<1, 16>>>(d_h1, d_h2, d_r2);
+	cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "test kernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
+	}
+
+	cudaStatus = cudaDeviceSynchronize();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching test kernel!\n", cudaStatus);
+
+	}
+
+	CudaMem::cudaMemCpyReport(r2, d_r2, 16*sizeof(float), cudaMemcpyDeviceToHost);
+
+	float eps = 1e-10;
+	for(int i=0; i<16; i++)
+	{
+		if(abs(r2[i]-r1[i]) > eps)
+		{
+			fprintf(stderr, "error");
+		}
+	}
+	
+
+}
+
+
+void CostFunctionClass::testCudaInverse()
+{
+	float h1[16], h2[16], r1[16], r2[16];
+	for(unsigned int i=0; i<16; i++)
+	{
+		h1[i] = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+	}
+
+	invert4(h1, r1);
+
+	float *d_h1, *d_r2;
+	CudaMem::cudaMemAllocReport((void**)&d_h1, 16*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&d_r2, 16*sizeof(float));
+
+	CudaMem::cudaMemCpyReport(d_h1, h1, 16*sizeof(float), cudaMemcpyHostToDevice);
+
+	cudaError_t cudaStatus;
+	cuda_calc::testInvert4<<<1, 1>>>(d_h1, d_r2);
+	cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "test kernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
+	}
+
+	cudaStatus = cudaDeviceSynchronize();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching test kernel!\n", cudaStatus);
+
+	}
+
+	CudaMem::cudaMemCpyReport(r2, d_r2, 16*sizeof(float), cudaMemcpyDeviceToHost);
+
+	float eps = 1e-10;
+	for(int i=0; i<16; i++)
+	{
+		if(abs(r2[i]-r1[i]) > eps)
+		{
+			fprintf(stderr, "error");
+		}
+	}
+	
+
+}
+
+void CostFunctionClass::testUpdateCameraParameters()
+{
+
+	struct CAM testCam;
+
+	float h[] = EYE;
+	float roll = -1.0f;
+	float pitch = -1.0f;
+	float yaw = -1.0f;
+	rpy2r(roll,pitch, yaw, h);
+	
+	
+
+	CostFunctionClass::initCam(&testCam);
+	CostFunctionClass::updateCamera(&testCam, h);
+
+
+#define nOfSamples 256
+	float *d_C, *d_Cp, *d_Mi, *d_H, *d_C0;
+	float C[nOfSamples*NUMELEM_C], Cp[nOfSamples*NUMELEM_Cp], Mi[nOfSamples*NUMELEM_Mi];
+
+
+
+	CudaMem::cudaMemAllocReport((void**)&d_C, nOfSamples*NUMELEM_C*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&d_Cp, nOfSamples*NUMELEM_Cp*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&d_Mi, nOfSamples*NUMELEM_Mi*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&d_H, nOfSamples*NUMELEM_H*sizeof(float));
+
+	for(unsigned int i=0; i<nOfSamples; i++)
+	{
+		CudaMem::cudaMemCpyReport(d_H+i*NUMELEM_H, h, NUMELEM_H*sizeof(float), cudaMemcpyHostToDevice);
+	}
+
+	cudaError_t cudaStatus;
+	cuda_calc::updateCameraParameters<<<1, nOfSamples>>>(testCam.d_C0,d_H, d_C, d_Cp, d_Mi);
+	cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "test kernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
+	}
+
+	cudaStatus = cudaDeviceSynchronize();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching test kernel!\n", cudaStatus);
+
+	}
+
+	CudaMem::cudaMemCpyReport(C, d_C, nOfSamples*NUMELEM_C*sizeof(float), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(Cp, d_Cp, nOfSamples*NUMELEM_Cp*sizeof(float), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(Mi, d_Mi, nOfSamples*NUMELEM_Mi*sizeof(float), cudaMemcpyDeviceToHost);
+
+	float eps = 1e-5;
+	for(int i=0; i<nOfSamples*NUMELEM_C; i++)
+	{
+		if(abs(testCam.C[i%NUMELEM_C]-C[i]) > eps)
+		{
+			fprintf(stderr, "error");
+		}
+	}
+
+
+	if(abs(testCam.x-Cp[0]) > eps)
+	{
+		fprintf(stderr, "error");
+	}
+
+
+	if(abs(testCam.y-Cp[1]) > eps)
+	{
+		fprintf(stderr, "error");
+	}
+
+	if(abs(testCam.z-Cp[2]) > eps)
+	{
+		fprintf(stderr, "error");
+	}
+	
+
+	for(int i=0; i<nOfSamples*NUMELEM_Mi; i++)
+	{
+		if(abs(testCam.Mi[i%NUMELEM_Mi]-Mi[i]) > eps)
+		{
+			fprintf(stderr, "error");
+		}
+	}
+	
 
 }

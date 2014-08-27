@@ -4,7 +4,10 @@
 int main(int argc, char** argv)
 {
 
+	//CostFunctionClass::testUpdateCameraParameters();
 	CostFunctionClass cf;
+
+	
 
 
 	cf.allocOptimisationMemory();
