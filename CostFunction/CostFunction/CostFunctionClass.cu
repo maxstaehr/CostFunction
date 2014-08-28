@@ -547,6 +547,7 @@ void CostFunctionClass::init_costfunction(bool savetofile)
 	float* C_all = new float[nOfCameraPos*12];
 	float* Mi_all = new float[nOfCameraPos*9];
 	float* CP_all = new float[nOfCameraPos*3];
+	float* H_all = new float[nOfCameraPos*16];
 	//************kernel*******************************************************
 
 	cudaError cudaStatus;
@@ -590,6 +591,7 @@ void CostFunctionClass::init_costfunction(bool savetofile)
 		unsigned int C_pitch = 12;
 		unsigned int MI_pitch = 9;
 		unsigned int CP_pitch = 3;
+		unsigned int H_pitch = 16;
 
 
 		for(unsigned int angleIndex = 0; angleIndex < pos.nOfAngles; angleIndex++)
@@ -605,6 +607,7 @@ void CostFunctionClass::init_costfunction(bool savetofile)
 			{
 				adjustRobotTransformation(&robotPos.positions[9*robotPosIndex]);
 				getCameraPosition(robotPointIndex, roll, pitch, yaw, &robotpcl_0, h_camera);
+				memcpy(&H_all[(angleOffSet*robotPos.n +robotPosIndex)*H_pitch], h_camera,  16*sizeof(float));
 				updateCamera(&cam, h_camera);
 
 				current_C = &C_all[(angleOffSet*robotPos.n +robotPosIndex)*C_pitch];
@@ -645,6 +648,13 @@ void CostFunctionClass::init_costfunction(bool savetofile)
 		outbin.write((char*)CP_all, nOfCameraPos*3*sizeof(float));
 		outbin.close();
 		delete CP_all;
+
+		//saving H
+		filename = "H.bin";
+		outbin.open( filename.c_str(), ofstream::binary );
+		outbin.write((char*)H_all, nOfCameraPos*16*sizeof(float));
+		outbin.close();
+		delete H_all;
 
 		//saving robot occupancy
 		char *buffer = new char[robotPos.n*N_char];
@@ -950,11 +960,11 @@ bool CostFunctionClass::generatePCLandAngleIndex(void)
 
 	}
 
-	for(unsigned int i=0; i< MAX_ITE; i++)
-	{
-		//printf("indices %i\t%i", opt_data.h_pcl_index[i], opt_data.h_angle_index[i]);
-		std::cout <<  opt_data.h_pcl_index[i] << "\t" << opt_data.h_angle_index[i] << std::endl;
-	}
+	//for(unsigned int i=0; i< MAX_ITE; i++)
+	//{
+	//	//printf("indices %i\t%i", opt_data.h_pcl_index[i], opt_data.h_angle_index[i]);
+	//	std::cout <<  opt_data.h_pcl_index[i] << "\t" << opt_data.h_angle_index[i] << std::endl;
+	//}
 	//copy data to Device
 	CudaMem::cudaMemCpyReport(opt_data.d_pcl_index, opt_data.h_pcl_index, MAX_ITE*sizeof(int), cudaMemcpyHostToDevice);
 	CudaMem::cudaMemCpyReport(opt_data.d_angle_index, opt_data.h_angle_index, MAX_ITE*sizeof(int), cudaMemcpyHostToDevice);
@@ -996,12 +1006,13 @@ void CostFunctionClass::optimize_all_memory(void)
 		{
 			setRobotOccupancyGrid(r);
 			calculateKSDF_memory();
-			adjustCameraParameters(r);
 
-			IO::compareIntValuesCuda(opt_data.allData.d_robotoccupancy, N_int, r*N_int, "robot occupancy","robotOccupancy.bin" );
-			IO::compareFloatValuesCuda(opt_data.allData.d_cp, CAM_ITE*3, (r)*cameraIndice*3, "Cp","CP.bin" );
-			IO::compareFloatValuesCuda(opt_data.allData.d_mi, CAM_ITE*9, (r)*cameraIndice*9, "Mi","Mi.bin" );
-			IO::compareFloatValuesCuda(opt_data.allData.d_c, CAM_ITE*12, (r)*cameraIndice*12, "C","C.bin" );
+			adjustCameraParameters(r);
+			//IO::compareFloatValuesCuda(opt_data.d_h_camera, CAM_ITE*16, cameraIndice*16, "H","H.bin" );
+			//IO::compareIntValuesCuda(opt_data.allData.d_robotoccupancy, N_int, 0, "robot occupancy","robotOccupancy.bin" );
+			//IO::compareFloatValuesCuda(opt_data.allData.d_cp, CAM_ITE*3, cameraIndice*3, "Cp","CP.bin" );
+			//IO::compareFloatValuesCuda(opt_data.allData.d_mi, CAM_ITE*9, cameraIndice*9, "Mi","Mi.bin" );
+			//IO::compareFloatValuesCuda(opt_data.allData.d_c, CAM_ITE*12, cameraIndice*12, "C","C.bin" );
 
 
 
@@ -1010,7 +1021,7 @@ void CostFunctionClass::optimize_all_memory(void)
 			for(unsigned int h=0; h<humanPos.n; h++)
 			{
 				setHumanOccupancyGrid(h,r);
-				IO::compareIntValuesCuda(opt_data.allData.d_humanoccupancy, N_int, (r*humanPos.n+h)*N_int, "human occupancy","humanOccupancy.bin" );
+				//IO::compareIntValuesCuda(opt_data.allData.d_humanoccupancy, N_int, (r*humanPos.n+h)*N_int, "human occupancy","humanOccupancy.bin" );
 
 				optimize_single();
 
@@ -1026,6 +1037,11 @@ void CostFunctionClass::optimize_all_memory(void)
 
 		printf("camera pos: %i and current costs %.5lf\n", cameraIndice, opt_data.h_costs[0]);
 		printProgress((double)cameraIndice,(double)nOfCameraPos, start, "optimize");
+
+		//if(opt_data.currentPCLIndex == 500)
+		//{
+		//	break;
+		//}
 
 
 	}

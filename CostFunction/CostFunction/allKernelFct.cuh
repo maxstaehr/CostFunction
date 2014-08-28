@@ -1751,7 +1751,7 @@ namespace cuda_calc{
 	__global__ void updateCameraParameters(
 			//struct CAM* cam,
 			float* C0,
-			float* h,
+			float* d_h,
 			float* d_C,
 			float* d_CP,
 			float* d_Mi)
@@ -1765,7 +1765,7 @@ namespace cuda_calc{
 		float* C = d_C+id*NUMELEM_C;
 		float* Mi = d_Mi+id*NUMELEM_Mi;
 		float* CP = d_CP+id*NUMELEM_Cp;
-		invert4_device(&(h[id*16]),i);
+		invert4_device(d_h+id*16,i);
 		mm12x16_device(C0, i,C);
 
 		iMi[0] = C[0];
@@ -1782,9 +1782,9 @@ namespace cuda_calc{
 
 		invert3_device(iMi, Mi);
 
-		CP[0] = h[3];
-		CP[1] = h[7];
-		CP[2] = h[11];
+		CP[0] = d_h[id*16+3];
+		CP[1] = d_h[id*16+7];
+		CP[2] = d_h[id*16+11];
 
 	}
 

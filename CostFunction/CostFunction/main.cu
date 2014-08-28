@@ -9,7 +9,7 @@ int main(int argc, char** argv)
 
 	
 
-
+	//cf.init_costfunction(true);
 	cf.allocOptimisationMemory();
 	cf.optimize_all_memory();
 	//cf.optimize();

@@ -286,6 +286,7 @@ void IO::compareFloatValuesCuda(float* p_d1,  unsigned int n, int offset,  const
 	{
 		if(abs(b1[i]-b2[i])>1e-4)
 		{
+			std::cout <<b1[i] << "\t" << b2[i] << std::endl;
 			printf("error in %s at position %i\n", task, i);
 		}
 	}

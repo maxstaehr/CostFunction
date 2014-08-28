@@ -19,7 +19,7 @@
 #include "cuda_runtime.h"
 #include "struct_definitions.h"
 #include "time.h"
-#define PAR_KERNEL_LAUNCHS 1
+#define PAR_KERNEL_LAUNCHS 48
 #define MAX_ITE (PAR_KERNEL_LAUNCHS*CAM_ITE)
 
 
