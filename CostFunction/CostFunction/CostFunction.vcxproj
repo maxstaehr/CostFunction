@@ -31,6 +31,8 @@
     <ClInclude Include="CudaMem.h" />
     <ClInclude Include="IO.h" />
     <ClInclude Include="mathcuda.h" />
+    <ClInclude Include="NearestNeighbour.h" />
+    <ClInclude Include="SimulatedAnnealing.h" />
     <ClInclude Include="struct_definitions.h" />
     <ClInclude Include="TestSuit.h" />
     <ClInclude Include="_generate.h" />
@@ -38,6 +40,8 @@
   <ItemGroup>
     <ClCompile Include="CudaMem.cpp" />
     <ClCompile Include="IO.cpp" />
+    <ClCompile Include="NearestNeighbour.cpp" />
+    <ClCompile Include="SimulatedAnnealing.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{23B79AF0-E655-4B07-BCA5-8A1471CF8A92}</ProjectGuid>

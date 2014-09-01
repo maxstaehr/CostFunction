@@ -18,8 +18,9 @@
 
 #include "cuda_runtime.h"
 #include "struct_definitions.h"
+#include "SimulatedAnnealing.h"
 #include "time.h"
-#define PAR_KERNEL_LAUNCHS 48
+#define PAR_KERNEL_LAUNCHS 64
 #define MAX_ITE (PAR_KERNEL_LAUNCHS*CAM_ITE)
 
 
@@ -62,9 +63,6 @@ public:
 
 		double*			h_costs;
 		double*			h_costs_result;
-		float*			h_c;
-		float*			h_mi;
-		float*			h_cp;
 		float* 			d_h_camera;
 
 		int* 			h_pcl_index;
@@ -75,6 +73,7 @@ public:
 		int 			currentPCLIndex;
 		int 			currentAngleIndex;
 		int 			currentNofValidIterations;
+		unsigned int*	nearesNeighbourIndex;
 
 		float* 			d_ws_x;
 		float* 			d_ws_y;
@@ -109,6 +108,7 @@ private:
 	float zmin;
 	float zmax;
 	float* d_eye;
+	SimulatedAnnealing* sA;
 
 
 
@@ -158,6 +158,7 @@ protected:
 	void adjustrobotpclandvelocity_memory(struct PCL* dst,int i,  float vxp, float vyp);
 	void assignHumanPclIntoWS_memory(struct PCL* pcl, unsigned int* const H, int i);
 	void calculateKSDF_memory(void);
+	void calcNextCandidates(void);
 
 
 
@@ -176,6 +177,7 @@ public:
 	static void testCudaFunctions();
 	static void testCudaInverse();
 	static void testUpdateCameraParameters();
+	void testSelectNN(void);
 
 
 

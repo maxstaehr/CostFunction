@@ -3,6 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CostFunction", "CostFunction\CostFunction.vcxproj", "{23B79AF0-E655-4B07-BCA5-8A1471CF8A92}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{EBDB4417-352C-4A3F-BBC7-42597671FB5E}"
+	ProjectSection(SolutionItems) = preProject
+		CostFunction.vsd = CostFunction.vsd
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
