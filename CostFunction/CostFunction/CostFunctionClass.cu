@@ -99,22 +99,25 @@ CostFunctionClass::CostFunctionClass():cudaDevice(0), nx(64), ny(64), nz(32),N(n
 	IO::loadHumanPos(&humanPos);
 
 
-
+#ifdef DEBUG_POSITIONS
 	robotPos.n = 1;
 	humanPos.n = 1;
 	humanPos.positions[0] = -2.5f;
 	humanPos.positions[1] = 0.0f;
 	humanPos.positions[2] = MATH_PI/2.0f;
-
+	//humanPos.positions[3] = -2.5f;
+	//humanPos.positions[4] = 1.0f;
+	//humanPos.positions[5] = MATH_PI/2.0f;
 	for(int i=0;i<9;i++)
 	{
 		robotPos.positions[i] = 0.0f;
 		robotPos.velocities[i] = 0.0f;
 	}
+#endif
 	initCameraPositions(&pos);
 	initCam(&cam);
 
-
+	isValidPosition = new bool[robotPos.n * humanPos.n];
 	CudaMem::allocRobotPositions(&robotPos);
 	CudaMem::allocHumanPositions(&humanPos);
 
@@ -129,12 +132,37 @@ CostFunctionClass::CostFunctionClass():cudaDevice(0), nx(64), ny(64), nz(32),N(n
 	cudaFuncSetCacheConfig(cuda_calc::project_voxel_into_ws, cudaFuncCachePreferShared);
 	cudaFuncSetCacheConfig(cuda_calc::fuseGrids_shared, cudaFuncCachePreferShared);
 
-	sA = new SimulatedAnnealing(MAX_ITE, 80, 0.999, robotPCL_qa0.n, pos.nOfAngles);
+	sA = new SimulatedAnnealing(MAX_ITE, 2500, 0.995, robotPCL_qa0.n, pos.nOfAngles);
 
 }
 
 CostFunctionClass::~CostFunctionClass() {
 	// TODO Auto-generated destructor stub
+}
+
+bool CostFunctionClass::doesHumanCollideWithRobot(void)
+{
+	cuda_calc::checkCollisionEnvironmentHuman<<<1,1024>>>(opt_data.allData.d_humanoccupancy, opt_data.allData.d_robotoccupancy, opt_data.d_hasCollision);
+	cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "addKernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
+	}
+
+	cudaStatus = cudaDeviceSynchronize();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus);
+
+	}
+
+	unsigned int ret;
+	CudaMem::cudaMemCpyReport(&ret, opt_data.d_hasCollision, sizeof(int), cudaMemcpyDeviceToHost);
+	if (ret > 0)
+	{
+		return false;
+	}else
+	{
+		return true;
+	}
 }
 
 void CostFunctionClass::initDHTransformations(void)
@@ -172,6 +200,13 @@ void CostFunctionClass::initHTransformations(void)
 		for(unsigned int h=0; h<humanPos.n; h++)
 		{
 			transformHumanIntoRobotSystem(robotPos.positions+9*r, humanPos.positions+3*h, H_temp);
+			if( abs(H_temp[3]) - WS_BORDER > WS_X_MAX || abs(H_temp[7]) - WS_BORDER > WS_Y_MAX)
+			{
+				isValidPosition[r*humanPos.n+h] = false;
+			}else
+			{
+				isValidPosition[r*humanPos.n+h] = true;
+			}
 			int offset = (r*humanPos.n+h)*NUMELEM_H;
 			CudaMem::cudaMemCpyReport(opt_data.s_human.d_h+offset, H_temp, NUMELEM_H*sizeof(float), cudaMemcpyHostToDevice);
 
@@ -766,9 +801,9 @@ void CostFunctionClass::adjustCameraParameters(int index)
 
 void CostFunctionClass::allocOptimisationMemory(void)
 {
-	unsigned int nOfCameraPos = robotpcl_0.n * pos.nOfAngles* robotPos.n;
+	unsigned int nOfCameraPos = robotpcl_0.n * pos.nOfAngles;
 	unsigned int human_robot_pos = humanPos.n * robotPos.n;
-	unsigned int depthBufferSize = IMG_SIZE * human_robot_pos*CAM_ITE;
+	unsigned int depthBufferSize = IMG_SIZE *CAM_ITE;
 
 	cudaError		cudaStatus;
 //	cudaStatus = cudaDeviceReset();
@@ -797,13 +832,25 @@ void CostFunctionClass::allocOptimisationMemory(void)
 	CudaMem::cudaMemAllocReport((void**)&opt_data.d_angle_index, 			PAR_KERNEL_LAUNCHS*CAM_ITE*sizeof(int));
 	CudaMem::cudaMemAllocReport((void**)&opt_data.d_h_camera, 				PAR_KERNEL_LAUNCHS*CAM_ITE*NUMELEM_H*sizeof(float));
 
+	CudaMem::cudaMemAllocReport((void**)&opt_data.d_hasCollision, 				sizeof(unsigned int));
+	
 
 
 	opt_data.h_costs = 			new double[PAR_KERNEL_LAUNCHS*CAM_ITE];
+	opt_data.h_costs_buffer =	new double[PAR_KERNEL_LAUNCHS*CAM_ITE];
+#ifdef DEBUG_RECORD
 	opt_data.h_costs_result = 	new double[nOfCameraPos];
+#endif
 	opt_data.h_pcl_index = 		new int [PAR_KERNEL_LAUNCHS*CAM_ITE];
 	opt_data.h_angle_index =	new int [PAR_KERNEL_LAUNCHS*CAM_ITE];
-	opt_data.nearesNeighbourIndex = new unsigned int[robotpcl.n*6];
+	for(unsigned int i=0; i<PAR_KERNEL_LAUNCHS*CAM_ITE; i++)
+	{
+		opt_data.h_pcl_index[i] = 0.0f;
+		opt_data.h_angle_index[i] = 0.0f;
+	}
+
+
+	opt_data.nearesNeighbourIndex = new int[robotpcl.n*6];
 	NearestNeighbour::calcNearestNeighbourIndices(opt_data.nearesNeighbourIndex, &robotPCL_qa0);
 
 
@@ -848,81 +895,14 @@ void CostFunctionClass::allocOptimisationMemory(void)
 
 	checkMemoryUsage();
 
+#ifdef DEBUG_RECORD
 	//Init results
 	for(unsigned int i=0; i<nOfCameraPos; i++)
 		opt_data.h_costs_result[i] = 0.0;
+#endif
 }
 
-void CostFunctionClass::optimize_all(void)
-{
-	unsigned int cameraIndice =0;
-	unsigned int cam_iterations = PAR_KERNEL_LAUNCHS*CAM_ITE;
-	unsigned int nOfPositins = 0;
-	unsigned int memCpyIndex;
-	unsigned int nOfCameraPos = robotpcl_0.n * pos.nOfAngles* robotPos.n;
-	time_t 			start;
 
-	for(unsigned int i=0; i<PAR_KERNEL_LAUNCHS; i++)
-	{
-		opt_data.launchConfigurations[i].d_humanoccupancy = opt_data.allData.d_humanoccupancy;
-		opt_data.launchConfigurations[i].d_robotoccupancy = opt_data.allData.d_robotoccupancy;
-		opt_data.launchConfigurations[i].d_ksdf = opt_data.allData.d_ksdf;
-	}
-
-
-	time(&start);
-	for(cameraIndice=0; cameraIndice < nOfCameraPos; cameraIndice += PAR_KERNEL_LAUNCHS*CAM_ITE)
-	{
-		if((nOfCameraPos - cameraIndice) < PAR_KERNEL_LAUNCHS*CAM_ITE)
-		{
-			cam_iterations = nOfCameraPos - cameraIndice;
-		}
-
-		nOfPositins += cam_iterations;
-
-		for(unsigned int r=0; r<robotPos.n; r++)
-		{
-
-			for(unsigned int i=0; i<PAR_KERNEL_LAUNCHS; i++)
-			{
-				opt_data.launchConfigurations[i].d_robotoccupancy = opt_data.allData.d_robotoccupancy+N_int*r;
-				opt_data.launchConfigurations[i].d_ksdf = opt_data.allData.d_ksdf+N*r;;
-			}
-
-			memCpyIndex = cameraIndice*robotPos.n+r*PAR_KERNEL_LAUNCHS*CAM_ITE;
-			//CudaMem::cudaMemCpyReport(opt_data.allData.d_c, 	&opt_data.h_c[memCpyIndex*12],  cam_iterations*12*sizeof(float), cudaMemcpyHostToDevice);
-			//CudaMem::cudaMemCpyReport(opt_data.allData.d_mi, &opt_data.h_mi[memCpyIndex*9],  cam_iterations*9*sizeof(float), cudaMemcpyHostToDevice);
-			//CudaMem::cudaMemCpyReport(opt_data.allData.d_cp, &opt_data.h_cp[memCpyIndex*3],  cam_iterations*3*sizeof(float), cudaMemcpyHostToDevice);
-
-
-
-			for(unsigned int h=0; h<humanPos.n; h++)
-			{
-
-				for(unsigned int i=0; i<PAR_KERNEL_LAUNCHS; i++)
-					opt_data.launchConfigurations[i].d_humanoccupancy = opt_data.allData.d_humanoccupancy+N_int*r*h;
-
-				optimize_single();
-
-				CudaMem::cudaMemCpyReport(opt_data.h_costs, opt_data.allData.d_costs, cam_iterations*sizeof(double), cudaMemcpyDeviceToHost);
-
-				for(unsigned int i=0; i<cam_iterations; i++)
-				{
-					opt_data.h_costs_result[cameraIndice+i] += opt_data.h_costs[i]/(robotPos.n*humanPos.n);
-				}
-			}
-		}
-
-		//printing progress
-		if(cameraIndice % (10*CAM_ITE) == 0)
-		{
-			printf("camera pos: %i and current costs %.5lf\n", cameraIndice, opt_data.h_costs[0]);
-			printProgress((double)cameraIndice,(double)nOfCameraPos, start, "optimize");
-		}
-
-	}
-	IO::printMinCostSingleCameraToFile(opt_data.h_costs_result, &pos, &robotPCL_qa0);
-}
 
 bool CostFunctionClass::generatePCLandAngleIndex(void)
 {
@@ -950,20 +930,19 @@ bool CostFunctionClass::generatePCLandAngleIndex(void)
 
 	}
 
-	//for(unsigned int i=0; i< MAX_ITE; i++)
-	//{
-	//	//printf("indices %i\t%i", opt_data.h_pcl_index[i], opt_data.h_angle_index[i]);
-	//	std::cout <<  opt_data.h_pcl_index[i] << "\t" << opt_data.h_angle_index[i] << std::endl;
-	//}
-	//copy data to Device
-	CudaMem::cudaMemCpyReport(opt_data.d_pcl_index, opt_data.h_pcl_index, MAX_ITE*sizeof(int), cudaMemcpyHostToDevice);
-	CudaMem::cudaMemCpyReport(opt_data.d_angle_index, opt_data.h_angle_index, MAX_ITE*sizeof(int), cudaMemcpyHostToDevice);
+
 
 	opt_data.currentPCLIndex = pcl_index;
 	opt_data.currentAngleIndex = angle_index;
 	opt_data.currentNofValidIterations = ite;
 	//if both indices are at the end, the function returns false
-	return !(pcl_index==robotpcl_0.n && angle_index==pos.nOfAngles);
+	return true;
+}
+
+void CostFunctionClass::initCostArray(void)
+{
+	for(unsigned int i=0; i< MAX_ITE; i++)
+		opt_data.h_costs_buffer[i] = 0.0;
 }
 
 void CostFunctionClass::optimize_all_memory(void)
@@ -977,63 +956,94 @@ void CostFunctionClass::optimize_all_memory(void)
 	opt_data.currentPCLIndex = 0;
 	opt_data.currentAngleIndex = 0;
 
-
-
-//	IO::loadFileOntoCuda("robotOccupancy.bin", opt_data.allData.d_robotoccupancy,robotPos.n*N_int*sizeof(int));
-//	IO::loadFileOntoCuda("humanOccupancy.bin", opt_data.allData.d_humanoccupancy,robotPos.n*humanPos.n*N_int*sizeof(int));
-//	IO::loadFileOntoHost("CP.bin", opt_data.h_cp,nOfCameraPos*3*sizeof(float));
-//	IO::loadFileOntoHost("Mi.bin", opt_data.h_mi,nOfCameraPos*9*sizeof(float));
-//	IO::loadFileOntoHost("C.bin", opt_data.h_c,nOfCameraPos*12*sizeof(float));
-
+#ifndef DEBUG_RECORD
 	sA->initializeFirstRun(opt_data.h_pcl_index, opt_data.h_angle_index);
+#endif
+	
+
+
 
 	time(&start);
-	while(generatePCLandAngleIndex())
+	bool isRunning = true;
+	opt_data.currentNofValidIterations = MAX_ITE;
+	while(isRunning)
 	{
+#ifdef	DEBUG_RECORD
+		generatePCLandAngleIndex();
+#endif
+		CudaMem::cudaMemCpyReport(opt_data.d_pcl_index, opt_data.h_pcl_index, MAX_ITE*sizeof(int), cudaMemcpyHostToDevice);
+		CudaMem::cudaMemCpyReport(opt_data.d_angle_index, opt_data.h_angle_index, MAX_ITE*sizeof(int), cudaMemcpyHostToDevice);
+
+		initCostArray();
+		int div = 0;
 		for(unsigned int r=0; r<robotPos.n; r++)
 		{
 			setRobotOccupancyGrid(r);
 			calculateKSDF_memory();
-
 			adjustCameraParameters(r);
-			//IO::compareFloatValuesCuda(opt_data.d_h_camera, CAM_ITE*16, cameraIndice*16, "H","H.bin" );
-			//IO::compareIntValuesCuda(opt_data.allData.d_robotoccupancy, N_int, 0, "robot occupancy","robotOccupancy.bin" );
-			//IO::compareFloatValuesCuda(opt_data.allData.d_cp, CAM_ITE*3, cameraIndice*3, "Cp","CP.bin" );
-			//IO::compareFloatValuesCuda(opt_data.allData.d_mi, CAM_ITE*9, cameraIndice*9, "Mi","Mi.bin" );
-			//IO::compareFloatValuesCuda(opt_data.allData.d_c, CAM_ITE*12, cameraIndice*12, "C","C.bin" );
-
-
-
-
 
 			for(unsigned int h=0; h<humanPos.n; h++)
 			{
+				if(!isValidPosition[r*humanPos.n + h])
+					continue;
+
 				setHumanOccupancyGrid(h,r);
-				//IO::compareIntValuesCuda(opt_data.allData.d_humanoccupancy, N_int, (r*humanPos.n+h)*N_int, "human occupancy","humanOccupancy.bin" );
-
+				if(!doesHumanCollideWithRobot())
+					continue;
+				
+				div++;
 				optimize_single();
-
 				CudaMem::cudaMemCpyReport(opt_data.h_costs, opt_data.allData.d_costs, MAX_ITE*sizeof(double), cudaMemcpyDeviceToHost);
+
+#ifdef DEBUG_RECORD
+				for(unsigned int i=0; i<opt_data.currentNofValidIterations; i++)
+				{
+					opt_data.h_costs_result[cameraIndice+i] += opt_data.h_costs[i];
+				}
+				//if(r%10 == 0 && r > 0)
+				//{
+					printProgress((double)(r*humanPos.n+h+1)* opt_data.currentNofValidIterations,(double)nOfCameraPos*robotPos.n*humanPos.n, start, "optimize");
+				//}
+#else
 				for(unsigned int i=0; i<MAX_ITE; i++)
 				{
-					opt_data.h_costs_result[cameraIndice+i] += opt_data.h_costs[i]/(robotPos.n*humanPos.n);
+					opt_data.h_costs_buffer[i] += opt_data.h_costs[i];
 				}
+#endif
+				
 			}
 		}
+
+
+#ifdef DEBUG_RECORD
+		for(unsigned int i=0; i<opt_data.currentNofValidIterations; i++)
+		{
+			opt_data.h_costs_result[cameraIndice+i] /= div;
+		}
 		cameraIndice += opt_data.currentNofValidIterations;
-
-
-		printf("camera pos: %i and current costs %.5lf\n", cameraIndice, opt_data.h_costs[0]);
-		printProgress((double)cameraIndice,(double)nOfCameraPos, start, "optimize");
-
-		//if(opt_data.currentPCLIndex == 500)
-		//{
-		//	break;
-		//}
-
+		isRunning = !(opt_data.currentPCLIndex==robotpcl_0.n && opt_data.currentAngleIndex==pos.nOfAngles);
+		
+#else
+		for(unsigned int i=0; i<MAX_ITE; i++)
+		{
+			opt_data.h_costs_buffer[i] /= div;
+		}
+		isRunning = sA->iterate(opt_data.nearesNeighbourIndex,opt_data.h_pcl_index,  opt_data.h_angle_index, opt_data.h_costs_buffer); 
+		
+#endif
 
 	}
+#ifdef DEBUG_RECORD
 	IO::printMinCostSingleCameraToFile(opt_data.h_costs_result, &pos, &robotPCL_qa0);
+#else
+	//sA->writeResultsToFile("sa_path", &robotPCL_qa0, &pos);
+	sA->writeEnergyResultsToFile("cost_behave");
+	sA->writeAllResultToFile("cost_energy");
+#endif
+	std::cout << "global minimum found" << std::endl;
+
+	std::string mystring;
+	getline (std::cin, mystring);
 }
 
 
@@ -1828,7 +1838,7 @@ void CostFunctionClass::printProgress(double ci, double ei, time_t start, const 
 	remainingTime = timePerLoop * (double) (ei - ci);
 	maxTime = timePerLoop * ei;
 	currPro = (double)ci/ (double)(ei);
-	printf("%s max : %.1fmin\trem : %.2fmin\tpro: %.2f%%\n",task, maxTime/60.0, remainingTime/60.0, currPro*100.0);
+	printf("%s max : %.1fmin\trem : %.2fmin\tpro: %.6f%%\n",task, maxTime/60.0, remainingTime/60.0, currPro*100.0);
 
 }
 
@@ -2173,19 +2183,27 @@ void CostFunctionClass::testUpdateCameraParameters()
 
 void CostFunctionClass::testSelectNN(void)
 {
-	int startPCL=0, startAngle = 0;
-	printf("starting point: [%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f]\n", robotPCL_qa0.x[startPCL], robotPCL_qa0.y[startPCL], robotPCL_qa0.z[startPCL], pos.roll[startAngle], pos.pitch[startAngle], pos.yaw[startAngle]);
-	NearestNeighbour::setNearestNeighbour((const int*)opt_data.nearesNeighbourIndex, 0, 0, opt_data.h_pcl_index, opt_data.h_angle_index);
-	for(unsigned int i=0; i<12; i++)
-	{
-		startPCL = opt_data.h_pcl_index[i];
-		startAngle = opt_data.h_angle_index[i];
-		printf("point %i: [%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f]\n", i,
-																		robotPCL_qa0.x[startPCL],
-																		robotPCL_qa0.y[startPCL],
-																		robotPCL_qa0.z[startPCL],
-																		pos.roll[startAngle],
-																		pos.pitch[startAngle], 
-																		pos.yaw[startAngle]);
-	}
+	//int startPCL=0, startAngle = 0;
+	//printf("starting point: [%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f]\n", robotPCL_qa0.x[startPCL], robotPCL_qa0.y[startPCL], robotPCL_qa0.z[startPCL], pos.roll[startAngle], pos.pitch[startAngle], pos.yaw[startAngle]);
+	//NearestNeighbour::setNearestNeighbour((const int*)opt_data.nearesNeighbourIndex, 0, 0, opt_data.h_pcl_index, opt_data.h_angle_index);
+	//for(unsigned int i=0; i<12; i++)
+	//{
+	//	startPCL = opt_data.h_pcl_index[i];
+	//	startAngle = opt_data.h_angle_index[i];
+	//	printf("point %i: [%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f]\n", i,
+	//																	robotPCL_qa0.x[startPCL],
+	//																	robotPCL_qa0.y[startPCL],
+	//																	robotPCL_qa0.z[startPCL],
+	//																	pos.roll[startAngle],
+	//																	pos.pitch[startAngle], 
+	//																	pos.yaw[startAngle]);
+	//}
+
+	int p = 0, int a = 0, rp, ra;
+	double cm = 0.0, cp = 1.0, c_t1= 1.0;
+	unsigned char dim = 4;
+	NearestNeighbour::GRADIENT_DIM dir;
+	NearestNeighbour::setNextIteration(cm, cp, c_t1,dim,(const int*)opt_data.nearesNeighbourIndex,p,a,&rp,&ra,&dir);
+
+
 }

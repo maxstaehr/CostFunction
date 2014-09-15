@@ -13,14 +13,13 @@
 #define COSTFUNCTIONCLASS_H_
 
 
-
-
-
 #include "cuda_runtime.h"
 #include "struct_definitions.h"
 #include "SimulatedAnnealing.h"
 #include "time.h"
-#define PAR_KERNEL_LAUNCHS 64
+#include <iostream>
+#include <string>
+#define PAR_KERNEL_LAUNCHS 1
 #define MAX_ITE (PAR_KERNEL_LAUNCHS*CAM_ITE)
 
 
@@ -62,7 +61,11 @@ public:
 
 
 		double*			h_costs;
+		double*			h_costs_buffer;
+
+#ifdef DEBUG_RECORD
 		double*			h_costs_result;
+#endif
 		float* 			d_h_camera;
 
 		int* 			h_pcl_index;
@@ -73,7 +76,9 @@ public:
 		int 			currentPCLIndex;
 		int 			currentAngleIndex;
 		int 			currentNofValidIterations;
-		unsigned int*	nearesNeighbourIndex;
+		int*			nearesNeighbourIndex;
+
+		unsigned int*			d_hasCollision;
 
 		float* 			d_ws_x;
 		float* 			d_ws_y;
@@ -109,6 +114,7 @@ private:
 	float zmax;
 	float* d_eye;
 	SimulatedAnnealing* sA;
+	bool *isValidPosition;
 
 
 
@@ -159,6 +165,9 @@ protected:
 	void assignHumanPclIntoWS_memory(struct PCL* pcl, unsigned int* const H, int i);
 	void calculateKSDF_memory(void);
 	void calcNextCandidates(void);
+	void initCostArray(void);
+	bool doesHumanCollideWithRobot(void);
+
 
 
 
@@ -171,7 +180,6 @@ public:
 	void optimize(void);
 	void allocOptimisationMemory(void);
 	void optimize_single(void);
-	void optimize_all(void);
 	void optimize_all_memory(void);
 
 	static void testCudaFunctions();

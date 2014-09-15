@@ -5,18 +5,51 @@
 #include <ctime>
 #include <stdlib.h>
 #include <cmath>
+struct B{
+	int pcl;
+	int angle;
+	double costs;
+	double currProp;
+	double curT;
+	int ite;
+	double minEnergy;
+	enum STATE state;	
+	double globalMin;
+};
 int main(int argc, char** argv)
 {
+	//struct B b;
+	//b.pcl = 0.0;
+	//std::vector<std::vector<struct B>> a;
+	//a.push_back(std::vector<struct B>(0));
+	//a.back().push_back(b);
+	//a.back().push_back(b);
+	//a.push_back(std::vector<struct B>(0));
+	//a.back().push_back(b);
+	//a.back().push_back(b);
+
+	//for(unsigned int i=0; i<a.size(); i++)
+	//{
+	//	for(unsigned int j=0; j<a[i].size(); j++)
+	//	{
+	//		std::cout << a[i][j].pcl << std::endl;
+	//	}
+
+	//}
+
+
+
 
 	//CostFunctionClass::testUpdateCameraParameters();
 	CostFunctionClass cf;
+	
 	
 
 	
 
 	//cf.init_costfunction(true);
 	cf.allocOptimisationMemory();
-	cf.testSelectNN();
+	//cf.testSelectNN();
 	cf.optimize_all_memory();
 	//cf.optimize();
 	return 0;
@@ -52,8 +85,10 @@ double f(double x)
 //		{
 //			double xNew = x + ((rand() / (double)RAND_MAX) * 2 - 1);
 //            double LNew = f(xNew);
-// 
-//            if (LNew < L || (rand() / (double)RAND_MAX) <= pow(e, -(LNew - L) / T))
+//			double propNew = (rand() / (double)RAND_MAX);
+//			double oldProp  = pow(e, ( L-LNew ) / T);
+//			printf("new propNew: %.5f\t oldProp: %.5f\n", propNew, oldProp);
+//            if (LNew < L || propNew <= oldProp)
 //            {
 //                L = LNew;
 //                x = xNew;
