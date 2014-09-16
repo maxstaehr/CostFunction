@@ -212,3 +212,11 @@ $RECYCLE.BIN/
 *.msi
 *.msm
 *.msp
+
+*.tlog
+*.dll
+*.bin
+*.exe
+*.deps
+*.lastbuildstate
+*.manifest
