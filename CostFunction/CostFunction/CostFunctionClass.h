@@ -19,8 +19,7 @@
 #include "time.h"
 #include <iostream>
 #include <string>
-#define PAR_KERNEL_LAUNCHS 1
-#define MAX_ITE (PAR_KERNEL_LAUNCHS*CAM_ITE)
+#include "global.h"
 
 
 class CostFunctionClass {
@@ -45,6 +44,9 @@ public:
 		float*			d_hs_costs;
 		float*			d_hdm;
 		float*			d_edm;
+
+		unsigned int* d_fa_final;
+		unsigned int* d_hs_final;
 		cudaStream_t 	cudaStreams;
 	};
 
@@ -56,6 +58,8 @@ public:
 		struct DH_transformations s_mmkr16;
 		struct DH_transformations s_mmkr16_q0;
 		struct H_transformations s_human;
+
+
 
 
 
@@ -73,8 +77,8 @@ public:
 		int* 			h_angle_index;
 		int* 			d_angle_index;
 
-		int 			currentPCLIndex;
-		int 			currentAngleIndex;
+
+		unsigned long long maxIteration;
 		int 			currentNofValidIterations;
 		int*			nearesNeighbourIndex;
 
@@ -83,6 +87,8 @@ public:
 		float* 			d_ws_x;
 		float* 			d_ws_y;
 		float* 			d_ws_z;
+		
+		
 
 
 
@@ -115,6 +121,9 @@ private:
 	float* d_eye;
 	SimulatedAnnealing* sA;
 	bool *isValidPosition;
+	int				nOfCams;
+	unsigned long long* comp_vec;
+	int gen_result;
 
 
 
@@ -158,7 +167,7 @@ protected:
 	void setRobotOccupancyGrid(int posIndex);
 	void setHumanOccupancyGrid(int humanPosIndex, int robotPosIndex);
 	bool generatePCLandAngleIndex(void);
-	void adjustCameraParameters(int index);
+	void adjustCameraParameters(int index, int i);
 	void initDHTransformations(void);
 	void initHTransformations(void);
 	void adjustrobotpclandvelocity_memory(struct PCL* dst,int i,  float vxp, float vyp);
@@ -166,7 +175,11 @@ protected:
 	void calculateKSDF_memory(void);
 	void calcNextCandidates(void);
 	void initCostArray(void);
+	void assignNewCamera(void);
 	bool doesHumanCollideWithRobot(void);
+	unsigned int long long maxNumberOfIteration(unsigned int long long n, unsigned int long long k);
+	void initHSandFAFinal(void);
+	void calculateCosts(void);
 
 
 
@@ -177,7 +190,6 @@ protected:
 public:
 	void initAllKSDF(bool writeToFile);
 	void init_costfunction(bool savetofile);
-	void optimize(void);
 	void allocOptimisationMemory(void);
 	void optimize_single(void);
 	void optimize_all_memory(void);

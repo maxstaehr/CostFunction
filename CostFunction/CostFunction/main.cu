@@ -5,6 +5,7 @@
 #include <ctime>
 #include <stdlib.h>
 #include <cmath>
+#include "_generate.h"
 struct B{
 	int pcl;
 	int angle;
@@ -37,7 +38,30 @@ int main(int argc, char** argv)
 
 	//}
 
+	//unsigned int long a = 999;
+	//unsigned int long p = 34;
+	//unsigned int long i = 34*1290+999;
 
+	//unsigned int long p2 = i/1290;
+	//unsigned int long ai = i-p2*1290;
+
+	//unsigned long long n = 5;
+	//unsigned long long k = 2;
+	//unsigned long long* vector = new unsigned long long[k];
+
+	//int gen_result = gen_comb_norep_lex_init(vector, n, k);
+	//int set_counter = 0; 
+	//while(gen_result == GEN_NEXT)
+	// {
+	//	 set_counter++;
+
+	//	 for(int x = 0; x < k; x++)
+	//	  printf("%u ", vector[x]);
+
+	//	 printf("(%u)\n", set_counter);
+
+	//	 gen_result = gen_comb_norep_lex_next(vector, n, k);
+	// }
 
 
 	//CostFunctionClass::testUpdateCameraParameters();

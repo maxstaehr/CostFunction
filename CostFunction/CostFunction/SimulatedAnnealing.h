@@ -4,7 +4,8 @@
 
 enum STATE{
 	HC,
-	NS
+	NS,
+	OR
 };
 
 struct SOLUTION{
@@ -76,6 +77,7 @@ private:
 	double* minEnergy;
 	bool* noChange;
 	unsigned char* cDim;
+	static const double e;
 
 	
 	struct SOLUTION * solu;	
