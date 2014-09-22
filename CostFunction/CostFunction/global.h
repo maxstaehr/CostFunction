@@ -1,9 +1,11 @@
 #pragma once
 
-#define N_OF_A (360)
+//#define N_OF_A (360)
+#define N_OF_A (10)
 #define N_OF_A_SQ (N_OF_A*N_OF_A)
 #define WS_BORDER (1.0)
-
+#define PAR_KERNEL_LAUNCHS 64
+#define MAX_ITE (PAR_KERNEL_LAUNCHS*CAM_ITE)
 
 #define shared_mem_workspace 16384
 #define shared_loop_ite 256
@@ -13,6 +15,7 @@
 #define n_block 25
 #define INT_FACTOR 4194304
 #define ACCUM_N_WS 1024
+
 
 
 
@@ -48,6 +51,7 @@
 
 #define CONSTANT_MEM_ALLOC_SIZE N_OF_A*N_OF_A*N_OF_A
 #define MATH_PI 3.14159265359f
+#define DA  (2*MATH_PI/(float)N_OF_A)
 
 #define d_nx 64
 #define d_ny 64
