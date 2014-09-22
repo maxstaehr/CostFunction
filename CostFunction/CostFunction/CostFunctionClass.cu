@@ -45,15 +45,13 @@
 
 
 CostFunctionClass::CostFunctionClass():cudaDevice(0), nx(64), ny(64), nz(32),N(nx*ny*nz), N_char(N/8), N_int(N_char/4),
-		xmin(-3.0f), xmax(3.0f), ymin(-3.0f), ymax(3.0f), zmin(0.0f),zmax(3.0),nOfCams(1)
+		xmin(-3.0f), xmax(3.0f), ymin(-3.0f), ymax(3.0f), zmin(0.0f),zmax(3.0)
 {
 
 
 
 
-	opt_data.h_pcl_index = NULL;
-	opt_data.h_angle_index = NULL;
-	comp_vec = NULL;
+
 
 	cudaStatus = cudaDeviceReset();
 	if (cudaStatus != cudaSuccess) {
@@ -750,20 +748,23 @@ void CostFunctionClass::setHumanOccupancyGrid(int humanPosIndex, int robotPosInd
 	assignHumanPclIntoWS_memory(&humanpcl, opt_data.allData.d_humanoccupancy, index);
 }
 
-void CostFunctionClass::adjustCameraParameters(int index, int i)
+void CostFunctionClass::adjustCameraParameters(int index)
 {
 	int offset_T = index*NUMELEM_H*N_ELEMENT_T;
 	int offset_H = index*NUMELEM_H;
 	cuda_calc::updateCameraPositions<<<PAR_KERNEL_LAUNCHS,CAM_ITE>>>(
-			opt_data.d_pcl_index+i*MAX_ITE,
-			opt_data.d_angle_index+i*MAX_ITE,
+			opt_data.d_pcl_index,
+			opt_data.d_angle_index,
 			robotpcl.d_x,
 			robotpcl.d_y,
 			robotpcl.d_z,
 			robotpcl.d_i,
 			opt_data.s_mmkr16_q0.d_T,
 			opt_data.s_mmkr16.d_T+offset_T,
-			opt_data.d_h_camera);
+			opt_data.d_h_camera,
+			pos.d_roll,
+			pos.d_pitch,
+			pos.d_yaw);
 
 	cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {
@@ -798,40 +799,6 @@ void CostFunctionClass::adjustCameraParameters(int index, int i)
 
 }
 
-void CostFunctionClass::assignNewCamera(void)
-{
-	//deleting old memory if exists
-	if(opt_data.h_pcl_index != NULL)
-		delete opt_data.h_pcl_index;
-	opt_data.h_pcl_index = new int [MAX_ITE*nOfCams];			
-
-	if (opt_data.h_angle_index != NULL)
-		delete opt_data.h_angle_index;
-	opt_data.h_angle_index =	new int [MAX_ITE*nOfCams];
-
-	if(comp_vec != NULL)
-		delete comp_vec;
-	comp_vec = new unsigned long long[nOfCams];
-	gen_result = gen_comb_norep_lex_init(comp_vec, robotPCL_qa0.n*pos.nOfAngles, nOfCams);
-	opt_data.maxIteration = maxNumberOfIteration(robotPCL_qa0.n*pos.nOfAngles, nOfCams);
-
-	
-}
-
-unsigned long long CostFunctionClass::maxNumberOfIteration(unsigned int long long n, unsigned int long long k)
-{
-	if(k>1)
-	{
-		unsigned long long nf = exp(n*log((double)n)-n+0.5*log(2*MATH_PI*n));
-		unsigned long long kf = exp(k*log((double)k)-k+0.5*log(2*MATH_PI*k));
-		unsigned long long nkf = exp((n-k)*log((double)(n-k))-(n-k)+0.5*log(2*MATH_PI*(n-k)));
-		return nf/(kf*nkf);
-	}else
-	{
-		return n;
-	}
-}
-
 void CostFunctionClass::allocOptimisationMemory(void)
 {
 	unsigned int nOfCameraPos = robotpcl_0.n * pos.nOfAngles;
@@ -853,12 +820,6 @@ void CostFunctionClass::allocOptimisationMemory(void)
 
 	CudaMem::cudaMemAllocReport((void**)&opt_data.allData.d_hs, 				PAR_KERNEL_LAUNCHS*CAM_ITE*N_int*sizeof(int));
 	CudaMem::cudaMemAllocReport((void**)&opt_data.allData.d_fa, 				PAR_KERNEL_LAUNCHS*CAM_ITE*N_int*sizeof(int));
-
-	CudaMem::cudaMemAllocReport((void**)&opt_data.allData.d_hs_final, 				PAR_KERNEL_LAUNCHS*CAM_ITE*N_int*sizeof(int));
-	CudaMem::cudaMemAllocReport((void**)&opt_data.allData.d_fa_final, 				PAR_KERNEL_LAUNCHS*CAM_ITE*N_int*sizeof(int));
-
-
-
 	CudaMem::cudaMemAllocReport((void**)&opt_data.allData.d_fa_costs, 		PAR_KERNEL_LAUNCHS*CAM_ITE*sizeof(float));
 	CudaMem::cudaMemAllocReport((void**)&opt_data.allData.d_hs_costs, 		PAR_KERNEL_LAUNCHS*CAM_ITE*sizeof(float));
 	CudaMem::cudaMemAllocReport((void**)&opt_data.allData.d_costs, 			PAR_KERNEL_LAUNCHS*CAM_ITE*sizeof(double));
@@ -871,8 +832,6 @@ void CostFunctionClass::allocOptimisationMemory(void)
 	CudaMem::cudaMemAllocReport((void**)&opt_data.d_angle_index, 			PAR_KERNEL_LAUNCHS*CAM_ITE*sizeof(int));
 	CudaMem::cudaMemAllocReport((void**)&opt_data.d_h_camera, 				PAR_KERNEL_LAUNCHS*CAM_ITE*NUMELEM_H*sizeof(float));
 
-	
-
 	CudaMem::cudaMemAllocReport((void**)&opt_data.d_hasCollision, 				sizeof(unsigned int));
 	
 
@@ -882,10 +841,13 @@ void CostFunctionClass::allocOptimisationMemory(void)
 #ifdef DEBUG_RECORD
 	opt_data.h_costs_result = 	new double[nOfCameraPos];
 #endif
-
-
-
-
+	opt_data.h_pcl_index = 		new int [PAR_KERNEL_LAUNCHS*CAM_ITE];
+	opt_data.h_angle_index =	new int [PAR_KERNEL_LAUNCHS*CAM_ITE];
+	for(unsigned int i=0; i<PAR_KERNEL_LAUNCHS*CAM_ITE; i++)
+	{
+		opt_data.h_pcl_index[i] = 0.0f;
+		opt_data.h_angle_index[i] = 0.0f;
+	}
 
 
 	opt_data.nearesNeighbourIndex = new int[robotpcl.n*6];
@@ -899,8 +861,6 @@ void CostFunctionClass::allocOptimisationMemory(void)
 	{
 		opt_data.launchConfigurations[i].d_hs = &opt_data.allData.d_hs[i*CAM_ITE*N_int];
 		opt_data.launchConfigurations[i].d_fa = &opt_data.allData.d_fa[i*CAM_ITE*N_int];
-		opt_data.launchConfigurations[i].d_hs_final = &opt_data.allData.d_hs_final[i*CAM_ITE*N_int];
-		opt_data.launchConfigurations[i].d_fa_final = &opt_data.allData.d_fa_final[i*CAM_ITE*N_int];
 		opt_data.launchConfigurations[i].d_fa_costs = &opt_data.allData.d_fa_costs[i*CAM_ITE];
 		opt_data.launchConfigurations[i].d_hs_costs = &opt_data.allData.d_hs_costs[i*CAM_ITE];
 		opt_data.launchConfigurations[i].d_costs = &opt_data.allData.d_costs[i*CAM_ITE];
@@ -946,18 +906,36 @@ void CostFunctionClass::allocOptimisationMemory(void)
 
 bool CostFunctionClass::generatePCLandAngleIndex(void)
 {
+
+
 	unsigned int ite = 0;
-	while(gen_result == GEN_NEXT && ite < MAX_ITE)
+	unsigned int pcl_index = 0;
+	unsigned int angle_index = 0;
+	for(pcl_index = opt_data.currentPCLIndex; pcl_index<robotpcl_0.n && ite<MAX_ITE; pcl_index++)
 	{
-		for(unsigned int i=0; i<nOfCams; i++)
+
+		for(angle_index= opt_data.currentAngleIndex;  angle_index<pos.nOfAngles && ite<MAX_ITE; angle_index++, ite++)
 		{
-			opt_data.h_pcl_index[ite+i*MAX_ITE] = comp_vec[i]/pos.nOfAngles;
-			opt_data.h_angle_index[ite+i*MAX_ITE] = comp_vec[i]- opt_data.h_pcl_index[ite]*pos.nOfAngles;
+			opt_data.h_pcl_index[ite] = pcl_index;
+			opt_data.h_angle_index[ite] = angle_index;
 		}
-		ite++;
-		gen_result = gen_comb_norep_lex_next(comp_vec, robotPCL_qa0.n*pos.nOfAngles, nOfCams);
+
+		if(angle_index == pos.nOfAngles)
+		{
+			opt_data.currentAngleIndex = 0;
+		}
+		if(ite == MAX_ITE)
+			break;
+
+
 	}
+
+
+
+	opt_data.currentPCLIndex = pcl_index;
+	opt_data.currentAngleIndex = angle_index;
 	opt_data.currentNofValidIterations = ite;
+	//if both indices are at the end, the function returns false
 	return true;
 }
 
@@ -967,66 +945,16 @@ void CostFunctionClass::initCostArray(void)
 		opt_data.h_costs_buffer[i] = 0.0;
 }
 
-void CostFunctionClass::initHSandFAFinal(void)
-{
-	CudaMem::cudaMemsetReport(opt_data.allData.d_hs_final,  0xFFFFFFFF, MAX_ITE*N_int*sizeof(int));	
-	CudaMem::cudaMemsetReport(opt_data.allData.d_fa_final, 0x0, MAX_ITE*N_int*sizeof(int));
-}
-
-void CostFunctionClass::calculateCosts(void)
-{
-		//////fusing multiple grids
-	for(unsigned int i=0; i<PAR_KERNEL_LAUNCHS; i++)
-	{		
-		cuda_calc::fuseGrids_shared<<<CAM_ITE, 1024, 0,opt_data.launchConfigurations[i].cudaStreams>>>(
-				opt_data.launchConfigurations[i].d_hs_final,
-				opt_data.launchConfigurations[i].d_fa_final,
-				opt_data.launchConfigurations[i].d_ksdf,
-				opt_data.launchConfigurations[i].d_hs_costs,
-				opt_data.launchConfigurations[i].d_fa_costs);
-		cudaStatus = cudaGetLastError();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "fuseGrids_shared launch failed: %s\n", cudaGetErrorString(cudaStatus));
-			return;
-		}
-	}
-
-	cudaStatus = cudaDeviceSynchronize();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching fuseGrids_shared!\n", cudaStatus);
-		return;
-	}
-
-	for(unsigned int i=0; i<PAR_KERNEL_LAUNCHS; i++)
-	{
-		cuda_calc::calcCalcCosts<<<1, CAM_ITE,0, opt_data.launchConfigurations[i].cudaStreams>>>(
-				opt_data.launchConfigurations[i].d_hs_costs,
-				opt_data.launchConfigurations[i].d_fa_costs,
-				opt_data.launchConfigurations[i].d_costs);
-		cudaStatus = cudaGetLastError();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "fuseGrids_shared launch failed: %s\n", cudaGetErrorString(cudaStatus));
-			return;
-		}
-	}
-
-	cudaStatus = cudaDeviceSynchronize();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching fuseGrids_shared!\n", cudaStatus);
-		return;
-	}
-
-
-}
-
 void CostFunctionClass::optimize_all_memory(void)
 {
 	unsigned int cameraIndice =0;
 	unsigned int nOfCameraPos = robotpcl_0.n * pos.nOfAngles;
 	time_t 			start;
-	assignNewCamera();
 
 
+	//setting starting index before iteration to zero
+	opt_data.currentPCLIndex = 0;
+	opt_data.currentAngleIndex = 0;
 
 #ifndef DEBUG_RECORD
 	sA->initializeFirstRun(opt_data.h_pcl_index, opt_data.h_angle_index);
@@ -1052,26 +980,19 @@ void CostFunctionClass::optimize_all_memory(void)
 		{
 			setRobotOccupancyGrid(r);
 			calculateKSDF_memory();
-			//adjustCameraParameters(r,0);
+			adjustCameraParameters(r);
 
 			for(unsigned int h=0; h<humanPos.n; h++)
 			{
-				//is outside of every border
 				if(!isValidPosition[r*humanPos.n + h])
 					continue;
-				
+
 				setHumanOccupancyGrid(h,r);
 				if(!doesHumanCollideWithRobot())
 					continue;
 				
 				div++;
-				initHSandFAFinal();
-				for(unsigned int i=0; i < nOfCams; i++)
-				{
-					adjustCameraParameters(r,i);
-					optimize_single();
-				}
-				calculateCosts();
+				optimize_single();
 				CudaMem::cudaMemCpyReport(opt_data.h_costs, opt_data.allData.d_costs, MAX_ITE*sizeof(double), cudaMemcpyDeviceToHost);
 
 #ifdef DEBUG_RECORD
@@ -1081,9 +1002,7 @@ void CostFunctionClass::optimize_all_memory(void)
 				}
 				//if(r%10 == 0 && r > 0)
 				//{
-					//printProgress((double)(r*humanPos.n+h+1)* opt_data.currentNofValidIterations,(double)nOfCameraPos*robotPos.n*humanPos.n, start, "optimize");
-					//printProgress((double)cameraIndice,(double)nOfCameraPos, start, "optimize");
-					printf("robot pos: %i\thuman pos: %i\n", r,h);
+					printProgress((double)(r*humanPos.n+h+1)* opt_data.currentNofValidIterations,(double)nOfCameraPos*robotPos.n*humanPos.n, start, "optimize");
 				//}
 #else
 				for(unsigned int i=0; i<MAX_ITE; i++)
@@ -1093,9 +1012,8 @@ void CostFunctionClass::optimize_all_memory(void)
 #endif
 				
 			}
-			
 		}
-		printProgress((double)cameraIndice,(double)nOfCameraPos, start, "optimize");
+
 
 #ifdef DEBUG_RECORD
 		for(unsigned int i=0; i<opt_data.currentNofValidIterations; i++)
@@ -1103,7 +1021,7 @@ void CostFunctionClass::optimize_all_memory(void)
 			opt_data.h_costs_result[cameraIndice+i] /= div;
 		}
 		cameraIndice += opt_data.currentNofValidIterations;
-		isRunning = gen_result == GEN_NEXT;
+		isRunning = !(opt_data.currentPCLIndex==robotpcl_0.n && opt_data.currentAngleIndex==pos.nOfAngles);
 		
 #else
 		for(unsigned int i=0; i<MAX_ITE; i++)
@@ -1131,8 +1049,12 @@ void CostFunctionClass::optimize_all_memory(void)
 
 void CostFunctionClass::optimize_single(void)
 {
-	CudaMem::cudaMemsetReport(opt_data.allData.d_hs, 0x0, MAX_ITE*N_int*sizeof(int));	
-	CudaMem::cudaMemsetReport(opt_data.allData.d_fa, 0x0, MAX_ITE*N_int*sizeof(int));
+	CudaMem::cudaMemsetReport(opt_data.allData.d_fa, 0, PAR_KERNEL_LAUNCHS*CAM_ITE*N_int*sizeof(int));
+	CudaMem::cudaMemsetReport(opt_data.allData.d_hs, 0, PAR_KERNEL_LAUNCHS*CAM_ITE*N_int*sizeof(int));
+
+
+
+
 
 	for(unsigned int i=0; i<PAR_KERNEL_LAUNCHS; i++)
 	{
@@ -1177,7 +1099,7 @@ void CostFunctionClass::optimize_single(void)
 			fprintf(stderr, "project_voxel_into_ws launch failed: %s\n", cudaGetErrorString(cudaStatus));
 			return;
 		}
-	}
+		}
 
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
@@ -1187,35 +1109,316 @@ void CostFunctionClass::optimize_single(void)
 
 
 
+	//////fusing multiple grids
+	for(unsigned int i=0; i<PAR_KERNEL_LAUNCHS; i++)
+	{
+		cuda_calc::fuseGrids_shared<<<CAM_ITE, 1024, 0,opt_data.launchConfigurations[i].cudaStreams>>>(
+				opt_data.launchConfigurations[i].d_hs,
+				opt_data.launchConfigurations[i].d_fa,
+				opt_data.launchConfigurations[i].d_ksdf,
+				opt_data.launchConfigurations[i].d_hs_costs,
+				opt_data.launchConfigurations[i].d_fa_costs);
+		cudaStatus = cudaGetLastError();
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "fuseGrids_shared launch failed: %s\n", cudaGetErrorString(cudaStatus));
+			return;
+		}
+	}
 
-
-
+	cudaStatus = cudaDeviceSynchronize();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching fuseGrids_shared!\n", cudaStatus);
+		return;
+	}
 
 	for(unsigned int i=0; i<PAR_KERNEL_LAUNCHS; i++)
 	{
-		cuda_calc::fuse2HSGrids<<<CAM_ITE*4,1024>>>(opt_data.launchConfigurations[i].d_hs_final,
-													opt_data.launchConfigurations[i].d_hs,
-													opt_data.launchConfigurations[i].d_fa_final,
-													opt_data.launchConfigurations[i].d_fa);
+		cuda_calc::calcCalcCosts<<<1, CAM_ITE,0, opt_data.launchConfigurations[i].cudaStreams>>>(
+				opt_data.launchConfigurations[i].d_hs_costs,
+				opt_data.launchConfigurations[i].d_fa_costs,
+				opt_data.launchConfigurations[i].d_costs);
 		cudaStatus = cudaGetLastError();
 		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "fuse2HSGrids launch failed: %s\n", cudaGetErrorString(cudaStatus));
+			fprintf(stderr, "fuseGrids_shared launch failed: %s\n", cudaGetErrorString(cudaStatus));
 			return;
 		}
-
-
 	}
+
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching fuse2HSGrids!\n", cudaStatus);
+		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching fuseGrids_shared!\n", cudaStatus);
 		return;
 	}
+
+
+
+
 
 }
 
 
 
+void CostFunctionClass::optimize(void)
+{
 
+	unsigned int nOfCameraPos = robotpcl_0.n * pos.nOfAngles* robotPos.n;
+	unsigned int human_robot_pos = humanPos.n * robotPos.n;
+	unsigned int depthBufferSize = IMG_SIZE * human_robot_pos*CAM_ITE;
+
+
+	unsigned int*	d_robotoccupancy;
+	unsigned int*	d_humanoccupancy;
+
+	unsigned int*	d_fa;
+	unsigned int*	d_hs;
+
+	float*			d_c;
+	float*			d_mi;
+	float*			d_cp;
+
+	float*			d_ksdf;
+	double*			d_costs;
+	float*			d_fa_costs;
+	float*			d_hs_costs;
+	float*			d_hdm;
+	float*			d_edm;
+
+	double*			h_costs;
+	float*			h_c;
+	float*			h_mi;
+	float*			h_cp;
+
+	cudaError		cudaStatus;
+	time_t 			start;
+
+	struct OPTIMISTATION_LAUNCH launchConfigurations[PAR_KERNEL_LAUNCHS];
+	cudaStream_t cudaStreams[PAR_KERNEL_LAUNCHS];
+
+//launch kernel relevant
+	CudaMem::cudaMemAllocReport((void**)&d_hs, 		PAR_KERNEL_LAUNCHS*CAM_ITE*N_int*sizeof(int));
+	CudaMem::cudaMemAllocReport((void**)&d_fa, 		PAR_KERNEL_LAUNCHS*CAM_ITE*N_int*sizeof(int));
+	CudaMem::cudaMemAllocReport((void**)&d_fa_costs, PAR_KERNEL_LAUNCHS*CAM_ITE*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&d_hs_costs, PAR_KERNEL_LAUNCHS*CAM_ITE*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&d_costs, 	PAR_KERNEL_LAUNCHS*CAM_ITE*sizeof(double));
+	CudaMem::cudaMemAllocReport((void**)&d_hdm, 		PAR_KERNEL_LAUNCHS*depthBufferSize*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&d_edm, 		PAR_KERNEL_LAUNCHS*depthBufferSize*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&d_cp, 		PAR_KERNEL_LAUNCHS*CAM_ITE*3*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&d_mi, 		PAR_KERNEL_LAUNCHS*CAM_ITE*9*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&d_c, 		PAR_KERNEL_LAUNCHS*CAM_ITE*12*sizeof(float));
+
+//setting pointer for launch configuration
+	for(unsigned int i=0; i<PAR_KERNEL_LAUNCHS; i++)
+	{
+		launchConfigurations[i].d_hs = &d_hs[i*CAM_ITE*N_int];
+		launchConfigurations[i].d_fa = &d_fa[i*CAM_ITE*N_int];
+		launchConfigurations[i].d_fa_costs = &d_fa_costs[i*CAM_ITE];
+		launchConfigurations[i].d_hs_costs = &d_hs_costs[i*CAM_ITE];
+		launchConfigurations[i].d_costs = &d_costs[i*CAM_ITE];
+		launchConfigurations[i].d_hdm = &d_hdm[i*depthBufferSize];
+		launchConfigurations[i].d_edm = &d_edm[i*depthBufferSize];
+		launchConfigurations[i].d_cp = &d_cp[i*CAM_ITE*3];
+		launchConfigurations[i].d_mi = &d_mi[i*CAM_ITE*9];
+		launchConfigurations[i].d_c = &d_c[i*CAM_ITE*12];
+		cudaStatus = cudaStreamCreate (&cudaStreams[i]);
+		if(cudaStatus != cudaSuccess)
+		{
+			fprintf(stderr, "stream creation failed: %s\n", cudaGetErrorString(cudaStatus));
+		}
+
+	}
+
+	//not launch kernel relevant
+	CudaMem::cudaMemAllocReport((void**)&d_ksdf, N*sizeof(float));
+	CudaMem::cudaMemCpyReport(d_ksdf, robotPos.ksdf[0], robotPos.n*N*sizeof(float), cudaMemcpyHostToDevice);
+
+	h_costs = new double[nOfCameraPos];
+
+	//load robot occupancy in to cuda
+	CudaMem::cudaMemAllocReport((void**)&d_robotoccupancy, robotPos.n*N_int*sizeof(int));
+	IO::loadFileOntoCuda("robotOccupancy.bin", d_robotoccupancy,robotPos.n*N_int*sizeof(int));
+
+	//load human occupancy in to cuda
+	CudaMem::cudaMemAllocReport((void**)&d_humanoccupancy, robotPos.n*N_int*sizeof(int));
+	IO::loadFileOntoCuda("humanOccupancy.bin", d_humanoccupancy,robotPos.n*N_int*sizeof(int));
+
+
+	//load cp in to host and alloc device memory
+	h_cp = new float[nOfCameraPos*3];
+	IO::loadFileOntoHost("CP.bin", h_cp,nOfCameraPos*3*sizeof(float));
+
+
+	//load cp in to host and alloc device memory
+	h_mi = new float[nOfCameraPos*9];
+	IO::loadFileOntoHost("Mi.bin", h_mi,nOfCameraPos*9*sizeof(float));
+
+
+	h_c = new float[nOfCameraPos*12];
+	IO::loadFileOntoHost("C.bin", h_c,nOfCameraPos*12*sizeof(float));
+
+
+	//**setting cuda cache of kernels
+	time(&start);
+
+	checkMemoryUsage();
+
+	cudaProfilerStart();
+	unsigned int cameraIndice =0;
+	unsigned int cam_iterations = PAR_KERNEL_LAUNCHS*CAM_ITE;
+	unsigned int nOfPositins = 0;
+	CudaMem::cudaMemCpyReport(d_c, &h_c[cameraIndice*12],  cam_iterations*12*sizeof(float), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(d_mi, &h_mi[cameraIndice*9],  cam_iterations*9*sizeof(float), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(d_cp, &h_cp[cameraIndice*3],  cam_iterations*3*sizeof(float), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemsetReport(d_fa, 0, PAR_KERNEL_LAUNCHS*CAM_ITE*N_int*sizeof(int));
+	CudaMem::cudaMemsetReport(d_hs, 0, PAR_KERNEL_LAUNCHS*CAM_ITE*N_int*sizeof(int));
+
+
+	for(cameraIndice=0; cameraIndice < nOfCameraPos; cameraIndice += PAR_KERNEL_LAUNCHS*CAM_ITE)
+	{
+		if((nOfCameraPos - cameraIndice) < PAR_KERNEL_LAUNCHS*CAM_ITE)
+		{
+			cam_iterations = nOfCameraPos - cameraIndice;
+		}
+
+
+		nOfPositins += cam_iterations;
+
+		CudaMem::cudaMemCpyReport(d_c, &h_c[cameraIndice*12],  cam_iterations*12*sizeof(float), cudaMemcpyHostToDevice);
+		CudaMem::cudaMemCpyReport(d_mi, &h_mi[cameraIndice*9],  cam_iterations*9*sizeof(float), cudaMemcpyHostToDevice);
+		CudaMem::cudaMemCpyReport(d_cp, &h_cp[cameraIndice*3],  cam_iterations*3*sizeof(float), cudaMemcpyHostToDevice);
+		CudaMem::cudaMemsetReport(d_fa, 0, PAR_KERNEL_LAUNCHS*CAM_ITE*N_int*sizeof(int));
+		CudaMem::cudaMemsetReport(d_hs, 0, PAR_KERNEL_LAUNCHS*CAM_ITE*N_int*sizeof(int));
+
+		for(unsigned int i=0; i<PAR_KERNEL_LAUNCHS; i++)
+		{
+			cuda_calc::raytrace_shared<<<10,320,0,cudaStreams[i]>>>(d_robotoccupancy, d_humanoccupancy,
+					launchConfigurations[i].d_mi,
+					launchConfigurations[i].d_cp,
+					launchConfigurations[i].d_edm,
+					launchConfigurations[i].d_hdm);
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "raytrace_shared launch failed: %s\n", cudaGetErrorString(cudaStatus));
+				return;
+			}
+		}
+
+		cudaStatus = cudaDeviceSynchronize();
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching raytrace_shared!\n", cudaStatus);
+			return;
+		}
+
+
+
+
+		dim3 dimBlock(8, 8, 8);
+		dim3 dimGrid(8, 8, 4);
+		for(unsigned int i=0; i<PAR_KERNEL_LAUNCHS; i++)
+		{
+			cuda_calc::project_voxel_into_ws<<<dimGrid,dimBlock,0, cudaStreams[i]>>>(d_humanoccupancy,
+					launchConfigurations[i].d_edm,
+					launchConfigurations[i].d_hdm,
+					launchConfigurations[i].d_c,
+					launchConfigurations[i].d_cp,
+					robotPos.n, humanPos.n,
+					launchConfigurations[i].d_fa,
+					launchConfigurations[i].d_hs);
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "project_voxel_into_ws launch failed: %s\n", cudaGetErrorString(cudaStatus));
+				return;
+			}
+			}
+
+		cudaStatus = cudaDeviceSynchronize();
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching project_voxel_into_ws!\n", cudaStatus);
+			return;
+		}
+
+
+
+		//////fusing multiple grids
+		for(unsigned int i=0; i<PAR_KERNEL_LAUNCHS; i++)
+		{
+			cuda_calc::fuseGrids_shared<<<CAM_ITE, 1024, 0,cudaStreams[i]>>>(
+					launchConfigurations[i].d_hs,
+					launchConfigurations[i].d_fa,
+					d_ksdf,
+					launchConfigurations[i].d_hs_costs,
+					launchConfigurations[i].d_fa_costs);
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "fuseGrids_shared launch failed: %s\n", cudaGetErrorString(cudaStatus));
+				return;
+			}
+		}
+
+		cudaStatus = cudaDeviceSynchronize();
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching fuseGrids_shared!\n", cudaStatus);
+			return;
+		}
+
+		for(unsigned int i=0; i<PAR_KERNEL_LAUNCHS; i++)
+		{
+			cuda_calc::calcCalcCosts<<<1, CAM_ITE,0, cudaStreams[i]>>>(
+					launchConfigurations[i].d_hs_costs,
+					launchConfigurations[i].d_fa_costs,
+					launchConfigurations[i].d_costs);
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "fuseGrids_shared launch failed: %s\n", cudaGetErrorString(cudaStatus));
+				return;
+			}
+		}
+
+		cudaStatus = cudaDeviceSynchronize();
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching fuseGrids_shared!\n", cudaStatus);
+			return;
+		}
+
+
+		CudaMem::cudaMemCpyReport(&h_costs[cameraIndice], d_costs, cam_iterations*sizeof(double), cudaMemcpyDeviceToHost);
+
+
+		//printing progress
+		if(cameraIndice % (10*CAM_ITE) == 0)
+		{
+			printf("camera pos: %i and current costs %.5lf\n", cameraIndice, h_costs[0]);
+			printProgress((double)cameraIndice,(double)nOfCameraPos, start, "optimize");
+		}
+
+
+
+	}
+	cudaProfilerStop();
+
+
+	IO::printMinCostSingleCameraToFile(h_costs, &pos, &robotPCL_qa0);
+
+
+	cudaFree(d_robotoccupancy);
+	cudaFree(d_humanoccupancy);
+	cudaFree(d_fa);
+	cudaFree(d_hs);
+	cudaFree(d_c);
+	cudaFree(d_mi);
+	cudaFree(d_cp);
+	cudaFree(d_ksdf);
+	cudaFree(d_costs);
+	cudaFree(d_fa_costs);
+	cudaFree(d_hs_costs);
+	cudaFree(d_edm);
+	cudaFree(d_hdm);
+
+	delete []		h_c;
+	delete []		h_mi;
+	delete []		h_cp;
+	delete [] 		h_costs;
+
+}
 
 void CostFunctionClass::checkMemoryUsage(void){
 	size_t avail;
@@ -1267,13 +1470,13 @@ void CostFunctionClass::initCameraPositions(struct POSITIONS* pos)
 	}
 
 
-	//CudaMem::cudaMemAllocReport((void**)&pos->d_roll, pos->nOfAngles*sizeof(float));
-	//CudaMem::cudaMemAllocReport((void**)&pos->d_pitch, pos->nOfAngles*sizeof(float));
-	//CudaMem::cudaMemAllocReport((void**)&pos->d_yaw, pos->nOfAngles*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&pos->d_roll, pos->nOfAngles*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&pos->d_pitch, pos->nOfAngles*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&pos->d_yaw, pos->nOfAngles*sizeof(float));
 
-	//CudaMem::cudaMemCpyReport(pos->d_roll, pos->roll, pos->nOfAngles*sizeof(float), cudaMemcpyHostToDevice);
-	//CudaMem::cudaMemCpyReport(pos->d_pitch, pos->pitch, pos->nOfAngles*sizeof(float), cudaMemcpyHostToDevice);
-	//CudaMem::cudaMemCpyReport(pos->d_yaw, pos->yaw, pos->nOfAngles*sizeof(float), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(pos->d_roll, pos->roll, pos->nOfAngles*sizeof(float), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(pos->d_pitch, pos->pitch, pos->nOfAngles*sizeof(float), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(pos->d_yaw, pos->yaw, pos->nOfAngles*sizeof(float), cudaMemcpyHostToDevice);
 
 
 

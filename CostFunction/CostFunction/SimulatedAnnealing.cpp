@@ -13,7 +13,7 @@
 #include "global.h"
   
 
-double const SimulatedAnnealing::e( 2.7182818284590452353602874713526624977572 );
+
 SimulatedAnnealing::SimulatedAnnealing(int NumerOfParrlelCalculation, double T, double alpha, int Npcl, int Nangle):ite(0)
 {
 
@@ -102,9 +102,6 @@ void SimulatedAnnealing::printCurrentStatus(void)
 		}else if(curStates[i] == STATE::NS)
 		{
 			printf("%i\tNS\t%.5lf\t%.5f\t%.10f\t%i\t%i\n", i, minEnergy[i], solu[i].costs, solu[i].currProp, solu[i].pcl, solu[i].angle);
-		}else if (curStates[i] == STATE::OR)
-		{
-			printf("%i\tOR\t%.5lf\t%.5f\t%.10f\t%i\t%i\n", i, minEnergy[i], solu[i].costs, solu[i].currProp, solu[i].pcl, solu[i].angle);
 		}
 		
 	}
@@ -152,11 +149,7 @@ double SimulatedAnnealing::iterateSingle(const int* const nn_indices, int* pclIn
 		a_i = angleIndex[2*i+1];				
 	}
 
-	//double prop = (rand() / (double)RAND_MAX);
-	//double newprop = pow(e, (minEnergy[i]-localMinE) / T);
-	//		
 
-	//if(prop <= newprop)
 	if(localMinE < minEnergy[i])
 	{	//has changed
 	//	noChange[6*i+cDim[i]] = false;
@@ -325,7 +318,7 @@ void SimulatedAnnealing::setNewVector(int i)
 
 bool SimulatedAnnealing::iterate(const int* const nn_indices, int* pclIndex, int* angleIndex, double* costs)
 {
-	
+	const double e = 2.718281828;
 	//iterating through all possible configuration
 	int rp, ra;
 	double localMinE;
@@ -333,20 +326,10 @@ bool SimulatedAnnealing::iterate(const int* const nn_indices, int* pclIndex, int
 	double* p = new double[NofE];
 	recordedSolution.push_back(p);
 
-	int angleTemp[2];
-	int pclTemp[2];
-
 	for(unsigned int i=0; i<NofE; i++)
 	{
-		//saving current s 
-		memcpy(pclTemp, pclIndex+i*2, 2*sizeof(int));
-		memcpy(angleTemp, angleIndex+i*2, 2*sizeof(int));
-
 		//setting next iteration and find local minimum
 		localMinE = iterateSingle(nn_indices, pclIndex, angleIndex, costs, i);
-
-		double prop;
-		double newprop;
 
 		switch(curStates[i]){
 		case STATE::HC:
@@ -366,8 +349,8 @@ bool SimulatedAnnealing::iterate(const int* const nn_indices, int* pclIndex, int
 			break;
 		case STATE::NS:
 			//try to accept new bet
-			prop = (rand() / (double)RAND_MAX);
-			newprop = pow(e, (minEnergy[i]-localMinE) / T);
+			double prop = (rand() / (double)RAND_MAX);
+			double newprop = pow(e, (minEnergy[i]-localMinE) / T);
 			solu[i].currProp = newprop;
 
 			if(prop <= newprop)
@@ -381,21 +364,6 @@ bool SimulatedAnnealing::iterate(const int* const nn_indices, int* pclIndex, int
 				setNewVector(i);
 				chooseRandomConfiguration(pclIndex+i*2, angleIndex+i*2);	
 			}
-			break;
-		case STATE::OR:
-			prop = (rand() / (double)RAND_MAX);
-			newprop = pow(e, (minEnergy[i]-localMinE) / T);
-			solu[i].currProp = newprop;
-			if(prop <= newprop)
-			{	
-				minEnergy[i] = localMinE;
-			}else
-			{
-				memcpy(pclIndex+i*2,pclTemp, 2*sizeof(int));
-				memcpy(angleIndex+i*2,angleTemp, 2*sizeof(int));
-				iterateSingle(nn_indices, pclIndex, angleIndex, costs, i);
-			}
-
 			break;
 		};
 		addSingleResult(i);

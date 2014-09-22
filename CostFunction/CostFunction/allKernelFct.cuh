@@ -51,26 +51,6 @@ namespace cuda_calc{
 
 	}
 
-	__forceinline__ __device__ void setBitAnd(unsigned int* const a, unsigned int index)
-	{
-		unsigned int mask = 0x80000000;
-		unsigned char ai =  (unsigned char)index&(0x0000001f);
-		mask >>= ai;
-		unsigned int *adr = &a[index>>5];
-		atomicAnd(adr,mask);
-
-	}
-
-	__forceinline__ __device__ void clearBitAnd(unsigned int* const a, unsigned int index)
-	{
-		unsigned int mask = 0x80000000;
-		unsigned char ai =  (unsigned char)index&(0x0000001f);
-		mask >>= ai;
-		unsigned int *adr = &a[index>>5];
-		atomicAnd(adr,mask);
-
-	}
-
 
 	void setBitHost(unsigned int* const a, unsigned int index)
 	{
@@ -490,7 +470,6 @@ namespace cuda_calc{
 				if(isInHuman && EDM[i*IMG_SIZE+ic] <= HDM[i*IMG_SIZE+ic] )
 				{
 					setBit(&HS[i*SHARED_MEM_WS_INT], id);
-					//setBitAnd(&HS[i*SHARED_MEM_WS_INT], id);
 				}
 
 				if(d < HDM[i*IMG_SIZE+ic] && d < EDM[i*IMG_SIZE+ic])
@@ -503,7 +482,6 @@ namespace cuda_calc{
 				if(isInHuman)
 				{
 					setBit(&HS[i*SHARED_MEM_WS_INT], id);
-					//setBitAnd(&HS[i*SHARED_MEM_WS_INT], id);					
 				}
 			}
 		}
@@ -535,12 +513,10 @@ namespace cuda_calc{
 					+ gridDim.x * gridDim.y * blockIdx.z;
 
 
-
 		b0 = HSinput[blockId*SHARED_MEM_WS_INT+threadIdx.x*4+0];
 		b1 = HSinput[blockId*SHARED_MEM_WS_INT+threadIdx.x*4+1];
 		b2 = HSinput[blockId*SHARED_MEM_WS_INT+threadIdx.x*4+2];
 		b3 = HSinput[blockId*SHARED_MEM_WS_INT+threadIdx.x*4+3];
-	
 
 		c0 = 0.0f;
 		c1 = 0.0f;
@@ -569,8 +545,6 @@ namespace cuda_calc{
 			}
 		}
 		shared_costs_hs[threadIdx.x] = c0+c1+c2+c3;
-
-
 
 
 		b0 = FAinput[blockId*SHARED_MEM_WS_INT+threadIdx.x*4+0];
@@ -1358,7 +1332,7 @@ namespace cuda_calc{
 	}
 
 
-	__global__ void fuse2HSGrids(unsigned int* HS1, unsigned int* HS2, unsigned int* FA1, unsigned int* FA2)
+	__global__ void fuse2HSGrids(unsigned char* HS1, unsigned char* HS2, unsigned char* FA1, unsigned char* FA2)
 	{
 		int idx;
 
@@ -1368,10 +1342,10 @@ namespace cuda_calc{
 			+ threadIdx.y * blockDim.x
 			+ threadIdx.x;
 
-		unsigned int hs1 = HS1[idx];
-		unsigned int hs2 = HS2[idx];
-		unsigned int fa1 = FA1[idx];
-		unsigned int fa2 = FA2[idx];
+		unsigned char hs1 = HS1[idx];
+		unsigned char hs2 = HS2[idx];
+		unsigned char fa1 = FA1[idx];
+		unsigned char fa2 = FA2[idx];
 
 
 		HS1[idx] = hs1 & hs2;
@@ -1632,20 +1606,6 @@ namespace cuda_calc{
 
 	}
 
-	__device__ void getRollPitchYawFromAngleID(int a_i, float* roll, float* pitch, float* yaw)
-	{
-		 
-		int ri = a_i/N_OF_A_SQ;
-		int pi = (a_i - ri*N_OF_A_SQ)/N_OF_A;
-		int yi = a_i-ri*N_OF_A_SQ-pi*N_OF_A;
-
-		*roll = DA * ri - MATH_PI;
-		*pitch = DA * pi -MATH_PI;
-		*yaw =  DA * yi -MATH_PI;
-
-
-	}
-
 	__global__ void updateCameraPositions(int* pcl_id, int* angle_id,
 			const float* const d_r_x,
 			const float* const d_r_y,
@@ -1653,7 +1613,10 @@ namespace cuda_calc{
 			const int* const d_r_i,
 			const float* const d_T0,
 			const float* const d_T,
-			float* h)
+			float* h,
+			float* d_roll,
+			float* d_pitch,
+			float* d_yaw)
 	{
 
 		int id =  blockIdx.x *blockDim.x + threadIdx.x;
@@ -1662,12 +1625,9 @@ namespace cuda_calc{
 		int index = d_r_i[pcl_index];
 		int angle_index = angle_id[id];
 
-		float roll, pitch, yaw;
-		//	= d_roll[angle_index];
-		//float pitch = d_pitch[angle_index];
-		//float yaw = d_yaw[angle_index];
-
-		getRollPitchYawFromAngleID(angle_index, &roll, &pitch, &yaw);
+		float roll = d_roll[angle_index];
+		float pitch = d_pitch[angle_index];
+		float yaw = d_yaw[angle_index];
 
 		float r[16];
 		float cii[16];

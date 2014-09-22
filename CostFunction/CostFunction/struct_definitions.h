@@ -176,9 +176,9 @@ struct H_transformations{
 	 float* pitch;
 	 float* yaw;
 
-	 //float* d_yaw;
-	 //float* d_roll;
-	 //float* d_pitch;
+	 float* d_yaw;
+	 float* d_roll;
+	 float* d_pitch;
 
  };
 
