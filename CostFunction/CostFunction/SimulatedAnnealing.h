@@ -1,33 +1,6 @@
 #pragma once
 #include "NearestNeighbour.h"
 
-
-enum STATE{
-	HC,
-	NS,
-	OR
-};
-
-struct SOLUTION{
-	int pcl;
-	int angle;
-	double costs;
-	double currProp;
-	double curT;
-	int ite;
-	double minEnergy;
-	enum STATE state;	
-	double globalMin;
-};
-
-struct COST_POINT{
-	int pcl;
-	int angle;
-	double c;
-};
-
-
-
 struct COST
 {
 	struct COST_POINT m;
@@ -40,7 +13,6 @@ struct COST
 	NearestNeighbour::GRADIENT_DIM dir[6];
 	unsigned char dim;
 };
-
 
 class SimulatedAnnealing
 {

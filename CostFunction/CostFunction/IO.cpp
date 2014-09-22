@@ -38,6 +38,36 @@ void IO::savePCL(struct PCL* pcl, const char* name)
 	outbin.write((char*)pcl->i, pcl->n*sizeof(int));
 	outbin.close();
 }
+void IO::printMinPositionToFile(std::vector<struct COST_POINT*>* p, struct POSITIONS* pos, struct PCL* robotPCL_qa0, int nofCams)
+{
+	int size = p->size()*(nofCams*6+1)+2;
+	double* buffer = new double[size];
+	int pitch = nofCams*6+1;
+	int offset = 2;
+	buffer[0] = p->size();
+	buffer[1] = nofCams;
+
+	
+	for(unsigned int i=0; i<p->size(); i++)
+	{		
+		for(unsigned int j=0; j<nofCams; j++)
+		{
+			buffer[i*pitch+j*6+0+offset] = robotPCL_qa0->x[(*p)[i][j].pcl];
+			buffer[i*pitch+j*6+1+offset] = robotPCL_qa0->y[(*p)[i][j].pcl];
+			buffer[i*pitch+j*6+2+offset] = robotPCL_qa0->z[(*p)[i][j].pcl];
+			buffer[i*pitch+j*6+3+offset] = pos->roll[(*p)[i][j].angle];
+			buffer[i*pitch+j*6+4+offset] = pos->pitch[(*p)[i][j].angle];
+			buffer[i*pitch+j*6+5+offset] = pos->yaw[(*p)[i][j].angle];
+		}
+		buffer[i*pitch+nofCams*6+offset] = (*p)[i][0].c;
+	}
+
+	std::string fn = "minCameraPos" + to_string((_Longlong)nofCams) + ".bin";
+	ofstream outbin(fn, ofstream::binary );
+	outbin.write((char*)buffer, size*sizeof(double));
+	outbin.close();
+	delete buffer;
+}
 
 void IO::loadPCL(struct PCL* pcl, const char* name)
 {

@@ -124,10 +124,13 @@ private:
 	int				nOfCams;
 	unsigned long long* comp_vec;
 	int gen_result;
+	unsigned int* isValidForMulti;
+	unsigned long long nOfMaxPosition;
+
+	std::vector<struct COST_POINT* > currentMultiCameraCosts;
 
 
-
-
+	double globalMin;
 
 
 
@@ -167,7 +170,7 @@ protected:
 	void setRobotOccupancyGrid(int posIndex);
 	void setHumanOccupancyGrid(int humanPosIndex, int robotPosIndex);
 	bool generatePCLandAngleIndex(void);
-	void adjustCameraParameters(int index, int i);
+	void adjustCameraParameters(int index);
 	void initDHTransformations(void);
 	void initHTransformations(void);
 	void adjustrobotpclandvelocity_memory(struct PCL* dst,int i,  float vxp, float vyp);
@@ -175,11 +178,13 @@ protected:
 	void calculateKSDF_memory(void);
 	void calcNextCandidates(void);
 	void initCostArray(void);
-	void assignNewCamera(void);
+	
 	bool doesHumanCollideWithRobot(void);
 	unsigned int long long maxNumberOfIteration(unsigned int long long n, unsigned int long long k);
 	void initHSandFAFinal(void);
 	void calculateCosts(void);
+	void checkMinimumCosts(void);
+	void clearMinCosts(void);
 
 
 
@@ -198,7 +203,7 @@ public:
 	static void testCudaInverse();
 	static void testUpdateCameraParameters();
 	void testSelectNN(void);
-
+	void assignNewCamera(void);
 
 
 

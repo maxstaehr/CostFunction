@@ -9,6 +9,38 @@
 
 #define ROBOT_PCL_NUMBER_CUDA 4368
 #define NUMELEM_H 16
+
+
+
+enum STATE{
+	HC,
+	NS,
+	OR
+};
+
+struct SOLUTION{
+	int pcl;
+	int angle;
+	double costs;
+	double currProp;
+	double curT;
+	int ite;
+	double minEnergy;
+	enum STATE state;	
+	double globalMin;
+};
+
+struct COST_POINT{
+	int pcl;
+	int angle;
+	double c;
+};
+
+
+
+
+
+
 struct PCL
 {
 	float* x;

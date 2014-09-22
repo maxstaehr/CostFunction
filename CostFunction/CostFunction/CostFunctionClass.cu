@@ -45,7 +45,7 @@
 
 
 CostFunctionClass::CostFunctionClass():cudaDevice(0), nx(64), ny(64), nz(32),N(nx*ny*nz), N_char(N/8), N_int(N_char/4),
-		xmin(-3.0f), xmax(3.0f), ymin(-3.0f), ymax(3.0f), zmin(0.0f),zmax(3.0),nOfCams(1)
+	xmin(-3.0f), xmax(3.0f), ymin(-3.0f), ymax(3.0f), zmin(0.0f),zmax(3.0),nOfCams(0),globalMin(DBL_MAX), nOfMaxPosition(0)
 {
 
 
@@ -75,6 +75,7 @@ CostFunctionClass::CostFunctionClass():cudaDevice(0), nx(64), ny(64), nz(32),N(n
 	IO::loadPCL(&robotpcl_0, "robotpcl_q0.bin");
 	CudaMem::copyPCLHostToDevice(&robotpcl_0);
 
+
 	IO::loadPCL(&humanpcl_0, "humanpcl_q0.bin");
 	CudaMem::copyPCLHostToDevice(&humanpcl_0);
 
@@ -103,18 +104,24 @@ CostFunctionClass::CostFunctionClass():cudaDevice(0), nx(64), ny(64), nz(32),N(n
 
 #ifdef DEBUG_POSITIONS
 	robotPos.n = 1;
-	humanPos.n = 1;
+	humanPos.n = 2;
 	humanPos.positions[0] = -2.5f;
-	humanPos.positions[1] = 0.0f;
+	humanPos.positions[1] = -1.0f;
 	humanPos.positions[2] = MATH_PI/2.0f;
-	//humanPos.positions[3] = -2.5f;
-	//humanPos.positions[4] = 1.0f;
-	//humanPos.positions[5] = MATH_PI/2.0f;
+	humanPos.positions[3] = -2.5f;
+	humanPos.positions[4] = 1.0f;
+	humanPos.positions[5] = MATH_PI/2.0f;
 	for(int i=0;i<9;i++)
 	{
 		robotPos.positions[i] = 0.0f;
 		robotPos.velocities[i] = 0.0f;
 	}
+#endif
+
+#ifdef DEBUG_RECORD
+	
+	isValidForMulti = new unsigned int[IS_VALID_POS_N];
+	memset(isValidForMulti, 0, IS_VALID_POS_N*sizeof(unsigned int));
 #endif
 	initCameraPositions(&pos);
 	initCam(&cam);
@@ -750,13 +757,13 @@ void CostFunctionClass::setHumanOccupancyGrid(int humanPosIndex, int robotPosInd
 	assignHumanPclIntoWS_memory(&humanpcl, opt_data.allData.d_humanoccupancy, index);
 }
 
-void CostFunctionClass::adjustCameraParameters(int index, int i)
+void CostFunctionClass::adjustCameraParameters(int index)
 {
 	int offset_T = index*NUMELEM_H*N_ELEMENT_T;
 	int offset_H = index*NUMELEM_H;
 	cuda_calc::updateCameraPositions<<<PAR_KERNEL_LAUNCHS,CAM_ITE>>>(
-			opt_data.d_pcl_index+i*MAX_ITE,
-			opt_data.d_angle_index+i*MAX_ITE,
+			opt_data.d_pcl_index,
+			opt_data.d_angle_index,
 			robotpcl.d_x,
 			robotpcl.d_y,
 			robotpcl.d_z,
@@ -800,6 +807,7 @@ void CostFunctionClass::adjustCameraParameters(int index, int i)
 
 void CostFunctionClass::assignNewCamera(void)
 {
+	nOfCams++;	
 	//deleting old memory if exists
 	if(opt_data.h_pcl_index != NULL)
 		delete opt_data.h_pcl_index;
@@ -813,7 +821,17 @@ void CostFunctionClass::assignNewCamera(void)
 		delete comp_vec;
 	comp_vec = new unsigned long long[nOfCams];
 	gen_result = gen_comb_norep_lex_init(comp_vec, robotPCL_qa0.n*pos.nOfAngles, nOfCams);
-	opt_data.maxIteration = maxNumberOfIteration(robotPCL_qa0.n*pos.nOfAngles, nOfCams);
+	if(nOfCams == 1)
+	{
+		opt_data.maxIteration = maxNumberOfIteration(robotPCL_qa0.n*pos.nOfAngles, nOfCams);
+	}else
+	{
+		opt_data.maxIteration = maxNumberOfIteration(nOfMaxPosition, nOfCams);
+		
+	}
+
+
+	clearMinCosts();
 
 	
 }
@@ -949,16 +967,112 @@ bool CostFunctionClass::generatePCLandAngleIndex(void)
 	unsigned int ite = 0;
 	while(gen_result == GEN_NEXT && ite < MAX_ITE)
 	{
+		//check if valid
+		if(nOfCams > 1)
+		{			
+			while(gen_result == GEN_NEXT && ite < MAX_ITE)
+			{
+				bool allValidPos = true;
+				for(unsigned int i=0; i<nOfCams; i++)
+					allValidPos &= cuda_calc::isBitSetHost(isValidForMulti,comp_vec[i]);
+
+				if(allValidPos)
+				{
+					break;
+				}else
+				{
+					gen_result = gen_comb_norep_lex_next(comp_vec, robotPCL_qa0.n*pos.nOfAngles, nOfCams);
+				}
+			}
+		}
+
+
 		for(unsigned int i=0; i<nOfCams; i++)
-		{
+		{			
 			opt_data.h_pcl_index[ite+i*MAX_ITE] = comp_vec[i]/pos.nOfAngles;
 			opt_data.h_angle_index[ite+i*MAX_ITE] = comp_vec[i]- opt_data.h_pcl_index[ite]*pos.nOfAngles;
+			
 		}
 		ite++;
 		gen_result = gen_comb_norep_lex_next(comp_vec, robotPCL_qa0.n*pos.nOfAngles, nOfCams);
 	}
+
+
+
 	opt_data.currentNofValidIterations = ite;
 	return true;
+}
+
+void CostFunctionClass::clearMinCosts(void)
+{
+	for(unsigned int j=0; j<currentMultiCameraCosts.size(); j++)
+	{
+		delete currentMultiCameraCosts[j];
+	}
+	currentMultiCameraCosts.clear();
+}
+
+void CostFunctionClass::checkMinimumCosts(void)
+{
+
+
+
+	//finding minimum of current iteration
+	for(unsigned int i=0; i< opt_data.currentNofValidIterations; i++)
+	{
+		if(currentMultiCameraCosts.size() > 0)
+		{
+			if(opt_data.h_costs_buffer[i] < currentMultiCameraCosts[0]->c)
+			{
+				clearMinCosts();
+				struct COST_POINT* p = new COST_POINT[nOfCams];
+				for(unsigned int j=0; j<nOfCams; j++)
+				{
+					p[j].c = opt_data.h_costs_buffer[i];
+					p[j].angle = opt_data.h_angle_index[j*MAX_ITE+i];
+					p[j].pcl = opt_data.h_pcl_index[j*MAX_ITE+i];
+					assert(p[j].angle >999);
+				}
+				currentMultiCameraCosts.push_back(p);
+
+			}else if( opt_data.h_costs_buffer[i] == currentMultiCameraCosts[0]->c)
+			{
+				struct COST_POINT* p = new COST_POINT[nOfCams];
+				for(unsigned int j=0; j<nOfCams; j++)
+				{
+					p[j].c = opt_data.h_costs_buffer[i];
+					p[j].angle = opt_data.h_angle_index[j*MAX_ITE+i];
+					p[j].pcl = opt_data.h_pcl_index[j*MAX_ITE+i];
+					assert(p[j].angle >999);
+				}
+				currentMultiCameraCosts.push_back(p);
+			}
+
+
+		}else
+		{
+			struct COST_POINT* p = new COST_POINT[nOfCams];
+			for(unsigned int j=0; j<nOfCams; j++)
+			{
+				p[j].c = opt_data.h_costs_buffer[i];
+				p[j].angle = opt_data.h_angle_index[j*MAX_ITE+i];
+				p[j].pcl = opt_data.h_pcl_index[j*MAX_ITE+i];
+				assert(p[j].angle >999);
+			}
+			currentMultiCameraCosts.push_back(p);
+		}
+
+		//checking if minimum of current iteration is smaller than curred global
+		if(opt_data.h_costs_buffer[i] < globalMin)
+		{
+			globalMin = opt_data.h_costs_buffer[i];
+		}
+	}
+
+	
+	
+
+	
 }
 
 void CostFunctionClass::initCostArray(void)
@@ -1021,109 +1135,143 @@ void CostFunctionClass::calculateCosts(void)
 
 void CostFunctionClass::optimize_all_memory(void)
 {
-	unsigned int cameraIndice =0;
-	unsigned int nOfCameraPos = robotpcl_0.n * pos.nOfAngles;
-	time_t 			start;
-	assignNewCamera();
-
-
-
-#ifndef DEBUG_RECORD
-	sA->initializeFirstRun(opt_data.h_pcl_index, opt_data.h_angle_index);
-#endif
+		
+	
 	
 
 
 
-	time(&start);
-	bool isRunning = true;
-	opt_data.currentNofValidIterations = MAX_ITE;
-	while(isRunning)
+
+	
+
+	while(globalMin > 0)
 	{
-#ifdef	DEBUG_RECORD
-		generatePCLandAngleIndex();
-#endif
-		CudaMem::cudaMemCpyReport(opt_data.d_pcl_index, opt_data.h_pcl_index, MAX_ITE*sizeof(int), cudaMemcpyHostToDevice);
-		CudaMem::cudaMemCpyReport(opt_data.d_angle_index, opt_data.h_angle_index, MAX_ITE*sizeof(int), cudaMemcpyHostToDevice);
 
-		initCostArray();
-		int div = 0;
-		for(unsigned int r=0; r<robotPos.n; r++)
-		{
-			setRobotOccupancyGrid(r);
-			calculateKSDF_memory();
-			//adjustCameraParameters(r,0);
+			time_t 	start;
 
-			for(unsigned int h=0; h<humanPos.n; h++)
+			assignNewCamera();
+			if(nOfCams == 2)
 			{
-				//is outside of every border
-				if(!isValidPosition[r*humanPos.n + h])
-					continue;
-				
-				setHumanOccupancyGrid(h,r);
-				if(!doesHumanCollideWithRobot())
-					continue;
-				
-				div++;
-				initHSandFAFinal();
-				for(unsigned int i=0; i < nOfCams; i++)
-				{
-					adjustCameraParameters(r,i);
-					optimize_single();
-				}
-				calculateCosts();
-				CudaMem::cudaMemCpyReport(opt_data.h_costs, opt_data.allData.d_costs, MAX_ITE*sizeof(double), cudaMemcpyDeviceToHost);
+				std::cout << opt_data.maxIteration <<  "iteration to start" << std::endl;
+				std::string mystring;
+				getline (std::cin, mystring);
+			}
 
-#ifdef DEBUG_RECORD
-				for(unsigned int i=0; i<opt_data.currentNofValidIterations; i++)
+			time(&start);
+			bool isRunning = true;
+			unsigned int cameraIndice =0;
+			
+
+#ifndef DEBUG_RECORD
+				sA->initializeFirstRun(opt_data.h_pcl_index, opt_data.h_angle_index);
+#endif
+
+			while(isRunning)
+			{
+#ifdef	DEBUG_RECORD
+				generatePCLandAngleIndex();
+#endif
+
+
+				initCostArray();
+				int div = 0;
+				for(unsigned int r=0; r<robotPos.n; r++)
 				{
-					opt_data.h_costs_result[cameraIndice+i] += opt_data.h_costs[i];
+					setRobotOccupancyGrid(r);
+					calculateKSDF_memory();				
+
+					for(unsigned int h=0; h<humanPos.n; h++)
+					{
+						//is outside of every border
+						if(!isValidPosition[r*humanPos.n + h])
+							continue;
+				
+						setHumanOccupancyGrid(h,r);
+						if(!doesHumanCollideWithRobot())
+							continue;
+				
+						div++;
+						initHSandFAFinal();
+						for(unsigned int i=0; i < nOfCams; i++)
+						{
+							CudaMem::cudaMemCpyReport(opt_data.d_pcl_index, opt_data.h_pcl_index+i*MAX_ITE, MAX_ITE*sizeof(int), cudaMemcpyHostToDevice);
+							CudaMem::cudaMemCpyReport(opt_data.d_angle_index, opt_data.h_angle_index+i*MAX_ITE, MAX_ITE*sizeof(int), cudaMemcpyHostToDevice);
+							adjustCameraParameters(r);
+
+							optimize_single();
+						}
+						calculateCosts();
+						CudaMem::cudaMemCpyReport(opt_data.h_costs, opt_data.allData.d_costs, MAX_ITE*sizeof(double), cudaMemcpyDeviceToHost);
+#ifdef DEBUG_RECORD
+						if(nOfCams == 1)
+						{
+							for(unsigned int i=0; i<opt_data.currentNofValidIterations; i++)
+							{
+								opt_data.h_costs_result[cameraIndice+i] += opt_data.h_costs[i];
+							}
+						}						
+#endif
+						printf("robot pos: %i\thuman pos: %i\n", r,h);
+						for(unsigned int i=0; i<MAX_ITE; i++)
+						{
+							opt_data.h_costs_buffer[i] += opt_data.h_costs[i];
+						}				
+					}
+			
 				}
-				//if(r%10 == 0 && r > 0)
-				//{
-					//printProgress((double)(r*humanPos.n+h+1)* opt_data.currentNofValidIterations,(double)nOfCameraPos*robotPos.n*humanPos.n, start, "optimize");
-					//printProgress((double)cameraIndice,(double)nOfCameraPos, start, "optimize");
-					printf("robot pos: %i\thuman pos: %i\n", r,h);
-				//}
-#else
+				printProgress((double)cameraIndice,(double)opt_data.maxIteration, start, "optimize");
+				printf("mincosts: %.10f\tnC: %i\t%i\n", globalMin, nOfCams, nOfMaxPosition);
+
+		#ifdef DEBUG_RECORD
+				if(nOfCams == 1)
+				{
+					for(unsigned int i=0; i<opt_data.currentNofValidIterations; i++)
+					{
+						opt_data.h_costs_result[cameraIndice+i] /= div;
+						if(opt_data.h_costs_result[cameraIndice+i] < 2500)
+						{
+							cuda_calc::setBitHost(isValidForMulti,cameraIndice+i);
+							nOfMaxPosition++;
+						}
+
+					}
+				}
+				cameraIndice += opt_data.currentNofValidIterations;
+				isRunning = (gen_result == GEN_NEXT);		
+		#else
+
+				isRunning = sA->iterate(opt_data.nearesNeighbourIndex,opt_data.h_pcl_index,  opt_data.h_angle_index, opt_data.h_costs_buffer); 		
+		#endif
 				for(unsigned int i=0; i<MAX_ITE; i++)
 				{
-					opt_data.h_costs_buffer[i] += opt_data.h_costs[i];
+					opt_data.h_costs_buffer[i] /= div;
 				}
-#endif
-				
-			}
+				checkMinimumCosts();
 			
-		}
-		printProgress((double)cameraIndice,(double)nOfCameraPos, start, "optimize");
-
+		
+			}
 #ifdef DEBUG_RECORD
-		for(unsigned int i=0; i<opt_data.currentNofValidIterations; i++)
-		{
-			opt_data.h_costs_result[cameraIndice+i] /= div;
-		}
-		cameraIndice += opt_data.currentNofValidIterations;
-		isRunning = gen_result == GEN_NEXT;
-		
-#else
-		for(unsigned int i=0; i<MAX_ITE; i++)
-		{
-			opt_data.h_costs_buffer[i] /= div;
-		}
-		isRunning = sA->iterate(opt_data.nearesNeighbourIndex,opt_data.h_pcl_index,  opt_data.h_angle_index, opt_data.h_costs_buffer); 
-		
+			if(nOfCams == 1)
+			{
+				IO::printMinCostSingleCameraToFile(opt_data.h_costs_result, &pos, &robotPCL_qa0);
+			}
 #endif
-
+					
+	//end of adding camera loop;
 	}
+	
+
+
+
 #ifdef DEBUG_RECORD
-	IO::printMinCostSingleCameraToFile(opt_data.h_costs_result, &pos, &robotPCL_qa0);
+	IO::printMinPositionToFile(&currentMultiCameraCosts, &pos, &robotPCL_qa0, nOfCams);
+
 #else
 	//sA->writeResultsToFile("sa_path", &robotPCL_qa0, &pos);
 	sA->writeEnergyResultsToFile("cost_behave");
 	sA->writeAllResultToFile("cost_energy");
 #endif
 	std::cout << "global minimum found" << std::endl;
-
 	std::string mystring;
 	getline (std::cin, mystring);
 }
@@ -1202,6 +1350,8 @@ void CostFunctionClass::optimize_single(void)
 			fprintf(stderr, "fuse2HSGrids launch failed: %s\n", cudaGetErrorString(cudaStatus));
 			return;
 		}
+
+		//test comment
 
 
 	}
@@ -1893,6 +2043,7 @@ void CostFunctionClass::testCudaInverse()
 void CostFunctionClass::testUpdateCameraParameters()
 {
 
+	
 	struct CAM testCam;
 
 	float h[] = EYE;
