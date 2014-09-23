@@ -941,15 +941,7 @@ void CostFunctionClass::allocOptimisationMemory(void)
 
 	}
 
-	//load data into alldata memory
-//	for(unsigned int i=0; i<robotPos.n; i++)
-//		CudaMem::cudaMemCpyReport(&opt_data.allData.d_ksdf[i*N], robotPos.ksdf[i], N*sizeof(float), cudaMemcpyHostToDevice);
-//
-//	IO::loadFileOntoCuda("robotOccupancy.bin", opt_data.allData.d_robotoccupancy,robotPos.n*N_int*sizeof(int));
-//	IO::loadFileOntoCuda("humanOccupancy.bin", opt_data.allData.d_humanoccupancy,robotPos.n*humanPos.n*N_int*sizeof(int));
-//	IO::loadFileOntoHost("CP.bin", opt_data.h_cp,nOfCameraPos*3*sizeof(float));
-//	IO::loadFileOntoHost("Mi.bin", opt_data.h_mi,nOfCameraPos*9*sizeof(float));
-//	IO::loadFileOntoHost("C.bin", opt_data.h_c,nOfCameraPos*12*sizeof(float));
+
 
 	checkMemoryUsage();
 
@@ -1031,7 +1023,7 @@ void CostFunctionClass::checkMinimumCosts(void)
 					p[j].c = opt_data.h_costs_buffer[i];
 					p[j].angle = opt_data.h_angle_index[j*MAX_ITE+i];
 					p[j].pcl = opt_data.h_pcl_index[j*MAX_ITE+i];
-					assert(p[j].angle >999);
+					assert(p[j].angle > 0 && p[j].angle < N_OF_A*N_OF_A*N_OF_A);
 				}
 				currentMultiCameraCosts.push_back(p);
 
@@ -1043,7 +1035,7 @@ void CostFunctionClass::checkMinimumCosts(void)
 					p[j].c = opt_data.h_costs_buffer[i];
 					p[j].angle = opt_data.h_angle_index[j*MAX_ITE+i];
 					p[j].pcl = opt_data.h_pcl_index[j*MAX_ITE+i];
-					assert(p[j].angle >999);
+					assert(p[j].angle > 0 && p[j].angle < N_OF_A*N_OF_A*N_OF_A);
 				}
 				currentMultiCameraCosts.push_back(p);
 			}
@@ -1057,7 +1049,7 @@ void CostFunctionClass::checkMinimumCosts(void)
 				p[j].c = opt_data.h_costs_buffer[i];
 				p[j].angle = opt_data.h_angle_index[j*MAX_ITE+i];
 				p[j].pcl = opt_data.h_pcl_index[j*MAX_ITE+i];
-				assert(p[j].angle >999);
+				assert(p[j].angle > 0 && p[j].angle < N_OF_A*N_OF_A*N_OF_A);
 			}
 			currentMultiCameraCosts.push_back(p);
 		}
@@ -1136,19 +1128,9 @@ void CostFunctionClass::calculateCosts(void)
 void CostFunctionClass::optimize_all_memory(void)
 {
 		
-	
-	
-
-
-
-
-	
-
 	while(globalMin > 0)
 	{
-
 			time_t 	start;
-
 			assignNewCamera();
 			if(nOfCams == 2)
 			{
