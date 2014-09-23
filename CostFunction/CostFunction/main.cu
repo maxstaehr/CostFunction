@@ -73,6 +73,8 @@ int main(int argc, char** argv)
 
 	//cf.init_costfunction(true);
 	cf.allocOptimisationMemory();
+	//cf.assignNewCamera();
+	//cf.assignNewCamera();
 	//cf.testSelectNN();
 	cf.optimize_all_memory();
 	//cf.optimize();

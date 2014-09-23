@@ -711,7 +711,7 @@ namespace cuda_calc{
 			+ threadIdx.x;
 
 	//	d_costs[idx] =  (d_hs_costs[idx] - (d_fa_costs[idx]/WS_ID_SIZE))/WS_ID_SIZE;
-		d_costs[idx] =  d_hs_costs[idx];///WS_ID_SIZE;// - (d_fa_costs[idx]/WS_ID_SIZE))/WS_ID_SIZE;
+		d_costs[idx] =  d_hs_costs[idx]-(d_fa_costs[idx]/WS_ID_SIZE);///WS_ID_SIZE;// - /WS_ID_SIZE;
 
 	}
 
