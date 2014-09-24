@@ -24,6 +24,8 @@ Global
 		ReleaseDebugPositions|x64 = ReleaseDebugPositions|x64
 		ReleaseDebugRecord|Win32 = ReleaseDebugRecord|Win32
 		ReleaseDebugRecord|x64 = ReleaseDebugRecord|x64
+		ReleaseDebugRecord3.0|Win32 = ReleaseDebugRecord3.0|Win32
+		ReleaseDebugRecord3.0|x64 = ReleaseDebugRecord3.0|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{23B79AF0-E655-4B07-BCA5-8A1471CF8A92}.Debug|Win32.ActiveCfg = Debug|Win32
@@ -54,6 +56,10 @@ Global
 		{23B79AF0-E655-4B07-BCA5-8A1471CF8A92}.ReleaseDebugRecord|Win32.Build.0 = ReleaseDebugRecord|Win32
 		{23B79AF0-E655-4B07-BCA5-8A1471CF8A92}.ReleaseDebugRecord|x64.ActiveCfg = ReleaseDebugRecord|x64
 		{23B79AF0-E655-4B07-BCA5-8A1471CF8A92}.ReleaseDebugRecord|x64.Build.0 = ReleaseDebugRecord|x64
+		{23B79AF0-E655-4B07-BCA5-8A1471CF8A92}.ReleaseDebugRecord3.0|Win32.ActiveCfg = ReleaseDebugRecord3.0|Win32
+		{23B79AF0-E655-4B07-BCA5-8A1471CF8A92}.ReleaseDebugRecord3.0|Win32.Build.0 = ReleaseDebugRecord3.0|Win32
+		{23B79AF0-E655-4B07-BCA5-8A1471CF8A92}.ReleaseDebugRecord3.0|x64.ActiveCfg = ReleaseDebugRecord3.0|x64
+		{23B79AF0-E655-4B07-BCA5-8A1471CF8A92}.ReleaseDebugRecord3.0|x64.Build.0 = ReleaseDebugRecord3.0|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

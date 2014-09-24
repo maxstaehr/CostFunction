@@ -78,7 +78,7 @@ public:
 		int* 			d_angle_index;
 
 
-		unsigned long long maxIteration;
+		double maxIteration;
 		int 			currentNofValidIterations;
 		int*			nearesNeighbourIndex;
 
@@ -124,8 +124,8 @@ private:
 	int				nOfCams;
 	unsigned long long* comp_vec;
 	int gen_result;
-	unsigned int* isValidForMulti;
-	unsigned long long nOfMaxPosition;
+	int numberOfIteration;
+
 
 	std::vector<struct COST_POINT* > currentMultiCameraCosts;
 
@@ -180,12 +180,14 @@ protected:
 	void initCostArray(void);
 	
 	bool doesHumanCollideWithRobot(void);
-	unsigned int long long maxNumberOfIteration(unsigned int long long n, unsigned int long long k);
+	double maxNumberOfIteration(unsigned int long long n, unsigned int long long k);
 	void initHSandFAFinal(void);
 	void calculateCosts(void);
 	void checkMinimumCosts(void);
 	void clearMinCosts(void);
 
+
+	static double stirling_approximation(double n);
 
 
 
@@ -196,7 +198,7 @@ public:
 	void initAllKSDF(bool writeToFile);
 	void init_costfunction(bool savetofile);
 	void allocOptimisationMemory(void);
-	void optimize_single(void);
+	void optimize_single(int c);
 	void optimize_all_memory(void);
 
 	static void testCudaFunctions();

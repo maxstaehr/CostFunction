@@ -14,32 +14,30 @@
   
 
 double const SimulatedAnnealing::e( 2.7182818284590452353602874713526624977572 );
-SimulatedAnnealing::SimulatedAnnealing(int NumerOfParrlelCalculation, double T, double alpha, int Npcl, int Nangle):ite(0)
+SimulatedAnnealing::SimulatedAnnealing(int NumerOfParrlelCalculation, double T, double alpha, int Npcl, int Nangle, int nOfCams):ite(0)
 {
 
 	NofE = (int)NumerOfParrlelCalculation/2;
 	minEnergy = new double [NofE];
-	noChange = new bool[NofE*6];
+	DOF = 6*nOfCams;
+	noChange = new bool[NofE*DOF];
 	cDim = new unsigned char[NofE];	
 
 	this->Nangle = Nangle;
 	this->Npcl = Npcl;
+	this->nOfCams = nOfCams;
 	this->solu = new struct SOLUTION[NofE];
 	this->curStates = new enum STATE[NofE];
 	this->globalMin.costs = DBL_MAX;
 
 
-
-
-	
-
 	for(unsigned int i=0; i<NofE; i++)
 	{
 		minEnergy[i] = DBL_MAX;
 		cDim[i] = 0;
-		for(unsigned int j=0; j<6; j++)
+		for(unsigned int j=0; j<DOF; j++)
 		{
-			noChange[i*6+j] = false;
+			noChange[i*DOF+j] = false;
 		}
 		curStates[i] = STATE::HC;
 		solu[i].currProp = 0.0;
@@ -57,11 +55,15 @@ SimulatedAnnealing::SimulatedAnnealing(int NumerOfParrlelCalculation, double T, 
 SimulatedAnnealing::~SimulatedAnnealing(void)
 {
 	delete minEnergy;
+	delete noChange;
+	delete cDim;
+	delete solu;
+	delete curStates;
 }
 
 void SimulatedAnnealing::initializeFirstRun(int* pclIndex, int* angleIndex)
 {
-	for(unsigned int i=0; i<NofE*2; i++)
+	for(unsigned int i=0; i<nOfCams*MAX_ITE; i++)
 	{
 		pclIndex[i] = rand() % Npcl;
 		angleIndex[i] = rand() % Nangle;
@@ -98,17 +100,17 @@ void SimulatedAnnealing::printCurrentStatus(void)
 		
 		if(curStates[i] == STATE::HC)
 		{
-			printf("%i\tHC\t%.5lf\t%.5f\t%.10f\t%i\t%i\n", i, minEnergy[i], solu[i].costs, solu[i].currProp, solu[i].pcl, solu[i].angle);
+			printf("%i\tHC\t%.5lf\t%.5f\t%.10f\t%i\t%i  %i\n", i, minEnergy[i], solu[i].costs, solu[i].currProp, solu[i].pcl, solu[i].angle, cDim[i]);
 		}else if(curStates[i] == STATE::NS)
 		{
-			printf("%i\tNS\t%.5lf\t%.5f\t%.10f\t%i\t%i\n", i, minEnergy[i], solu[i].costs, solu[i].currProp, solu[i].pcl, solu[i].angle);
+			printf("%i\tNS\t%.5lf\t%.5f\t%.10f\t%i\t%i  %i\n", i, minEnergy[i], solu[i].costs, solu[i].currProp, solu[i].pcl, solu[i].angle, cDim[i]);
 		}else if (curStates[i] == STATE::OR)
 		{
-			printf("%i\tOR\t%.5lf\t%.5f\t%.10f\t%i\t%i\n", i, minEnergy[i], solu[i].costs, solu[i].currProp, solu[i].pcl, solu[i].angle);
+			printf("%i\tOR\t%.5lf\t%.5f\t%.10f\t%i\t%i  %i\n", i, minEnergy[i], solu[i].costs, solu[i].currProp, solu[i].pcl, solu[i].angle, cDim[i]);
 		}
 		
 	}
-	printf("\n\nglobal min costs at: %.5f at %i:%i at T:%.3f  pos:%i l:\n\n\n", globalMin.costs, globalMin.pcl, globalMin.angle, T, ite);
+	printf("\n\nglobal min costs at: %.5f at %i:%i at T:%.3f  pos:%i  cams:%i\n\n\n", globalMin.costs, globalMin.pcl, globalMin.angle, T, ite, nOfCams);
 
 	
 	
@@ -118,18 +120,18 @@ void SimulatedAnnealing::printCurrentStatus(void)
 
 void SimulatedAnnealing::resetHasChanged(int i)
 {
-	for(unsigned int j=0; j<6; j++)
+	for(unsigned int j=0; j<DOF; j++)
 	{
-		noChange[i*6+j] = false;
+		noChange[i*DOF+j] = false;
 	}
 }
 
 bool SimulatedAnnealing::hasHillClimbingFinished(int i)
 {
 	bool hasFinished = true;
-	for(unsigned int j=0; j<6; j++)
+	for(unsigned int j=0; j<DOF; j++)
 	{
-		hasFinished &= noChange[i*6+j];
+		hasFinished &= noChange[i*DOF+j];
 	}
 	return hasFinished; 
 }
@@ -162,7 +164,7 @@ double SimulatedAnnealing::iterateSingle(const int* const nn_indices, int* pclIn
 	//	noChange[6*i+cDim[i]] = false;
 		resetHasChanged(i);	
 	}else{
-		noChange[6*i+cDim[i]] = true;
+		noChange[DOF*i+cDim[i]] = true;
 	}
 
 
@@ -170,7 +172,7 @@ double SimulatedAnnealing::iterateSingle(const int* const nn_indices, int* pclIn
 	solu[i].angle = a_i;
 	solu[i].pcl = p_i;
 	solu[i].costs = localMinE;
-	cDim[i] = (cDim[i]+1)%6;
+	cDim[i] = (cDim[i]+1)%DOF;
 	
 	
 
@@ -180,7 +182,7 @@ double SimulatedAnnealing::iterateSingle(const int* const nn_indices, int* pclIn
 	int roll = ri, pitch = pi, yaw = yi;
 	int am, ap;
 
-	switch(cDim[i]){
+	switch(cDim[i]%DOF){
 	case 0:		
 	case 1:
 	case 2:

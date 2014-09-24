@@ -17,7 +17,7 @@ struct COST
 class SimulatedAnnealing
 {
 public:
-	SimulatedAnnealing(int N, double T, double alpha, int Npcl, int Nangle);
+	SimulatedAnnealing(int N, double T, double alpha, int Npcl, int Nangle, int nOfCams);
 	~SimulatedAnnealing(void);
 
 	void initializeFirstRun(int* pclIndex, int* angleIndex);
@@ -42,7 +42,9 @@ private:
 	double T;
 	int Npcl;
 	int Nangle;	
+	int nOfCams;
 	double alpha;
+	int DOF;
 	
 	double minCostOverAll;
 
