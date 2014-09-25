@@ -14,7 +14,8 @@
   
 
 double const SimulatedAnnealing::e( 2.7182818284590452353602874713526624977572 );
-SimulatedAnnealing::SimulatedAnnealing(int NumerOfParrlelCalculation, double T, double alpha, int Npcl, int Nangle, int nOfCams):ite(0)
+SimulatedAnnealing::SimulatedAnnealing(int NumerOfParrlelCalculation, double T, double alpha, int Npcl, int Nangle, int nOfCams, int* NN, struct PCL* robot):ite(0),
+	neighbourRadius(1.2), neighbourAngle(2.4), firstEvaluation(true), NofIteration(300), maxIteration(nOfCams*NofIteration)
 {
 
 	NofE = (int)NumerOfParrlelCalculation/2;
@@ -23,12 +24,20 @@ SimulatedAnnealing::SimulatedAnnealing(int NumerOfParrlelCalculation, double T, 
 	noChange = new bool[NofE*DOF];
 	cDim = new unsigned char[NofE];	
 
+	pclIndex_t1 = new int[nOfCams*MAX_ITE];
+	angleIndex_t1 = new int[nOfCams*MAX_ITE];
+
 	this->Nangle = Nangle;
 	this->Npcl = Npcl;
 	this->nOfCams = nOfCams;
 	this->solu = new struct SOLUTION[NofE];
 	this->curStates = new enum STATE[NofE];
 	this->globalMin.costs = DBL_MAX;
+	this->NN = NN;
+	this->robot = robot;
+
+	assert((2*MATH_PI/N_OF_A) < (2*neighbourAngle));
+	angleIndexRandomRange = (2*neighbourAngle)/(2*MATH_PI/N_OF_A);
 
 
 	for(unsigned int i=0; i<NofE; i++)
@@ -43,12 +52,34 @@ SimulatedAnnealing::SimulatedAnnealing(int NumerOfParrlelCalculation, double T, 
 		solu[i].currProp = 0.0;
 	}
 
-	this->T = T;
+
+
+	this->T = nOfCams*T;
 	this->alpha = alpha;
 	
     time_t t;
     time(&t);
     srand((unsigned int)t);              /* Zufallsgenerator initialisieren */
+}
+
+void SimulatedAnnealing::setCoolingPlan(double* costs)
+{
+	double maxTemperature(DBL_MIN);
+	for(unsigned int i=0; i<2*NofE; i++)
+	{
+		if(costs[i] > maxTemperature)
+		{
+			maxTemperature = costs[i];
+		}
+	}
+	T = maxTemperature/2.0;
+	double basis = 1.0/((double)T);
+	double expo = 1.0/((double)maxIteration);
+	alpha = pow(basis, expo);
+	time_t end;
+	time(&end);
+	loopTime = difftime(end, start);
+	maxTime = maxIteration*loopTime;
 }
 
 
@@ -59,6 +90,8 @@ SimulatedAnnealing::~SimulatedAnnealing(void)
 	delete cDim;
 	delete solu;
 	delete curStates;
+	delete pclIndex_t1;
+	delete angleIndex_t1;
 }
 
 void SimulatedAnnealing::initializeFirstRun(int* pclIndex, int* angleIndex)
@@ -68,15 +101,50 @@ void SimulatedAnnealing::initializeFirstRun(int* pclIndex, int* angleIndex)
 		pclIndex[i] = rand() % Npcl;
 		angleIndex[i] = rand() % Nangle;
 	}
+	time(&start);
 }
 
-void SimulatedAnnealing::chooseRandomConfiguration(int* pclIndex, int* angleIndex)
+int SimulatedAnnealing::createPCLIndexInRange(int i1)
 {
-	for(unsigned int i=0; i<2; i++)
+	int i2;
+	float xd, yd, zd;
+	do
 	{
-		pclIndex[i] = rand() % Npcl;
-		angleIndex[i] = rand() % Nangle;
+		i2 = rand()%Npcl;
+		xd = robot->x[i1] - robot->x[i2];
+		yd = robot->y[i1] - robot->y[i2];
+		zd = robot->z[i1] - robot->z[i2];
 	}
+	while(sqrt(pow(xd,2)+pow(yd,2)+pow(zd,2)) > neighbourRadius);
+	return i2;
+}
+int SimulatedAnnealing::createAngleIndexInRange(int a_i)
+{
+	int ri = a_i/N_OF_A_SQ;
+	int pi = (a_i - ri*N_OF_A_SQ)/N_OF_A;
+	int yi = a_i-ri*N_OF_A_SQ-pi*N_OF_A;
+
+	int di;
+	di = (rand()%angleIndexRandomRange) - angleIndexRandomRange/2;
+	ri = (ri+di+N_OF_A)%N_OF_A;
+	di = (rand()%angleIndexRandomRange) - angleIndexRandomRange/2;
+	pi = (pi+di+N_OF_A)%N_OF_A;
+	di = (rand()%angleIndexRandomRange) - angleIndexRandomRange/2;
+	yi = (yi+di+N_OF_A)%N_OF_A;
+	return ri * N_OF_A_SQ + pi * N_OF_A + yi;
+}
+
+void SimulatedAnnealing::chooseRandomConfiguration(int* pclIndex, int* angleIndex, int index)
+{
+
+	for(int i=0; i<nOfCams; i++)
+	{
+		pclIndex[2*index+0+i*MAX_ITE] = createPCLIndexInRange(pclIndex_t1[2*index+0+i*MAX_ITE]);
+		angleIndex[2*index+0+i*MAX_ITE] = createAngleIndexInRange(angleIndex_t1[2*index+0+i*MAX_ITE]);
+		pclIndex[2*index+1+i*MAX_ITE] = createPCLIndexInRange(pclIndex_t1[2*index+1+i*MAX_ITE]);
+		angleIndex[2*index+1+i*MAX_ITE] = createAngleIndexInRange(angleIndex_t1[2*index+1+i*MAX_ITE]);
+	}
+
 	
 }
 
@@ -95,7 +163,7 @@ void SimulatedAnnealing::printCurrentStatus(void)
 {
 	system("cls");	
 	printf("minI\tST\tminE\t\tcosts\t\tprob\t\tpcl\tangle\n");
-	for(unsigned int i=0; i< 100; i++)
+	for(unsigned int i=0; i< 50; i++)
 	{
 		
 		if(curStates[i] == STATE::HC)
@@ -110,7 +178,10 @@ void SimulatedAnnealing::printCurrentStatus(void)
 		}
 		
 	}
-	printf("\n\nglobal min costs at: %.5f at %i:%i at T:%.3f  pos:%i  cams:%i\n\n\n", globalMin.costs, globalMin.pcl, globalMin.angle, T, ite, nOfCams);
+	double currPro = (double)ite/(double)(maxIteration);
+	double remainingTime = loopTime * (double) (maxIteration - ite);
+	printf("max : %.1fmin\trem : %.2fmin\tpro: %.6f%%\n", maxTime/60.0, remainingTime/60.0, currPro*100.0);
+	printf("global min costs at: %.5f at %i:%i at T:%.3f  pos:%i  cams:%i\n\n\n", globalMin.costs, globalMin.pcl, globalMin.angle, T, ite, nOfCams);
 
 	
 	
@@ -328,6 +399,12 @@ void SimulatedAnnealing::setNewVector(int i)
 bool SimulatedAnnealing::iterate(const int* const nn_indices, int* pclIndex, int* angleIndex, double* costs)
 {
 	
+	if(firstEvaluation)
+	{
+		firstEvaluation = false;
+		setCoolingPlan(costs);
+	}
+
 	//iterating through all possible configuration
 	int rp, ra;
 	double localMinE;
@@ -335,14 +412,14 @@ bool SimulatedAnnealing::iterate(const int* const nn_indices, int* pclIndex, int
 	double* p = new double[NofE];
 	recordedSolution.push_back(p);
 
-	int angleTemp[2];
-	int pclTemp[2];
+
+	//saving current s 
+	memcpy(pclIndex_t1, pclIndex, nOfCams*MAX_ITE*sizeof(int));
+	memcpy(angleIndex_t1, angleIndex, nOfCams*MAX_ITE*sizeof(int));
+
 
 	for(unsigned int i=0; i<NofE; i++)
 	{
-		//saving current s 
-		memcpy(pclTemp, pclIndex+i*2, 2*sizeof(int));
-		memcpy(angleTemp, angleIndex+i*2, 2*sizeof(int));
 
 		//setting next iteration and find local minimum
 		localMinE = iterateSingle(nn_indices, pclIndex, angleIndex, costs, i);
@@ -357,7 +434,7 @@ bool SimulatedAnnealing::iterate(const int* const nn_indices, int* pclIndex, int
 			{   //switch to ns
 				curStates[i] = STATE::NS;
 				setNewVector(i);
-				chooseRandomConfiguration(pclIndex+i*2, angleIndex+i*2);			
+				chooseRandomConfiguration(pclIndex, angleIndex, i);			
 			}
 
 			//check if current alternation has brought improvement
@@ -381,24 +458,24 @@ bool SimulatedAnnealing::iterate(const int* const nn_indices, int* pclIndex, int
 			{
 				//generate new random configuration
 				setNewVector(i);
-				chooseRandomConfiguration(pclIndex+i*2, angleIndex+i*2);	
+				chooseRandomConfiguration(pclIndex, angleIndex, i);	
 			}
 			break;
-		case STATE::OR:
-			prop = (rand() / (double)RAND_MAX);
-			newprop = pow(e, (minEnergy[i]-localMinE) / T);
-			solu[i].currProp = newprop;
-			if(prop <= newprop)
-			{	
-				minEnergy[i] = localMinE;
-			}else
-			{
-				memcpy(pclIndex+i*2,pclTemp, 2*sizeof(int));
-				memcpy(angleIndex+i*2,angleTemp, 2*sizeof(int));
-				iterateSingle(nn_indices, pclIndex, angleIndex, costs, i);
-			}
+		//case STATE::OR:
+		//	prop = (rand() / (double)RAND_MAX);
+		//	newprop = pow(e, (minEnergy[i]-localMinE) / T);
+		//	solu[i].currProp = newprop;
+		//	if(prop <= newprop)
+		//	{	
+		//		minEnergy[i] = localMinE;
+		//	}else
+		//	{
+		//		memcpy(pclIndex+i*2,pclTemp, 2*sizeof(int));
+		//		memcpy(angleIndex+i*2,angleTemp, 2*sizeof(int));
+		//		iterateSingle(nn_indices, pclIndex, angleIndex, costs, i);
+		//	}
 
-			break;
+		//	break;
 		};
 		addSingleResult(i);
 	}

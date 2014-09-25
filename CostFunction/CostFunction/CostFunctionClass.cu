@@ -45,7 +45,7 @@
 
 
 CostFunctionClass::CostFunctionClass():cudaDevice(0), nx(64), ny(64), nz(32),N(nx*ny*nz), N_char(N/8), N_int(N_char/4),
-	xmin(-3.0f), xmax(3.0f), ymin(-3.0f), ymax(3.0f), zmin(0.0f),zmax(3.0),nOfCams(0),globalMin(DBL_MAX), numberOfIteration(1000), sA(NULL), 
+	xmin(-3.0f), xmax(3.0f), ymin(-3.0f), ymax(3.0f), zmin(0.0f),zmax(3.0),nOfCams(0),globalMin(DBL_MAX), sA(NULL), 
 	comp_vec(NULL)
 {
 
@@ -108,10 +108,10 @@ CostFunctionClass::CostFunctionClass():cudaDevice(0), nx(64), ny(64), nz(32),N(n
 	robotPos.n = 1;
 	humanPos.n = 2;
 	humanPos.positions[0] = -2.5f;
-	humanPos.positions[1] = 1.5f;
+	humanPos.positions[1] = -2.5f;
 	humanPos.positions[2] = MATH_PI/2.0f;
 	humanPos.positions[3] = -2.5f;
-	humanPos.positions[4] = -1.5f;
+	humanPos.positions[4] = 2.5f;
 	humanPos.positions[5] = MATH_PI/2.0f;
 	for(int i=0;i<9;i++)
 	{
@@ -824,7 +824,7 @@ void CostFunctionClass::assignNewCamera(void)
 
 	if(sA != NULL)
 		delete sA;
-	sA = new SimulatedAnnealing(MAX_ITE, 2500, 0.995, robotPCL_qa0.n, pos.nOfAngles, nOfCams);
+	sA = new SimulatedAnnealing(MAX_ITE, 2500, 0.995, robotPCL_qa0.n, pos.nOfAngles, nOfCams, opt_data.nearesNeighbourIndex, &robotPCL_qa0);
 	  
 	gen_result = gen_comb_norep_lex_init(comp_vec, numberOfIteration, nOfCams);
 	switch(nOfCams)
@@ -1146,6 +1146,7 @@ void CostFunctionClass::optimize_all_memory(void)
 
 #ifndef DEBUG_RECORD
 				sA->initializeFirstRun(opt_data.h_pcl_index, opt_data.h_angle_index);
+				opt_data.currentNofValidIterations = MAX_ITE;
 #endif
 
 			while(isRunning)
@@ -1198,8 +1199,7 @@ void CostFunctionClass::optimize_all_memory(void)
 					}
 			
 				}
-				printProgress((double)cameraIndice,(double)opt_data.maxIteration, start, "optimize");
-				printf("mincosts: %.10f\tnC: %i\t%.lf\t%.lf\n", globalMin, nOfCams, opt_data.maxIteration, (double)cameraIndice);
+
 
 				for(unsigned int i=0; i<MAX_ITE; i++)
 				{
@@ -1208,6 +1208,9 @@ void CostFunctionClass::optimize_all_memory(void)
 				checkMinimumCosts();
 
 		#ifdef DEBUG_RECORD
+
+				printProgress((double)cameraIndice,(double)opt_data.maxIteration, start, "optimize");
+				printf("mincosts: %.10f\tnC: %i\t%.lf\t%.lf\n", globalMin, nOfCams, opt_data.maxIteration, (double)cameraIndice);
 				if(nOfCams == 1)
 				{
 					for(unsigned int i=0; i<opt_data.currentNofValidIterations; i++)
@@ -1235,6 +1238,7 @@ void CostFunctionClass::optimize_all_memory(void)
 			sA->writeEnergyResultsToFile(fn);
 			fn = "cost_energy" + std::to_string((_Longlong)nOfCams);
 			sA->writeAllResultToFile(fn);
+			IO::printMinPositionToFile(&currentMultiCameraCosts, &pos, &robotPCL_qa0, nOfCams);
 			
 
 			if(MAX_NUM_CAMS == nOfCams)
