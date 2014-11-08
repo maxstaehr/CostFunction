@@ -60,8 +60,9 @@ public:
 		struct H_transformations s_human;
 
 
-
-
+		unsigned int*	d_robotoccupancy_all;
+		unsigned int*	d_humanoccupancy_all;
+		
 
 
 		double*			h_costs;
@@ -167,8 +168,8 @@ protected:
 	void calculateKSDF(struct PCL* dst, struct OCCUPANCY_GRIDS* grid);
 	void adjustrobotpcl(struct PCL* dst);
 	void checkMemoryUsage(void);
-	void setRobotOccupancyGrid(int posIndex);
-	void setHumanOccupancyGrid(int humanPosIndex, int robotPosIndex);
+	void setRobotOccupancyGrid(int posIndex, bool online);
+	void setHumanOccupancyGrid(int humanPosIndex, int robotPosIndex, bool online);
 	bool generatePCLandAngleIndex(void);
 	void adjustCameraParameters(int index);
 	void initDHTransformations(void);
@@ -178,6 +179,7 @@ protected:
 	void calculateKSDF_memory(void);
 	void calcNextCandidates(void);
 	void initCostArray(void);
+	void assignHumanAndRobotOccupancyGrids(void);
 	
 	bool doesHumanCollideWithRobot(void);
 	double maxNumberOfIteration(unsigned int long long n, unsigned int long long k);

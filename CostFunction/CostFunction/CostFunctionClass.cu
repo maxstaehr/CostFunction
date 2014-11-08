@@ -91,6 +91,7 @@ CostFunctionClass::CostFunctionClass():cudaDevice(0), nx(64), ny(64), nz(32),N(n
 	CudaMem::copyPCLHostToDevice(&robotPCL_qa0);
 	adjustrobotpcl(&robotPCL_qa0);
 	CudaMem::copyPCLDeviceToHost(&robotPCL_qa0);
+	IO::savePCL(&robotPCL_qa0, "debugPCL.bin");
 
 	robotpcl.n = robotpcl_0.n;
 	CudaMem::allocPCLN(&robotpcl);
@@ -740,18 +741,31 @@ void CostFunctionClass::init_costfunction(bool savetofile)
 	//*******************************************************************
 }
 
-void CostFunctionClass::setRobotOccupancyGrid(int posIndex)
+void CostFunctionClass::setRobotOccupancyGrid(int posIndex, bool online)
 {
 	CudaMem::copyPCLDeviceToDevice(&robotpcl_0, &robotpcl);
 	adjustrobotpclandvelocity_memory(&robotpcl,posIndex, robotPos.positions[9*posIndex], robotPos.positions[9*posIndex+1]);
-	assignRobotPclIntoWS_shared(&robotpcl,opt_data.allData.d_robotoccupancy);
+	if(online)
+	{		
+		CudaMem::cudaMemCpyReport(opt_data.allData.d_robotoccupancy,&(opt_data.d_robotoccupancy_all[posIndex*N_int]),N_int* sizeof(int), cudaMemcpyDeviceToDevice);
+	}else{
+		assignRobotPclIntoWS_shared(&robotpcl,opt_data.allData.d_robotoccupancy);
+		CudaMem::cudaMemCpyReport(&(opt_data.d_robotoccupancy_all[posIndex*N_int]),opt_data.allData.d_robotoccupancy,N_int* sizeof(int), cudaMemcpyDeviceToDevice);
+	}
 }
 
-void CostFunctionClass::setHumanOccupancyGrid(int humanPosIndex, int robotPosIndex)
+void CostFunctionClass::setHumanOccupancyGrid(int humanPosIndex, int robotPosIndex, bool online)
 {
 	CudaMem::copyPCLDeviceToDevice(&humanpcl_0, &humanpcl);
-	int index = robotPosIndex*humanPos.n+humanPosIndex;
-	assignHumanPclIntoWS_memory(&humanpcl, opt_data.allData.d_humanoccupancy, index);
+	int index = robotPosIndex*humanPos.n+humanPosIndex;	
+	if(online)
+	{		
+		CudaMem::cudaMemCpyReport(opt_data.allData.d_humanoccupancy, &(opt_data.d_humanoccupancy_all[index*N_int]),N_int* sizeof(int), cudaMemcpyDeviceToDevice);
+	}else{		
+		assignHumanPclIntoWS_memory(&humanpcl, opt_data.allData.d_humanoccupancy, index);
+		CudaMem::cudaMemCpyReport(&(opt_data.d_humanoccupancy_all[index*N_int]),  opt_data.allData.d_humanoccupancy,N_int* sizeof(int), cudaMemcpyDeviceToDevice);
+	}
+	
 }
 
 void CostFunctionClass::adjustCameraParameters(int index)
@@ -889,8 +903,12 @@ void CostFunctionClass::allocOptimisationMemory(void)
 	
 
 
+	CudaMem::cudaMemAllocReport((void**)&opt_data.d_humanoccupancy_all, 	human_robot_pos*N_int*sizeof(int));
+	CudaMem::cudaMemAllocReport((void**)&opt_data.d_robotoccupancy_all, 	robotPos.n*N_int*sizeof(int));
+
 	CudaMem::cudaMemAllocReport((void**)&opt_data.allData.d_humanoccupancy, 	N_int*sizeof(int));
 	CudaMem::cudaMemAllocReport((void**)&opt_data.allData.d_robotoccupancy, 	N_int*sizeof(int));
+
 	CudaMem::cudaMemAllocReport((void**)&opt_data.allData.d_ksdf, 				N*sizeof(float));
 
 	CudaMem::cudaMemAllocReport((void**)&opt_data.allData.d_hs, 				PAR_KERNEL_LAUNCHS*CAM_ITE*N_int*sizeof(int));
@@ -978,6 +996,18 @@ void CostFunctionClass::allocOptimisationMemory(void)
 #endif
 }
 
+
+void CostFunctionClass::assignHumanAndRobotOccupancyGrids(void)
+{
+	for(unsigned int r=0; r<robotPos.n; r++)
+	{
+		setRobotOccupancyGrid(r, false);
+		for(unsigned int h=0; h<humanPos.n; h++)
+		{
+			setHumanOccupancyGrid(h,r,false);
+		}
+	}
+}
 
 
 bool CostFunctionClass::generatePCLandAngleIndex(void)
@@ -1135,6 +1165,7 @@ void CostFunctionClass::calculateCosts(void)
 void CostFunctionClass::optimize_all_memory(void)
 {
 		
+	assignHumanAndRobotOccupancyGrids();
 	while(globalMin > 0)
 	{
 			time_t 	start;
@@ -1161,7 +1192,7 @@ void CostFunctionClass::optimize_all_memory(void)
 				int div = 0;
 				for(unsigned int r=0; r<robotPos.n; r++)
 				{
-					setRobotOccupancyGrid(r);
+					setRobotOccupancyGrid(r, true);
 					calculateKSDF_memory();				
 					adjustCameraParameters(r);
 					for(unsigned int h=0; h<humanPos.n; h++)
@@ -1170,7 +1201,7 @@ void CostFunctionClass::optimize_all_memory(void)
 						if(!isValidPosition[r*humanPos.n + h])
 							continue;
 				
-						setHumanOccupancyGrid(h,r);
+						setHumanOccupancyGrid(h,r, true);
 						if(!doesHumanCollideWithRobot())
 							continue;
 				
@@ -1811,6 +1842,7 @@ void CostFunctionClass::updateCamera(struct CAM* cam, float *h)
 	float i[16];
 	float iMi[9];
 	invert4(h,i);
+	//need to check this line
 	mm12x16(cam->C0, i,cam->C);
 
 	iMi[0] = cam->C[0];
