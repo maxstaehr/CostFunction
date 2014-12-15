@@ -11,6 +11,9 @@
 #include "struct_definitions.h"
 #include "CostFunctionClass.h"
 #define N_ELEMENT_T 10
+#define N_ELEMENT_HU 1
+#define N_ELEMENT_EV 1
+
 
 class CudaMem {
 public:

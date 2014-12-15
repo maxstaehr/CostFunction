@@ -75,6 +75,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="CF2.cu" />
     <CudaCompile Include="comb_norep_lex.cu" />
     <CudaCompile Include="CostFunctionClass.cu" />
     <CudaCompile Include="main.cu" />
@@ -84,6 +85,7 @@
     <None Include="allKernelFct.cuh" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CF2.h" />
     <ClInclude Include="CostFunctionClass.h" />
     <ClInclude Include="CudaMem.h" />
     <ClInclude Include="global.h" />

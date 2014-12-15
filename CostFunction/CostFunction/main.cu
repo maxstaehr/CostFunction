@@ -1,5 +1,6 @@
 
-#include "CostFunctionClass.h"
+//#include "CostFunctionClass.h"
+#include "CF2.h"
 
 #include <iostream>
 #include <ctime>
@@ -65,18 +66,18 @@ int main(int argc, char** argv)
 
 
 	//CostFunctionClass::testUpdateCameraParameters();
-	CostFunctionClass cf;
+	CF2 cf;
 	
 	
 
 	
 
 	//cf.init_costfunction(true);
-	cf.allocOptimisationMemory();
+	//cf.allocOptimisationMemory();
 	//cf.assignNewCamera();
 	//cf.assignNewCamera();
 	//cf.testSelectNN();
-	cf.optimize_all_memory();
+	//cf.optimize_all_memory();
 	//cf.optimize();
 	return 0;
 }

@@ -67,6 +67,164 @@ struct PCL
 	unsigned int n;
 };
 
+struct ROBOT_PCL
+{
+	int nV;
+	int nF;
+	int nBB;
+
+	float*	x;
+	float*	y;
+	float*	z;
+	int*	vi;
+
+	int*	fx;
+	int*	fy;
+	int*	fz;
+	int*	fi;
+
+	float*	bb_H;
+	float*	bb_D;
+	int*	bbi;
+
+	float*	d_x;
+	float*	d_y;
+	float*	d_z;
+	int*	d_vi;	
+
+	int*	d_fx;
+	int*	d_fy;
+	int*	d_fz;
+	int*	d_fi;
+
+	float*	d_bb_H;
+	float*	d_bb_D;
+	int*	d_bbi;
+};
+
+struct ENVIRONMENT_PCL
+{
+	int nV;
+	int nF;
+	int nBB;
+
+	float*	x;
+	float*	y;
+	float*	z;
+	int*	vi;
+
+	int*	fx;
+	int*	fy;
+	int*	fz;
+	int*	fi;
+
+	float*	bb_H;
+	float*	bb_D;
+	int*	bbi;
+
+	float*	d_x;
+	float*	d_y;
+	float*	d_z;
+	int*	d_vi;	
+
+	int*	d_fx;
+	int*	d_fy;
+	int*	d_fz;
+	int*	d_fi;
+
+	float*	d_bb_H;
+	float*	d_bb_D;
+	int*	d_bbi;
+};
+
+struct HUMAN_PCL
+{
+	int nV;
+	int nF;
+	
+	float*	x;
+	float*	y;
+	float*	z;
+	int*	vi;
+
+	int*	fx;
+	int*	fy;
+	int*	fz;
+	int*	fi;
+
+
+	float*	d_x;
+	float*	d_y;
+	float*	d_z;
+	int*	d_vi;	
+
+	int*	d_fx;
+	int*	d_fy;
+	int*	d_fz;
+	int*	d_fi;
+
+};
+
+struct SAMPLE_PCL
+{
+	int n;
+	
+	float* x;
+	float* y;
+	float* z;
+	float* nx;
+	float* ny;
+	float* nz;
+	int *i;
+
+	float* d_x;
+	float* d_y;
+	float* d_z;
+	float* d_nx;
+	float* d_ny;
+	float* d_nz;
+	int* d_i;
+};
+
+struct SAMPLE_ROTATIONS
+{
+	int nRoll;
+	int nPitch;
+	int nYaw;
+	int nRotations;
+
+	float* R;
+	float* d_R;
+};
+
+struct SAMPLE_POSITIONS
+{
+	int nP;
+
+	float* qr;
+	float* qh;
+	float* qe;
+	float* pr;
+
+	float* d_qr;
+	float* d_qh;
+	float* d_qe;
+};
+
+struct SAMPLE_CAMERA
+{
+	int nRays;
+
+	float* x;
+	float* y;
+	float* z;
+
+	float* d_x;
+	float* d_y;
+	float* d_z;
+};
+
+
 struct CAM
 {
 	float f;

@@ -2,6 +2,8 @@
 
 //#define N_OF_A (360)
 #define N_OF_A (10)
+
+
 #define N_OF_A_SQ (N_OF_A*N_OF_A)
 #define WS_BORDER (1.0)
 #define PAR_KERNEL_LAUNCHS 1
@@ -53,10 +55,10 @@
 #define CONSTANT_MEM_ALLOC_SIZE N_OF_A*N_OF_A*N_OF_A
 #define MATH_PI 3.14159265359f
 #define DA  (2*MATH_PI/(float)N_OF_A)
-
-#define d_nx 64
-#define d_ny 64
-#define d_nz 32
+//
+//#define d_nx 64
+//#define d_ny 64
+//#define d_nz 32
 #define d_xdim 6.0f
 #define d_ydim 6.0f
 #define d_zdim 3.0f
