@@ -20,9 +20,37 @@ private:
 	ROBOT_PCL			robot;
 	HUMAN_PCL			human;
 	ENVIRONMENT_PCL		environment;
+	SAMPLE_POSITIONS	samplePositions;
 	SAMPLE_PCL			samplePoints;
 	SAMPLE_ROTATIONS	sampleRotations;
 	SAMPLE_CAMERA		sampleCamera;
+
+	//vertex buffer
+	VERTEX_BUFFER		vertexBuffer;
+	VERTEX_BUFFER		vertexBufferRobot;
+	VERTEX_BUFFER		vertexBufferHuman;
+	VERTEX_BUFFER		vertexBufferEnvironment;
+
+	//bounding box buffer
+	BB_BUFFER			boundingBoxBuffer;
+	BB_BUFFER			boundingBoxBufferRobot;
+	BB_BUFFER			boundingBoxBufferEnvironment;
+
+	//depth buffer
+	DEPTH_BUFFER		depthBuffer;
+
+
+
+
+	//init functions
+	void initVertexBuffer();
+	void initBoundingBoxBuffer();
+	void initDepthBuffer(int size);
+
+	void transformVertexBuffer(int i);
+	void transformBoundingBoxBuffer(int i);
+	void rayTrace();
+	
 	
 };
 

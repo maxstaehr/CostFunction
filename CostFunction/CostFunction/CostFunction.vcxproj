@@ -83,6 +83,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="allKernelFct.cuh" />
+    <None Include="allKernelFct2.cuh" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CF2.h" />

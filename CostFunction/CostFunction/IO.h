@@ -36,6 +36,9 @@ public:
 	static void loadHumanPCL(struct HUMAN_PCL* pcl, const char* name);
 	static void loadSamplePositions(struct SAMPLE_POSITIONS* pso, const char* name);
 	static void loadSampleCamera(struct SAMPLE_CAMERA* cam, const char* name);
+	static void saveDepthBufferToFile(struct DEPTH_BUFFER* depth, const char* name);
+	static void saveVerticeBufferToFile(struct VERTEX_BUFFER* buffer, const char* name);
+	static void saveBoundingBoxBufferToFile(struct BB_BUFFER* buffer, const char* name);
 
 };
 

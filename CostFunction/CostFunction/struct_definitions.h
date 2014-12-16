@@ -67,6 +67,12 @@ struct PCL
 	unsigned int n;
 };
 
+struct DEPTH_BUFFER{
+	int size;
+	float* d;
+	float* d_d;
+};
+
 struct ROBOT_PCL
 {
 	int nV;
@@ -111,30 +117,22 @@ struct ENVIRONMENT_PCL
 	float*	x;
 	float*	y;
 	float*	z;
-	int*	vi;
-
 	int*	fx;
 	int*	fy;
 	int*	fz;
-	int*	fi;
-
 	float*	bb_H;
 	float*	bb_D;
-	int*	bbi;
+	
 
 	float*	d_x;
 	float*	d_y;
 	float*	d_z;
-	int*	d_vi;	
-
 	int*	d_fx;
 	int*	d_fy;
 	int*	d_fz;
-	int*	d_fi;
-
 	float*	d_bb_H;
 	float*	d_bb_D;
-	int*	d_bbi;
+	
 };
 
 struct HUMAN_PCL
@@ -145,23 +143,23 @@ struct HUMAN_PCL
 	float*	x;
 	float*	y;
 	float*	z;
-	int*	vi;
+	
 
 	int*	fx;
 	int*	fy;
 	int*	fz;
-	int*	fi;
+	
 
 
 	float*	d_x;
 	float*	d_y;
 	float*	d_z;
-	int*	d_vi;	
+	
 
 	int*	d_fx;
 	int*	d_fy;
 	int*	d_fz;
-	int*	d_fi;
+	
 
 };
 
@@ -434,7 +432,27 @@ struct H_transformations{
   };
 
 
- 
+
+
+  struct VERTEX_BUFFER{
+	  int nF;
+	  int nV;
+
+	  float* d_vx;
+	  float* d_vy;
+	  float* d_vz;
+
+	  int* d_fx;
+	  int* d_fy;
+	  int* d_fz;
+
+  };
+
+  struct BB_BUFFER{
+	  int nBB;
+	  float* d_BB;
+	  float* d_D;
+  };
 
 
 
