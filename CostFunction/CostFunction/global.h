@@ -19,7 +19,7 @@
 #define ACCUM_N_WS 1024
 #define IS_VALID_POS_N 80938
 #define MAX_NUM_CAMS 20
-#define VERTEX_BUFFER_SIZE (4096)
+#define VERTEX_BUFFER_SIZE (1365)
 
 
 #define WS_NX 64

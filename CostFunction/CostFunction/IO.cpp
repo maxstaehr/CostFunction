@@ -822,12 +822,20 @@ void IO::loadSampleCamera(struct SAMPLE_CAMERA* cam, const char* name)
 
 void IO::saveDepthBufferToFile(struct DEPTH_BUFFER* depth, const char* name)
 {
-	CudaMem::cudaMemCpyReport(depth->d, depth->d_d, depth->size*sizeof(float), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(depth->dx, depth->d_dx, depth->size*sizeof(float), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(depth->dy, depth->d_dy, depth->size*sizeof(float), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(depth->dz, depth->d_dz, depth->size*sizeof(float), cudaMemcpyDeviceToHost);
 
 	ofstream outbin(name, ofstream::binary );
 	if (!outbin) std::cerr << "error";
 
-	outbin.write((char*)depth->d, depth->size*sizeof(float));
+	outbin.write((char*)depth->dx, depth->size*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)depth->dy, depth->size*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)depth->dz, depth->size*sizeof(float));
 	if (!outbin) std::cerr << "error";
 
 	outbin.close();

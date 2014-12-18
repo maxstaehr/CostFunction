@@ -286,25 +286,47 @@ namespace cuda_calc2{
 		return 3.0;
 	}
 
-	__global__ void raytraceVertices(	float* xi, float* yi, float* zi,
+	__device__ float calculateOrginAndDirection(float *h_samplePos, float *h_sampleRot, float xd, float yd, float zd, float*o, float* di)
+	{
+		//calculating resulting transformation
+		float h[16];
+		mm16_device(h_samplePos, h_sampleRot, h);
+
+		o[0] = h[3];
+		o[1] = h[7];
+		o[2] = h[11];
+
+
+		di[0] = h[0]*xd+h[1]*yd+h[2]*zd;
+		di[1] = h[4]*xd+h[5]*yd+h[6]*zd;
+		di[2] = h[8]*xd+h[9]*yd+h[10]*zd;
+
+	}
+
+	__global__ void raytraceVertices(					float* xi, float* yi, float* zi,
 														int* fx, int* fy, int* fz, int nF,
 														float* bb_H, float* bb_D, int nBB, 
-														float* camPos_H, float* camRot_H, int cami,
-														float* D)
+														float* camPos_H, float* camRot_H,
+														float* camRayX, float* camRayY, float* camRayZ,
+														float* Dx, float* Dy, float* Dz)
 	{
 		//defining vertex buffer
-		__shared__ float vx[VERTEX_BUFFER_SIZE];
-		__shared__ float vy[VERTEX_BUFFER_SIZE];
-		__shared__ float vz[VERTEX_BUFFER_SIZE];
+		__shared__ float v1[VERTEX_BUFFER_SIZE*3];
+		__shared__ float v2[VERTEX_BUFFER_SIZE*3];
+		__shared__ float v3[VERTEX_BUFFER_SIZE*3];
 
 		int blockSize = blockDim.x * blockDim.y * blockDim.z;
 		int threadIDinBlock = threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x;
 		int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
 		int threadId = blockId*blockSize+threadIDinBlock;
-
 		float d = FLT_MAX;
+		float dr;
+		int hit;
 
-
+		//calculating current origin
+		float o[3];
+		float di[3];
+		calculateOrginAndDirection(camPos_H, camRot_H, camRayX[threadId], camRayY[threadId], camRayZ[threadId], o, di);
 
 		//determining number of vertices to be copied by each thread into buffer
 		int nItePerThread = (int)((VERTEX_BUFFER_SIZE/blockSize)+1);
@@ -333,11 +355,19 @@ namespace cuda_calc2{
 				{
 					//copying corresponding vertices
 					f = fx[numOfVerticesCopied + t];
-					vx[t] = xi[f];
+					v1[3*t+0] = xi[f];
+					v1[3*t+1] = yi[f];
+					v1[3*t+2] = zi[f];
+
 					f = fy[numOfVerticesCopied + t];
-					vy[t] = yi[f];
+					v2[3*t+0] = xi[f];
+					v2[3*t+1] = yi[f];
+					v2[3*t+2] = zi[f];
+
 					f = fz[numOfVerticesCopied + t];
-					vz[t] = zi[f];
+					v3[3*t+0] = xi[f];
+					v3[3*t+1] = yi[f];
+					v3[3*t+2] = zi[f];
 
 				}
 			}
@@ -345,14 +375,38 @@ namespace cuda_calc2{
 			__syncthreads();
 
 			//raytrace and check minum distance
-			for(int i=0; i<nItePerThread; i++)
-			{
-				t = threadIDinBlock*nItePerThread+i;
-				d = fminf(d, raytraceRayFace(&(vx[t]), &(vy[t]), &(vz[t])));
+			for(int i=0; i<numberOfValidVertices; i++)
+			{				
+				hit = triangle_intersection(	
+										v1+3*i,  // Triangle vertices
+										v2+3*i,
+										v3+3*i,
+										o,  //Ray origin
+										di,  //Ray direction
+										&dr);
+
+				if(hit){
+					d = fminf(d, dr);
+				}
 				
 			}
-			D[blockId*blockSize+threadIDinBlock] = d;
+
 		}
+
+		if(d < 7.0)
+		{
+			Dx[blockId*blockSize+threadIDinBlock] = o[0]+d*di[0];
+			Dy[blockId*blockSize+threadIDinBlock] = o[1]+d*di[1];
+			Dz[blockId*blockSize+threadIDinBlock] = o[2]+d*di[2];
+		}else
+		{
+			//setting to error value
+			Dx[blockId*blockSize+threadIDinBlock] = -1.0f;
+			Dy[blockId*blockSize+threadIDinBlock] = -1.0f;
+			Dz[blockId*blockSize+threadIDinBlock] = -1.0f;
+		}
+
+
 	}
 
 

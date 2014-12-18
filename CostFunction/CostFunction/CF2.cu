@@ -289,8 +289,12 @@ void CF2::transformBoundingBoxBuffer(int i)
 void CF2::initDepthBuffer(int size)
 {
 	depthBuffer.size = size;
-	depthBuffer.d = new float[size];
-	CudaMem::cudaMemAllocReport((void**)&depthBuffer.d_d, size*sizeof(float));
+	depthBuffer.dx = new float[size];
+	depthBuffer.dy = new float[size];
+	depthBuffer.dz = new float[size];
+	CudaMem::cudaMemAllocReport((void**)&depthBuffer.d_dx, size*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&depthBuffer.d_dy, size*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&depthBuffer.d_dz, size*sizeof(float));
 }
 
 void CF2::rayTrace()
@@ -303,6 +307,19 @@ void CF2::rayTrace()
 	//float*	d_bb_H;
 	//float*	d_bb_D;
 	//int*	d_bbi;
+	int indexPos = 50;
+	int indexRot = 10;
+
+	float* samplePosOffet = samplePointsBuffer.d_H	+indexPos*NUMELEM_H;
+	float* sampleRotOffet = sampleRotations.d_R		+indexRot*NUMELEM_H;
+
+		//__global__ void raytraceVertices(					float* xi, float* yi, float* zi,
+		//												int* fx, int* fy, int* fz, int nF,
+		//												float* bb_H, float* bb_D, int nBB, 
+		//												float* camPos_H, float* camRot_H,
+		//												float* camRayX, float* camRayY, float* camRayZ,
+		//												float* Dx, float* Dy, float* Dz
+
 	cudaError_t cudaStatus;
 	cuda_calc2::raytraceVertices<<<10,320>>>(		vertexBuffer.d_vx,
 													vertexBuffer.d_vy,
@@ -314,10 +331,14 @@ void CF2::rayTrace()
 													robot.d_bb_H,
 													robot.d_bb_D,
 													robot.nBB,
-													samplePointsBuffer.d_H,
-													sampleRotations.d_R,
-													0,
-													depthBuffer.d_d);
+													samplePosOffet,
+													sampleRotOffet,
+													sampleCamera.d_x,
+													sampleCamera.d_y,
+													sampleCamera.d_z,
+													depthBuffer.d_dx,
+													depthBuffer.d_dy,
+													depthBuffer.d_dz);
 
 	cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {

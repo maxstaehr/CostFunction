@@ -69,8 +69,12 @@ struct PCL
 
 struct DEPTH_BUFFER{
 	int size;
-	float* d;
-	float* d_d;
+	float* dx;
+	float* dy;
+	float* dz;
+	float* d_dx;
+	float* d_dy;
+	float* d_dz;
 };
 
 struct ROBOT_PCL
