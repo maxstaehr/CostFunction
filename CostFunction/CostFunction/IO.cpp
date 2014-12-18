@@ -412,62 +412,31 @@ void IO::loadSamplePCL(struct SAMPLE_PCL* pcl, const char* name)
 {		
 	ifstream inbin;
 	inbin.open(name, ifstream::binary);
-	if(!inbin.is_open())
-	{
-		std::cerr << "error";
-	}
-
+	if(!inbin.is_open()) std::cerr << "error";
 
 	inbin.read((char*)&pcl->n, sizeof(int));
 	if (!inbin) std::cerr << "error";
 
 	//allocating memory
-	pcl->x = new float[pcl->n];
-	pcl->y = new float[pcl->n];
-	pcl->z = new float[pcl->n];
-	pcl->nx = new float[pcl->n];
-	pcl->ny = new float[pcl->n];
-	pcl->nz = new float[pcl->n];
+	pcl->h = new float[pcl->n*NUMELEM_H];
 	pcl->i = new int[pcl->n];
 
-	CudaMem::cudaMemAllocReport((void**)&pcl->d_x, pcl->n*sizeof(float));
-	CudaMem::cudaMemAllocReport((void**)&pcl->d_y, pcl->n*sizeof(float));
-	CudaMem::cudaMemAllocReport((void**)&pcl->d_z, pcl->n*sizeof(float));
-	CudaMem::cudaMemAllocReport((void**)&pcl->d_nx, pcl->n*sizeof(float));
-	CudaMem::cudaMemAllocReport((void**)&pcl->d_ny, pcl->n*sizeof(float));
-	CudaMem::cudaMemAllocReport((void**)&pcl->d_nz, pcl->n*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&pcl->d_h, pcl->n*NUMELEM_H*sizeof(float));
 	CudaMem::cudaMemAllocReport((void**)&pcl->d_i, pcl->n*sizeof(int));
 
-	inbin.read((char*)pcl->x, pcl->n*sizeof(float));
-	if (!inbin) std::cerr << "error";
-
-	inbin.read((char*)pcl->y, pcl->n*sizeof(float));
-	if (!inbin) std::cerr << "error";
-
-	inbin.read((char*)pcl->z, pcl->n*sizeof(float));
-	if (!inbin) std::cerr << "error";
-
-	inbin.read((char*)pcl->nx, pcl->n*sizeof(float));
-	if (!inbin) std::cerr << "error";
-
-	inbin.read((char*)pcl->ny, pcl->n*sizeof(float));
-	if (!inbin) std::cerr << "error";
-
-	inbin.read((char*)pcl->nz, pcl->n*sizeof(float));
+	inbin.read((char*)pcl->h, pcl->n*NUMELEM_H*sizeof(float));
 	if (!inbin) std::cerr << "error";
 
 	inbin.read((char*)pcl->i, pcl->n*sizeof(int));
 	if (!inbin) std::cerr << "error";
 
+	char c;
+	inbin.get(c);
 
-	
+	if(!inbin.eof()) std::cerr << "error";
 	inbin.close();
-	CudaMem::cudaMemCpyReport(pcl->d_x, pcl->x, pcl->n*sizeof(float), cudaMemcpyHostToDevice);
-	CudaMem::cudaMemCpyReport(pcl->d_y, pcl->y, pcl->n*sizeof(float), cudaMemcpyHostToDevice);
-	CudaMem::cudaMemCpyReport(pcl->d_z, pcl->z, pcl->n*sizeof(float), cudaMemcpyHostToDevice);
-	CudaMem::cudaMemCpyReport(pcl->d_nx, pcl->nx, pcl->n*sizeof(float), cudaMemcpyHostToDevice);
-	CudaMem::cudaMemCpyReport(pcl->d_ny, pcl->ny, pcl->n*sizeof(float), cudaMemcpyHostToDevice);
-	CudaMem::cudaMemCpyReport(pcl->d_nz, pcl->nz, pcl->n*sizeof(float), cudaMemcpyHostToDevice);
+
+	CudaMem::cudaMemCpyReport(pcl->d_h, pcl->h, pcl->n*NUMELEM_H*sizeof(float), cudaMemcpyHostToDevice);
 	CudaMem::cudaMemCpyReport(pcl->d_i, pcl->i, pcl->n*sizeof(int), cudaMemcpyHostToDevice);
 
 
@@ -479,29 +448,33 @@ void IO::loadSampleRotations(struct SAMPLE_ROTATIONS* rot, const char* name)
 	inbin.open(name, ifstream::binary);
 	if(!inbin.is_open()) std::cerr << "error";
 
-	inbin.read((char*)&rot->nYaw, sizeof(int));
+	inbin.read((char*)&rot->nRoll, sizeof(int));
 	if (!inbin) std::cerr << "error";
 
 	inbin.read((char*)&rot->nPitch, sizeof(int));
 	if (!inbin) std::cerr << "error";
 
-	inbin.read((char*)&rot->nRoll, sizeof(int));
+	inbin.read((char*)&rot->nYaw, sizeof(int));
 	if (!inbin) std::cerr << "error";
 
 	inbin.read((char*)&rot->nRotations, sizeof(int));
 	if (!inbin) std::cerr << "error";
 
 
-	rot->R = new float[rot->nRotations*9];
+	rot->R = new float[rot->nRotations*NUMELEM_H];
 
-	inbin.read((char*)rot->R, rot->nRotations*9*sizeof(float));
+	inbin.read((char*)rot->R, rot->nRotations*NUMELEM_H*sizeof(float));
 	if (!inbin) std::cerr << "error";
 
+	char c;
+	inbin.get(c);
+
+	if(!inbin.eof()) std::cerr << "error";
 	inbin.close();
 
-	CudaMem::cudaMemAllocReport((void**)&rot->d_R, rot->nRotations*9*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&rot->d_R, rot->nRotations*NUMELEM_H*sizeof(float));
 	
-	CudaMem::cudaMemCpyReport(rot->d_R, rot->R, rot->nRotations*9*sizeof(float), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(rot->d_R, rot->R, rot->nRotations*NUMELEM_H*sizeof(float), cudaMemcpyHostToDevice);
 
 }
 
@@ -589,6 +562,10 @@ void IO::loadRobotPCL(struct ROBOT_PCL* pcl, const char* name)
 	inbin.read((char*)pcl->bbi, pcl->nBB*sizeof(int));
 	if (!inbin) std::cerr << "error";
 
+	char c;
+	inbin.get(c);
+
+	if(!inbin.eof()) std::cerr << "error";
 	inbin.close();
 
 	CudaMem::cudaMemCpyReport(pcl->d_x, pcl->x, pcl->nV * sizeof(float), cudaMemcpyHostToDevice);
@@ -676,6 +653,10 @@ void IO::loadEnvironmentPCL(struct ENVIRONMENT_PCL* pcl, const char* name)
 	inbin.read((char*)pcl->bb_D, pcl->nBB*3*sizeof(int));
 	if (!inbin) std::cerr << "error";
 
+	char c;
+	inbin.get(c);
+
+	if(!inbin.eof()) std::cerr << "error";
 	inbin.close();
 
 	CudaMem::cudaMemCpyReport(pcl->d_x, pcl->x, pcl->nV * sizeof(float), cudaMemcpyHostToDevice);
@@ -741,6 +722,10 @@ void IO::loadHumanPCL(struct HUMAN_PCL* pcl, const char* name)
 	if (!inbin) std::cerr << "error";
 
 
+	char c;
+	inbin.get(c);
+
+	if(!inbin.eof()) std::cerr << "error";
 	inbin.close();
 
 	CudaMem::cudaMemCpyReport(pcl->d_x, pcl->x, pcl->nV * sizeof(float), cudaMemcpyHostToDevice);
@@ -784,6 +769,11 @@ void IO::loadSamplePositions(struct SAMPLE_POSITIONS* pos, const char* name)
 	inbin.read((char*)pos->pr,pos->nP*sizeof(float));
 	if (!inbin) std::cerr << "error";
 
+	char c;
+	inbin.get(c);
+
+	if(!inbin.eof()) std::cerr << "error";
+
 	inbin.close();
 
 	CudaMem::cudaMemCpyReport(pos->d_qr, pos->qr, pos->nP*N_ELEMENT_T *NUMELEM_H*sizeof(float), cudaMemcpyHostToDevice);
@@ -819,6 +809,10 @@ void IO::loadSampleCamera(struct SAMPLE_CAMERA* cam, const char* name)
 	inbin.read((char*)cam->z, cam->nRays*sizeof(float));
 	if (!inbin) std::cerr << "error";
 
+	char c;
+	inbin.get(c);
+
+	if(!inbin.eof()) std::cerr << "error";
 	inbin.close();
 
 	CudaMem::cudaMemCpyReport(cam->d_x, cam->x, cam->nRays*sizeof(float), cudaMemcpyHostToDevice);

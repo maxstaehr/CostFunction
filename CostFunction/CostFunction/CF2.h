@@ -39,6 +39,9 @@ private:
 	//depth buffer
 	DEPTH_BUFFER		depthBuffer;
 
+	//sample points buffer
+	SAMPLE_POINTS_BUFFER	samplePointsBuffer;
+
 
 
 
@@ -46,9 +49,12 @@ private:
 	void initVertexBuffer();
 	void initBoundingBoxBuffer();
 	void initDepthBuffer(int size);
+	void initSamplePointsBuffer();
 
 	void transformVertexBuffer(int i);
 	void transformBoundingBoxBuffer(int i);
+	void transformSamplePointBuffer(int i);
+	
 	void rayTrace();
 	
 	

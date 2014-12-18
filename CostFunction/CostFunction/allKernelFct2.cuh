@@ -5,6 +5,77 @@
 
 namespace cuda_calc2{
 
+	#define EPSILON 0.000001
+
+	__device__ void CROSS(float* r, const float *a, const float *b ) {
+	  r[0] =   ( (a[1] * b[2]) - (a[2] * b[1]) );
+	  r[1] =   ( (a[2] * b[0]) - (a[0] * b[2]) );
+	  r[2] =   ( (a[0] * b[1]) - (a[1] * b[0]) );
+	}
+
+	__device__ void SUB(float* r, const float *a, const float *b ) {
+	  r[0] =   a[0] - b[0];
+	  r[1] =   a[1] - b[1];
+	  r[2] =   a[2] - b[2];
+	}
+
+	__device__ float DOT(const float *a, const float *b) {
+	  return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+	}
+
+ 
+	__device__ int triangle_intersection( const float*   V1,  // Triangle vertices
+								   const float*   V2,
+								   const float*   V3,
+								   const float*    O,  //Ray origin
+								   const float*    D,  //Ray direction
+										 float* out )
+		{
+		  float e1[3], e2[3];  //Edge1, Edge2
+		  float P[3], Q[3], T[3];
+		  float det, inv_det, u, v;
+		  float t;
+ 
+		  //Find vectors for two edges sharing V1
+		  SUB(e1, V2, V1);
+		  SUB(e2, V3, V1);
+		  //Begin calculating determinant - also used to calculate u parameter
+		  CROSS(P, D, e2);
+		  //if determinant is near zero, ray lies in plane of triangle
+		  det = DOT(e1, P);
+		  //NOT CULLING
+		  if(det > -EPSILON && det < EPSILON) return 0;
+		  inv_det = 1.f / det;
+ 
+		  //calculate distance from V1 to ray origin
+		  SUB(T, O, V1);
+ 
+		  //Calculate u parameter and test bound
+		  u = DOT(T, P) * inv_det;
+		  //The intersection lies outside of the triangle
+		  if(u < 0.f || u > 1.f) return 0;
+ 
+		  //Prepare to test v parameter
+		  CROSS(Q, T, e1);
+ 
+		  //Calculate V parameter and test bound
+		  v = DOT(D, Q) * inv_det;
+		  //The intersection lies outside of the triangle
+		  if(v < 0.f || u + v  > 1.f) return 0;
+ 
+		  t = DOT(e2, Q) * inv_det;
+ 
+		  if(t > EPSILON) { //ray intersection
+			*out = t;
+			return 1;
+		  }
+ 
+		  // No hit, no win
+		  return 0;
+	}
+
+
+
 	__device__ void mm16_device(const float *a, const float *b, float *c)
 	{
 		c[0] = a[0]*b[0] + a[1]*b[4] + a[2]*b[8] + a[3]*b[12];
@@ -174,6 +245,22 @@ namespace cuda_calc2{
 		invert4_device(t,h_inv+idx*NUMELEM_H);
 	}
 
+	__global__ void transformSamplePoint(float* t, int* ii, float* spi, float* spo)
+	{
+		int idx, id;
+		float* h;
+
+		idx =  blockIdx.y  * gridDim.x  * blockDim.z * blockDim.y * blockDim.x
+			+ blockIdx.x  * blockDim.z * blockDim.y * blockDim.x
+			+ threadIdx.z * blockDim.y * blockDim.x
+			+ threadIdx.y * blockDim.x
+			+ threadIdx.x;
+
+		id = ii[idx];
+		h = t + NUMELEM_H*id;
+		mm16_device(h, spi+idx*NUMELEM_H, spo+idx*NUMELEM_H);
+	}
+
 	__global__ void transformBoundingBoxRobot(float* t, int* ii, float* h_bb, float* h_inv)
 	{
 		int idx, id;
@@ -202,6 +289,7 @@ namespace cuda_calc2{
 	__global__ void raytraceVertices(	float* xi, float* yi, float* zi,
 														int* fx, int* fy, int* fz, int nF,
 														float* bb_H, float* bb_D, int nBB, 
+														float* camPos_H, float* camRot_H, int cami,
 														float* D)
 	{
 		//defining vertex buffer
@@ -212,6 +300,7 @@ namespace cuda_calc2{
 		int blockSize = blockDim.x * blockDim.y * blockDim.z;
 		int threadIDinBlock = threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x;
 		int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
+		int threadId = blockId*blockSize+threadIDinBlock;
 
 		float d = FLT_MAX;
 
@@ -265,5 +354,7 @@ namespace cuda_calc2{
 			D[blockId*blockSize+threadIDinBlock] = d;
 		}
 	}
+
+
 }
 #endif

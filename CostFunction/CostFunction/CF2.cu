@@ -48,9 +48,11 @@ CF2::CF2()
 	initVertexBuffer();
 	initBoundingBoxBuffer();
 	initDepthBuffer(3200);
+	initSamplePointsBuffer();
 
 	transformVertexBuffer(0);
 	transformBoundingBoxBuffer(0);
+	transformSamplePointBuffer(0);
 
 	IO::saveVerticeBufferToFile(&vertexBufferRobot, "vertexRobot.bin");
 	IO::saveVerticeBufferToFile(&vertexBufferHuman, "vertexHuman.bin");
@@ -297,7 +299,7 @@ void CF2::rayTrace()
 	//													int* fx, int* fy, int* fz, int nF,
 	//													float* bb_H, float* bb_D, int nBB, 
 	//													float* D)
-	
+	//float* camPos_H, float* camRot_H, int cami
 	//float*	d_bb_H;
 	//float*	d_bb_D;
 	//int*	d_bbi;
@@ -312,6 +314,9 @@ void CF2::rayTrace()
 													robot.d_bb_H,
 													robot.d_bb_D,
 													robot.nBB,
+													samplePointsBuffer.d_H,
+													sampleRotations.d_R,
+													0,
 													depthBuffer.d_d);
 
 	cudaStatus = cudaGetLastError();
@@ -322,6 +327,39 @@ void CF2::rayTrace()
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching raytraceVertices!\n", cudaStatus);
+
+	}
+}
+
+void CF2::initSamplePointsBuffer()
+{
+	samplePointsBuffer.n = samplePoints.n;
+	CudaMem::cudaMemAllocReport((void**)&samplePointsBuffer.d_H, samplePointsBuffer.n*NUMELEM_H*sizeof(float));
+}
+
+void CF2::transformSamplePointBuffer(int i)
+{
+	
+	cudaError_t cudaStatus;
+	float* t_offset = samplePositions.d_qr+i*N_ELEMENT_T *NUMELEM_H;
+	
+	//(float* t, float* ii, float* spi, float* spo)
+	cuda_calc2::transformSamplePoint<<<samplePoints.n,1>>>(
+													t_offset,													
+													samplePoints.d_i,
+													samplePoints.d_h,
+													samplePointsBuffer.d_H);
+
+					
+
+	cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "transformSamplePointBuffer launch failed: %s\n", cudaGetErrorString(cudaStatus));
+	}
+
+	cudaStatus = cudaDeviceSynchronize();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching transformSamplePointBuffer!\n", cudaStatus);
 
 	}
 }

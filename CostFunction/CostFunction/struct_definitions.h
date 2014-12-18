@@ -167,20 +167,10 @@ struct SAMPLE_PCL
 {
 	int n;
 	
-	float* x;
-	float* y;
-	float* z;
-	float* nx;
-	float* ny;
-	float* nz;
+	float* h;
 	int *i;
 
-	float* d_x;
-	float* d_y;
-	float* d_z;
-	float* d_nx;
-	float* d_ny;
-	float* d_nz;
+	float* d_h;
 	int* d_i;
 };
 
@@ -452,6 +442,11 @@ struct H_transformations{
 	  int nBB;
 	  float* d_BB;
 	  float* d_D;
+  };
+
+  struct SAMPLE_POINTS_BUFFER{
+	  int n;
+	  float* d_H;
   };
 
 
