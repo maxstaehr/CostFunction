@@ -20,6 +20,8 @@
 #define IS_VALID_POS_N 80938
 #define MAX_NUM_CAMS 20
 #define VERTEX_BUFFER_SIZE (1365)
+#define POINT_BUFFER_SIZE (4096)
+#define AVG_BUFFER_SIZE (512)
 
 
 #define WS_NX 64
@@ -55,6 +57,7 @@
 #define CONSTANT_MEM_ALLOC_SIZE N_OF_A*N_OF_A*N_OF_A
 #define MATH_PI 3.14159265359f
 #define DA  (2*MATH_PI/(float)N_OF_A)
+#define INF_DIST 1000.0f
 //
 //#define d_nx 64
 //#define d_ny 64

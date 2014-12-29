@@ -2,10 +2,11 @@
 #define ALLKERNELFCT2_CUH_
 
 #include "global.h"
-
+#include "math_constants.h"
 namespace cuda_calc2{
 
 	#define EPSILON 0.000001
+
 
 	__device__ void CROSS(float* r, const float *a, const float *b ) {
 	  r[0] =   ( (a[1] * b[2]) - (a[2] * b[1]) );
@@ -303,6 +304,93 @@ namespace cuda_calc2{
 
 	}
 
+	__device__ void calcNewAverage(float* average, int weight, float value)
+	{
+		float v = (*average)*weight;
+		v += value;		
+		*average = v/(weight+1);
+	}
+
+
+
+	__global__ void calcMiddlePoint(float* Dx, float* Dy, float* Dz, int nP, float* a_x, float* a_y, float* a_z){
+		//defining vertex buffer
+		__shared__ float avg_x[AVG_BUFFER_SIZE];
+		__shared__ float avg_y[AVG_BUFFER_SIZE];
+		__shared__ float avg_z[AVG_BUFFER_SIZE];
+		__shared__ int avg_w[AVG_BUFFER_SIZE];
+
+	
+
+		//init all arrays
+		avg_x[threadIdx.x] = 0.0f;
+		avg_y[threadIdx.x] = 0.0f;
+		avg_z[threadIdx.x] = 0.0f;
+		avg_w[threadIdx.x] = 0;
+
+		__syncthreads();
+
+		int nItePerThread = (int)((nP/AVG_BUFFER_SIZE)+1);
+		int curIndex;
+		int i;
+
+
+		for(i=0; i<nItePerThread; i++)
+		{
+			curIndex = threadIdx.x*nItePerThread+i;
+			//check if the iteration is still within limits
+			if(curIndex < nP)
+			{
+				//check if the distance value is within limits
+				
+				if(Dx[curIndex] < 7.0)
+				{
+					calcNewAverage(avg_x+threadIdx.x, avg_w[threadIdx.x], Dx[curIndex]);					
+					calcNewAverage(avg_y+threadIdx.x, avg_w[threadIdx.x], Dy[curIndex]);					
+					calcNewAverage(avg_z+threadIdx.x, avg_w[threadIdx.x], Dz[curIndex]);
+
+					avg_w[threadIdx.x]++;
+				}
+			}
+			
+		}
+		__syncthreads();
+		
+		int avg_weight = 0;
+		float value = 0;
+		////starting reduction
+		////1024 threads turn out to 10 iterations
+		for (i = AVG_BUFFER_SIZE / 2; i > 0; i >>= 1)
+		{
+			__syncthreads();
+			if(threadIdx.x < i)
+			{
+				avg_weight = avg_w[threadIdx.x]+avg_w[threadIdx.x+i];
+
+				value =  avg_x[threadIdx.x]*avg_w[threadIdx.x]+avg_x[threadIdx.x+i]*avg_w[threadIdx.x+i];
+				avg_x[threadIdx.x] = value/avg_weight;
+				
+				value =  avg_y[threadIdx.x]*avg_w[threadIdx.x]+avg_y[threadIdx.x+i]*avg_w[threadIdx.x+i];
+				avg_y[threadIdx.x] = value/avg_weight;
+
+				value =  avg_z[threadIdx.x]*avg_w[threadIdx.x]+avg_z[threadIdx.x+i]*avg_w[threadIdx.x+i];
+				avg_z[threadIdx.x] = value/avg_weight;
+
+				//adding the weight to the average
+				avg_w[threadIdx.x] = avg_weight;
+			}
+		}
+		__syncthreads();
+		if (threadIdx.x == 0)
+		{
+			a_x[0] = avg_x[0];
+			a_y[0] = avg_y[0];
+			a_z[0] = avg_z[0];
+		}
+
+
+	}
+
 	__global__ void raytraceVertices(					float* xi, float* yi, float* zi,
 														int* fx, int* fy, int* fz, int nF,
 														float* bb_H, float* bb_D, int nBB, 
@@ -319,9 +407,11 @@ namespace cuda_calc2{
 		int threadIDinBlock = threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x;
 		int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
 		int threadId = blockId*blockSize+threadIDinBlock;
-		float d = FLT_MAX;
+		float d = FLT_MAX;		
 		float dr;
 		int hit;
+
+
 
 		//calculating current origin
 		float o[3];
@@ -395,17 +485,26 @@ namespace cuda_calc2{
 
 		if(d < 7.0)
 		{
+			//setting real value and calculate weighted average
 			Dx[blockId*blockSize+threadIDinBlock] = o[0]+d*di[0];
 			Dy[blockId*blockSize+threadIDinBlock] = o[1]+d*di[1];
 			Dz[blockId*blockSize+threadIDinBlock] = o[2]+d*di[2];
 		}else
 		{
 			//setting to error value
-			Dx[blockId*blockSize+threadIDinBlock] = -1.0f;
-			Dy[blockId*blockSize+threadIDinBlock] = -1.0f;
-			Dz[blockId*blockSize+threadIDinBlock] = -1.0f;
+			Dx[blockId*blockSize+threadIDinBlock] = INF_DIST;
+			Dy[blockId*blockSize+threadIDinBlock] = INF_DIST;
+			Dz[blockId*blockSize+threadIDinBlock] = INF_DIST;
 		}
 
+
+	}
+
+	__global__ distanceToEllipseModel(float* Dx, float* Dy, float* Dz, float* Hsample,
+									  float* cx, float* cy, float* cz,
+									  float rx, float ry, float rz,
+									  float prop)
+	{
 
 	}
 

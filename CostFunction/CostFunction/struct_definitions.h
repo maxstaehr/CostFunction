@@ -216,6 +216,18 @@ struct SAMPLE_CAMERA
 	float* d_z;
 };
 
+struct CENTROID{
+
+	float* cx;
+	float* cy;
+	float* cz;
+
+	float* d_cx;
+	float* d_cy;
+	float* d_cz;
+
+};
+
 
 struct CAM
 {

@@ -36,6 +36,9 @@
 CF2::CF2()
 {
 	cudaFuncSetCacheConfig(cuda_calc2::raytraceVertices, cudaFuncCachePreferShared);
+	cudaFuncSetCacheConfig(cuda_calc2::calcMiddlePoint, cudaFuncCachePreferShared);
+
+	
 	IO::loadRobotPCL(&robot,"robot.bin");
 	IO::loadHumanPCL(&human,"human.bin");
 	IO::loadEnvironmentPCL(&environment, "environment.bin");
@@ -49,6 +52,7 @@ CF2::CF2()
 	initBoundingBoxBuffer();
 	initDepthBuffer(3200);
 	initSamplePointsBuffer();
+	initCentroidBuffer();
 
 	transformVertexBuffer(0);
 	transformBoundingBoxBuffer(0);
@@ -61,7 +65,10 @@ CF2::CF2()
 	
 
 	rayTrace();
+	calculateCentroid();
+
 	IO::saveDepthBufferToFile(&depthBuffer, "depthBuffer.bin");
+	IO::printCentroid(&centroid);
 }
 
 void CF2::initBoundingBoxBuffer()
@@ -381,6 +388,47 @@ void CF2::transformSamplePointBuffer(int i)
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching transformSamplePointBuffer!\n", cudaStatus);
+
+	}
+}
+
+void CF2::initCentroidBuffer()
+{
+
+	centroid.cx = new float[1];
+	centroid.cy = new float[1];
+	centroid.cz = new float[1];
+			
+
+	CudaMem::cudaMemAllocReport((void**)&centroid.d_cx, 1*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&centroid.d_cy, 1*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&centroid.d_cz, 1*sizeof(float));
+}
+
+void CF2::calculateCentroid()
+{
+	cudaError_t cudaStatus;
+
+	//calcMiddlePoint(float* Dx, float* Dy, float* Dz, int nP, float* a_x, float* a_y, float* a_z)
+	cuda_calc2::calcMiddlePoint<<<1,AVG_BUFFER_SIZE>>>(
+													depthBuffer.d_dx,													
+													depthBuffer.d_dy,
+													depthBuffer.d_dz,
+													depthBuffer.size,
+													centroid.d_cx,
+													centroid.d_cy,
+													centroid.d_cz);
+
+					
+
+	cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "calcMiddlePoint launch failed: %s\n", cudaGetErrorString(cudaStatus));
+	}
+
+	cudaStatus = cudaDeviceSynchronize();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching calcMiddlePoint!\n", cudaStatus);
 
 	}
 }

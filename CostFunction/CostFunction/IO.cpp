@@ -12,6 +12,7 @@
 #include <string>
 #include "struct_definitions.h"
 #include "cuda.h"
+#include "global.h"
 
 #include <cstdlib>
 #include <cmath>
@@ -839,6 +840,26 @@ void IO::saveDepthBufferToFile(struct DEPTH_BUFFER* depth, const char* name)
 	if (!outbin) std::cerr << "error";
 
 	outbin.close();
+
+	//check avg value
+	float vx = 0.0f;
+	float vy = 0.0f;
+	float vz = 0.0f;
+	int w = 0;
+	for(int i=0; i<depth->size; i++)
+	{
+		if(depth->dx[i] < INF_DIST)
+		{
+			vx += depth->dx[i];
+			vy += depth->dy[i];
+			vz += depth->dz[i];
+			w++;
+		}
+	}
+	vx = vx/w;
+	vy = vy/w;
+	vz = vz/w;
+	printf("centroid: [%.6f  %.6f  %.6f]\n", vx, vy, vz);
 }
 
 void IO::saveVerticeBufferToFile(struct VERTEX_BUFFER* buffer, const char* name)
@@ -879,4 +900,13 @@ void IO::saveBoundingBoxBufferToFile(struct BB_BUFFER* buffer, const char* name)
 	outbin.close();
 
 	delete buf;
+}
+
+void IO::printCentroid(struct CENTROID* centroid)
+{
+	CudaMem::cudaMemCpyReport(centroid->cx,centroid->d_cx, sizeof(float), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(centroid->cy,centroid->d_cy, sizeof(float), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(centroid->cz,centroid->d_cz, sizeof(float), cudaMemcpyDeviceToHost);
+	printf("centroid: [%.6f  %.6f  %.6f]\n", centroid->cx[0], centroid->cy[0], centroid->cz[0]);
+
 }

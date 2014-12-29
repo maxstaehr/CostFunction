@@ -42,6 +42,9 @@ private:
 	//sample points buffer
 	SAMPLE_POINTS_BUFFER	samplePointsBuffer;
 
+	//centroid
+	CENTROID			centroid;
+
 
 
 
@@ -50,12 +53,14 @@ private:
 	void initBoundingBoxBuffer();
 	void initDepthBuffer(int size);
 	void initSamplePointsBuffer();
+	void initCentroidBuffer();
 
 	void transformVertexBuffer(int i);
 	void transformBoundingBoxBuffer(int i);
 	void transformSamplePointBuffer(int i);
 	
 	void rayTrace();
+	void calculateCentroid();
 	
 	
 };
