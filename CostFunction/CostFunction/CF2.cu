@@ -37,6 +37,9 @@ CF2::CF2()
 {
 	cudaFuncSetCacheConfig(cuda_calc2::raytraceVertices, cudaFuncCachePreferShared);
 	cudaFuncSetCacheConfig(cuda_calc2::calcMiddlePoint, cudaFuncCachePreferShared);
+	cudaFuncSetCacheConfig(cuda_calc2::distanceToEllipseModel, cudaFuncCachePreferShared);
+
+	
 
 	
 	IO::loadRobotPCL(&robot,"robot.bin");
@@ -47,27 +50,38 @@ CF2::CF2()
 	IO::loadSamplePCL(&samplePoints, "samplePoints.bin");
 	IO::loadSampleRotations(&sampleRotations, "sampleRotations.bin");
 	IO::loadSampleCamera(&sampleCamera, "sampleCamera.bin");
+	IO::loadSampleFitting(&sampleFitting, &launchConfigModelFitting, "sampleFitting.bin");
+	//setting launch Configuration
 
 	initVertexBuffer();
 	initBoundingBoxBuffer();
 	initDepthBuffer(3200);
 	initSamplePointsBuffer();
 	initCentroidBuffer();
+	initPropBuffer(sampleFitting.n);
+	clearPropBuffer();
 
 	transformVertexBuffer(0);
 	transformBoundingBoxBuffer(0);
 	transformSamplePointBuffer(0);
 
+	
+
 	IO::saveVerticeBufferToFile(&vertexBufferRobot, "vertexRobot.bin");
 	IO::saveVerticeBufferToFile(&vertexBufferHuman, "vertexHuman.bin");
 	IO::saveVerticeBufferToFile(&vertexBufferEnvironment, "vertexEnvironment.bin");
+	IO::saveVerticeBufferToFile(&vertexBuffer, "vertexScene.bin");
 	IO::saveBoundingBoxBufferToFile(&boundingBoxBuffer, "boundingBox.bin");
-	
+	IO::saveBoundingBoxBuffer(&boundingBoxBuffer, "boundingBoxBuffer.bin");
 
 	rayTrace();
 	calculateCentroid();
+	calculateProbOfHumanDetection();
+	calculateMaxProb();
+	
 
 	IO::saveDepthBufferToFile(&depthBuffer, "depthBuffer.bin");
+	IO::saveProbResult2File(&probResult, "probResult.bin");
 	IO::printCentroid(&centroid);
 }
 
@@ -103,6 +117,7 @@ void CF2::initVertexBuffer()
 	int vertexSize = robot.nV + human.nV + environment.nV;
 	int faceSize = robot.nF + human.nF + environment.nF;
 	vertexBuffer.nF = faceSize;
+	vertexBuffer.nV = vertexSize;
 	//allocating memory
 	CudaMem::cudaMemAllocReport((void**)&vertexBuffer.d_vx, vertexSize*sizeof(float));
 	CudaMem::cudaMemAllocReport((void**)&vertexBuffer.d_vy, vertexSize*sizeof(float));
@@ -157,16 +172,16 @@ void CF2::initVertexBuffer()
 
 	for(int i=0; i<human.nF; i++)
 	{
-		fb_x[i+robot.nF] = human.fx[i]+robot.nF;
-		fb_y[i+robot.nF] = human.fy[i]+robot.nF;
-		fb_z[i+robot.nF] = human.fz[i]+robot.nF;
+		fb_x[i+robot.nF] = human.fx[i]+robot.nV;
+		fb_y[i+robot.nF] = human.fy[i]+robot.nV;
+		fb_z[i+robot.nF] = human.fz[i]+robot.nV;
 	}
 
 	for(int i=0; i<environment.nF; i++)
 	{
-		fb_x[i+robot.nF+human.nF] = environment.fx[i]+robot.nF+human.nF;
-		fb_y[i+robot.nF+human.nF] = environment.fy[i]+robot.nF+human.nF;
-		fb_z[i+robot.nF+human.nF] = environment.fz[i]+robot.nF+human.nF;
+		fb_x[i+robot.nF+human.nF] = environment.fx[i]+robot.nV+human.nV;
+		fb_y[i+robot.nF+human.nF] = environment.fy[i]+robot.nV+human.nV;
+		fb_z[i+robot.nF+human.nF] = environment.fz[i]+robot.nV+human.nV;
 	}
 
 	CudaMem::cudaMemCpyReport(vertexBuffer.d_fx, fb_x, faceSize*sizeof(int), cudaMemcpyHostToDevice);
@@ -302,6 +317,8 @@ void CF2::initDepthBuffer(int size)
 	CudaMem::cudaMemAllocReport((void**)&depthBuffer.d_dx, size*sizeof(float));
 	CudaMem::cudaMemAllocReport((void**)&depthBuffer.d_dy, size*sizeof(float));
 	CudaMem::cudaMemAllocReport((void**)&depthBuffer.d_dz, size*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&depthBuffer.devStates, sizeof(curandState) * size);	
+
 }
 
 void CF2::rayTrace()
@@ -314,8 +331,8 @@ void CF2::rayTrace()
 	//float*	d_bb_H;
 	//float*	d_bb_D;
 	//int*	d_bbi;
-	int indexPos = 50;
-	int indexRot = 10;
+	int indexPos = 50-1;
+	int indexRot = 10-1;
 
 	float* samplePosOffet = samplePointsBuffer.d_H	+indexPos*NUMELEM_H;
 	float* sampleRotOffet = sampleRotations.d_R		+indexRot*NUMELEM_H;
@@ -335,9 +352,9 @@ void CF2::rayTrace()
 													vertexBuffer.d_fy,
 													vertexBuffer.d_fz,													
 													vertexBuffer.nF, 
-													robot.d_bb_H,
-													robot.d_bb_D,
-													robot.nBB,
+													boundingBoxBuffer.d_BB,
+													boundingBoxBuffer.d_D,
+													boundingBoxBuffer.nBB,
 													samplePosOffet,
 													sampleRotOffet,
 													sampleCamera.d_x,
@@ -431,4 +448,82 @@ void CF2::calculateCentroid()
 		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching calcMiddlePoint!\n", cudaStatus);
 
 	}
+}
+
+void CF2::calculateProbOfHumanDetection()
+{
+	cudaError_t cudaStatus;
+	
+	cuda_calc2::distanceToEllipseModel<<<launchConfigModelFitting.nblocks,launchConfigModelFitting.nthreads>>>(
+													depthBuffer.d_dx,													
+													depthBuffer.d_dy,
+													depthBuffer.d_dz,
+													depthBuffer.size,
+													sampleFitting.d_R,
+													sampleFitting.d_Fx,
+													sampleFitting.d_Fy,
+													centroid.d_cx,
+													centroid.d_cy,
+													centroid.d_cz,
+													probResult.d_p);
+
+					
+
+	cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "calcMiddlePoint launch failed: %s\n", cudaGetErrorString(cudaStatus));
+	}
+
+	cudaStatus = cudaDeviceSynchronize();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching calcMiddlePoint!\n", cudaStatus);
+
+	}
+}
+
+void CF2::initPropBuffer(int n)
+{
+	probResult.n = n;
+
+	probResult.p = new float[n];
+	probResult.maxp = new float[1];
+
+	CudaMem::cudaMemAllocReport((void**)&probResult.d_p, n*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&probResult.d_maxp, sizeof(float));
+}
+
+void CF2::clearPropBuffer()
+{
+	memset(probResult.p, 0, probResult.n*sizeof(float));
+	memset(probResult.maxp, 0, sizeof(float));
+
+	CudaMem::cudaMemsetReport(probResult.d_p, 0, probResult.n*sizeof(float));
+	CudaMem::cudaMemsetReport(probResult.d_maxp, 0, sizeof(float));
+}
+
+void CF2::calculateMaxProb()
+{
+
+	//calculateMaxProb(float* prob, int n, float* maxp)
+
+	cudaError_t cudaStatus;	
+	cuda_calc2::calculateMaxProb<<<launchConfigModelFitting.nblocks,launchConfigModelFitting.nthreads>>>(
+													probResult.d_p,
+													probResult.n,
+													probResult.d_maxp);
+
+					
+
+	cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "calcMiddlePoint launch failed: %s\n", cudaGetErrorString(cudaStatus));
+	}
+
+	cudaStatus = cudaDeviceSynchronize();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching calcMiddlePoint!\n", cudaStatus);
+
+	}
+
+	CudaMem::cudaMemCpyReport(probResult.maxp, probResult.d_maxp, sizeof(float), cudaMemcpyDeviceToHost);
 }

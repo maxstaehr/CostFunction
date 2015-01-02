@@ -45,6 +45,16 @@ private:
 	//centroid
 	CENTROID			centroid;
 
+	//sample fitting human cloud into model
+	SAMPLE_FITTING		sampleFitting;
+
+	//launch configuration for model fitting
+	LAUNCH_CONFIG		launchConfigModelFitting;
+
+	//probability calculation
+	PROB_RESULT			probResult;
+
+
 
 
 
@@ -54,6 +64,8 @@ private:
 	void initDepthBuffer(int size);
 	void initSamplePointsBuffer();
 	void initCentroidBuffer();
+	void initPropBuffer(int n);
+	void clearPropBuffer();
 
 	void transformVertexBuffer(int i);
 	void transformBoundingBoxBuffer(int i);
@@ -61,6 +73,8 @@ private:
 	
 	void rayTrace();
 	void calculateCentroid();
+	void calculateProbOfHumanDetection();
+	void calculateMaxProb();
 	
 	
 };

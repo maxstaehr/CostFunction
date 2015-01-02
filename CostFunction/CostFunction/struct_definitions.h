@@ -4,6 +4,7 @@
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
+#include <curand_kernel.h>
 #include <vector>
 #include <set>
 
@@ -75,7 +76,40 @@ struct DEPTH_BUFFER{
 	float* d_dx;
 	float* d_dy;
 	float* d_dz;
+	curandState *devStates;
+
 };
+
+struct SAMPLE_FITTING{
+	int n;
+
+	float* R;
+	float* Fx;
+	float* Fy;
+
+	float* d_R;
+	float* d_Fx;
+	float* d_Fy;
+};
+
+struct LAUNCH_CONFIG{
+	int nblocks;
+	int nthreads;
+};
+
+struct PROB_RESULT{
+	int n;
+
+	float* p;
+	float* maxp;
+
+
+	float* d_p;
+	float* d_maxp;
+	
+};
+
+
 
 struct ROBOT_PCL
 {

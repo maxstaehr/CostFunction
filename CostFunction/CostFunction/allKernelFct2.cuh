@@ -3,6 +3,8 @@
 
 #include "global.h"
 #include "math_constants.h"
+#include <curand_kernel.h>
+
 namespace cuda_calc2{
 
 	#define EPSILON 0.000001
@@ -308,7 +310,7 @@ namespace cuda_calc2{
 	{
 		float v = (*average)*weight;
 		v += value;		
-		*average = v/(weight+1);
+		(*average) = v/(weight+1);
 	}
 
 
@@ -366,18 +368,20 @@ namespace cuda_calc2{
 			if(threadIdx.x < i)
 			{
 				avg_weight = avg_w[threadIdx.x]+avg_w[threadIdx.x+i];
-
-				value =  avg_x[threadIdx.x]*avg_w[threadIdx.x]+avg_x[threadIdx.x+i]*avg_w[threadIdx.x+i];
-				avg_x[threadIdx.x] = value/avg_weight;
+				if(avg_weight > 0)
+				{
+					value =  avg_x[threadIdx.x]*avg_w[threadIdx.x]+avg_x[threadIdx.x+i]*avg_w[threadIdx.x+i];
+					avg_x[threadIdx.x] = value/avg_weight;
 				
-				value =  avg_y[threadIdx.x]*avg_w[threadIdx.x]+avg_y[threadIdx.x+i]*avg_w[threadIdx.x+i];
-				avg_y[threadIdx.x] = value/avg_weight;
+					value =  avg_y[threadIdx.x]*avg_w[threadIdx.x]+avg_y[threadIdx.x+i]*avg_w[threadIdx.x+i];
+					avg_y[threadIdx.x] = value/avg_weight;
 
-				value =  avg_z[threadIdx.x]*avg_w[threadIdx.x]+avg_z[threadIdx.x+i]*avg_w[threadIdx.x+i];
-				avg_z[threadIdx.x] = value/avg_weight;
+					value =  avg_z[threadIdx.x]*avg_w[threadIdx.x]+avg_z[threadIdx.x+i]*avg_w[threadIdx.x+i];
+					avg_z[threadIdx.x] = value/avg_weight;
 
-				//adding the weight to the average
-				avg_w[threadIdx.x] = avg_weight;
+					//adding the weight to the average
+					avg_w[threadIdx.x] = avg_weight;
+				}
 			}
 		}
 		__syncthreads();
@@ -389,6 +393,14 @@ namespace cuda_calc2{
 		}
 
 
+	}
+
+	__device__ bool isInBB(float* h, float* dim, float* p)
+	{
+		float x = h[0]*p[0]+h[1]*p[1]+h[2]*p[2]+h[3];
+		float y = h[4]*p[0]+h[5]*p[1]+h[6]*p[2]+h[7];
+		float z = h[8]*p[0]+h[9]*p[1]+h[10]*p[2]+h[11];
+		return x>0 && y>0 && z>0 && x<dim[0] && y<dim[1] && z<dim[2];
 	}
 
 	__global__ void raytraceVertices(					float* xi, float* yi, float* zi,
@@ -444,17 +456,20 @@ namespace cuda_calc2{
 				if(t < numberOfValidVertices)
 				{
 					//copying corresponding vertices
-					f = fx[numOfVerticesCopied + t];
+					//dirty hack because the facesnumeration comes from
+					//matlab which start 1 as first indice
+					//therefore we have to substract each face indice by 1
+					f = fx[numOfVerticesCopied + t]-1;
 					v1[3*t+0] = xi[f];
 					v1[3*t+1] = yi[f];
 					v1[3*t+2] = zi[f];
 
-					f = fy[numOfVerticesCopied + t];
+					f = fy[numOfVerticesCopied + t]-1;
 					v2[3*t+0] = xi[f];
 					v2[3*t+1] = yi[f];
 					v2[3*t+2] = zi[f];
 
-					f = fz[numOfVerticesCopied + t];
+					f = fz[numOfVerticesCopied + t]-1;
 					v3[3*t+0] = xi[f];
 					v3[3*t+1] = yi[f];
 					v3[3*t+2] = zi[f];
@@ -483,12 +498,23 @@ namespace cuda_calc2{
 
 		}
 
-		if(d < 7.0)
+		float p[3];
+		p[0] = o[0]+d*di[0];
+		p[1] = o[1]+d*di[1];
+		p[2] = o[2]+d*di[2];
+
+		bool isInBox = false;
+		for(int i=0; i<nBB; i++)
+		{
+			isInBox |= isInBB(bb_H+i*16, bb_D+i*3, p);
+		}
+
+		if(d < 7.0 && !isInBox)
 		{
 			//setting real value and calculate weighted average
-			Dx[blockId*blockSize+threadIDinBlock] = o[0]+d*di[0];
-			Dy[blockId*blockSize+threadIDinBlock] = o[1]+d*di[1];
-			Dz[blockId*blockSize+threadIDinBlock] = o[2]+d*di[2];
+			Dx[blockId*blockSize+threadIDinBlock] = p[0];
+			Dy[blockId*blockSize+threadIDinBlock] = p[1];
+			Dz[blockId*blockSize+threadIDinBlock] = p[2];
 		}else
 		{
 			//setting to error value
@@ -500,11 +526,182 @@ namespace cuda_calc2{
 
 	}
 
-	__global__ distanceToEllipseModel(float* Dx, float* Dy, float* Dz, float* Hsample,
-									  float* cx, float* cy, float* cz,
-									  float rx, float ry, float rz,
-									  float prop)
+	__device__ float distanceToEllipse(float* v)
 	{
+		float vp[3];
+		float t1 = powf(v[0]/human_rx, 2.0);
+		float t2 = powf(v[1]/human_ry, 2.0);
+		float t3 = powf(v[2]/human_rz, 2.0);
+		float mag = sqrtf(t1+t2+t3);
+		vp[0] = v[0]/mag;
+		vp[1] = v[1]/mag;
+		vp[2] = v[2]/mag;
+		return sqrtf(powf(vp[0]-v[0],2.0)+powf(vp[1]-v[1],2.0)+powf(vp[2]-v[2],2.0));
+	}
+
+	__device__ void rotatePoint(float* R, float* p)
+	{
+		float b[3];
+		b[0] = R[0]*p[0]+R[1]*p[1]+R[2]*p[2];
+		b[1] = R[3]*p[0]+R[4]*p[1]+R[5]*p[2];
+		b[2] = R[6]*p[0]+R[7]*p[1]+R[8]*p[2];
+
+		p[0] = b[0];
+		p[1] = b[1];
+		p[2] = b[2];
+	}
+
+	#define	tailor_a (1.927683761067405f)
+	#define	tailor_b (-12.914812798334909f)
+	#define tailor_min (0.050819128176881f)
+
+	__device__ float calculateProbabilityOfDetection(float meanDistance)
+	{
+		if(meanDistance < tailor_min){
+			return 1.0f;
+		}else{
+			return tailor_a*expf(tailor_b*meanDistance);
+		}
+	}
+
+	__device__ int calcNumberOfValidPoints(int nP, int bufferSize, int numOfPointsCopied)
+	{
+
+			int remainingPoints = nP - numOfPointsCopied;
+			if(remainingPoints >= POINT_BUFFER_SIZE)
+			{
+				//remaining points are larger as point buffer size
+				return POINT_BUFFER_SIZE;
+			}else{
+				//remaining points are not larger as point buffer size
+				return remainingPoints;
+			}
+
+	}
+
+	__device__ float generateDepthValue(float* coeffs, curandState_t *state)
+	{
+		float rand = curand_normal (state);
+	}
+		
+
+	__global__ void distanceToEllipseModel(float* Dx, float* Dy, float* Dz, int nP,
+									  float* R, float* Fx, float* Fy,
+									  float* cx, float* cy, float* cz,									  
+									  float* prop)
+	{
+		__shared__ float vx[POINT_BUFFER_SIZE];
+		__shared__ float vy[POINT_BUFFER_SIZE];
+		__shared__ float vz[POINT_BUFFER_SIZE];
+
+		//int threadId =  blockIdx.x *blockDim.x + threadIdx.x;
+		//int threadId =  blockIdx.y  * gridDim.x  * blockDim.z * blockDim.y * blockDim.x
+		//	+ blockIdx.x  * blockDim.z * blockDim.y * blockDim.x
+		//	+ threadIdx.z * blockDim.y * blockDim.x
+		//	+ threadIdx.y * blockDim.x
+		//	+ threadIdx.x;
+
+		int blockSize = blockDim.x * blockDim.y * blockDim.z;
+		int threadIDinBlock = threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x;
+		int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
+		int threadId = blockId*blockSize+threadIDinBlock;
+
+
+		//determining number of vertices to be copied by each thread into buffer
+		int nItePerThread = (int)((POINT_BUFFER_SIZE/blockSize)+1);
+
+		//loading vertex data into local buffer
+		int index,i;
+		int numOfPointsCopied = 0;
+		int numberOfValidPoints;
+
+		float	dist = 0.0f;
+		int		w = 0;
+		float	p[3];
+
+
+		
+
+		//keep loading vertices until all faces have been raytraced
+		while(numOfPointsCopied < nP)
+		{
+
+			numberOfValidPoints = calcNumberOfValidPoints(nP, POINT_BUFFER_SIZE,numOfPointsCopied);
+
+			for(i=0; i<nItePerThread; i++)
+			{
+				index = threadIDinBlock*nItePerThread+i;
+				//check if enough space in vertex buffer and enough remaing faces
+				if(index < numberOfValidPoints)
+				{
+					vx[index] = Dx[numOfPointsCopied+index];
+					vy[index] = Dy[numOfPointsCopied+index];
+					vz[index] = Dz[numOfPointsCopied+index];
+				}
+			}
+			numOfPointsCopied += numberOfValidPoints;
+			__syncthreads();
+
+			//points copied into the buffer
+			//calculate actual distance to model
+			//p_t4 = rotz(-SA(3,s))*(p'-(c'+shift));
+			for(i=0; i<numberOfValidPoints; i++)
+			{
+				//checking if valid point is in buffer
+				if(vx[i] < INF_DIST)
+				{
+					p[0] = vx[i]-(cx[0]+Fx[threadId]);
+					p[1] = vy[i]-(cy[0]+Fy[threadId]);
+					p[2] = vz[i]-(cz[0]);
+
+					rotatePoint(R+9*threadId, p);
+					dist += distanceToEllipse(p);
+					w++;
+				}
+			}
+			__syncthreads();
+			
+		}
+		dist = dist/w;
+		prop[threadId] = calculateProbabilityOfDetection(dist);
+		
+	}
+
+	__global__ void calculateMaxProb(float* prob, int n, float* maxp)
+	{
+		__shared__ float max_buffer[MAX_BUFFER_SIZE];
+
+		int nItePerThread = (int)((n/MAX_BUFFER_SIZE)+1);
+		int curIndex;
+		int i;
+
+		
+
+		float localMax = 0.0f;
+		for(i=0; i<nItePerThread; i++)
+		{
+			curIndex = threadIdx.x*nItePerThread+i;
+			//check if the iteration is still within limits
+			if(curIndex < n)
+			{
+				localMax = fmaxf(prob[curIndex],  localMax);
+			}
+		}
+		max_buffer[threadIdx.x] = localMax;
+
+		__syncthreads();
+		
+		////starting reduction
+		////1024 threads turn out to 10 iterations
+		for (i = MAX_BUFFER_SIZE / 2; i > 0; i >>= 1)
+		{
+			__syncthreads();
+			if(threadIdx.x < i)
+			{
+				max_buffer[threadIdx.x] = fmaxf(max_buffer[threadIdx.x],  max_buffer[threadIdx.x+i]);
+			}
+		}
+		maxp[0] = max_buffer[0];
 
 	}
 

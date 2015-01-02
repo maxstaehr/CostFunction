@@ -784,6 +784,7 @@ void IO::loadSamplePositions(struct SAMPLE_POSITIONS* pos, const char* name)
 
 }
 
+
 void IO::loadSampleCamera(struct SAMPLE_CAMERA* cam, const char* name)
 {
 	ifstream inbin;
@@ -821,6 +822,29 @@ void IO::loadSampleCamera(struct SAMPLE_CAMERA* cam, const char* name)
 	CudaMem::cudaMemCpyReport(cam->d_z, cam->z, cam->nRays*sizeof(float), cudaMemcpyHostToDevice);
 }
 
+void IO::saveBoundingBoxBuffer(struct BB_BUFFER* bbBuffer, const char* name)
+{
+
+	float* bb_buffer = new float[bbBuffer->nBB*NUMELEM_H];
+	float* dim_buffer = new float[bbBuffer->nBB*3];
+	CudaMem::cudaMemCpyReport(bb_buffer, bbBuffer->d_BB, bbBuffer->nBB*NUMELEM_H*sizeof(float), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(dim_buffer, bbBuffer->d_D, bbBuffer->nBB*3*sizeof(float), cudaMemcpyDeviceToHost);
+
+	ofstream outbin(name, ofstream::binary );
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)& bbBuffer->nBB, sizeof(int));
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)bb_buffer, bbBuffer->nBB*NUMELEM_H*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)dim_buffer, bbBuffer->nBB*3*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin.close();
+}
+
 void IO::saveDepthBufferToFile(struct DEPTH_BUFFER* depth, const char* name)
 {
 	CudaMem::cudaMemCpyReport(depth->dx, depth->d_dx, depth->size*sizeof(float), cudaMemcpyDeviceToHost);
@@ -828,6 +852,9 @@ void IO::saveDepthBufferToFile(struct DEPTH_BUFFER* depth, const char* name)
 	CudaMem::cudaMemCpyReport(depth->dz, depth->d_dz, depth->size*sizeof(float), cudaMemcpyDeviceToHost);
 
 	ofstream outbin(name, ofstream::binary );
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)&depth->size, sizeof(int));
 	if (!outbin) std::cerr << "error";
 
 	outbin.write((char*)depth->dx, depth->size*sizeof(float));
@@ -865,9 +892,15 @@ void IO::saveDepthBufferToFile(struct DEPTH_BUFFER* depth, const char* name)
 void IO::saveVerticeBufferToFile(struct VERTEX_BUFFER* buffer, const char* name)
 {
 	float* buf = new float[3*buffer->nV];
+	int*   bufFace = new int[3*buffer->nF];
+
 	CudaMem::cudaMemCpyReport(buf+0*buffer->nV, buffer->d_vx, buffer->nV*sizeof(float), cudaMemcpyDeviceToHost);
 	CudaMem::cudaMemCpyReport(buf+1*buffer->nV, buffer->d_vy, buffer->nV*sizeof(float), cudaMemcpyDeviceToHost);
 	CudaMem::cudaMemCpyReport(buf+2*buffer->nV, buffer->d_vz, buffer->nV*sizeof(float), cudaMemcpyDeviceToHost);
+
+	CudaMem::cudaMemCpyReport(bufFace+0*buffer->nF, buffer->d_fx, buffer->nF*sizeof(int), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(bufFace+1*buffer->nF, buffer->d_fy, buffer->nF*sizeof(int), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(bufFace+2*buffer->nF, buffer->d_fz, buffer->nF*sizeof(int), cudaMemcpyDeviceToHost);
 
 	ofstream outbin(name, ofstream::binary );
 	if (!outbin) std::cerr << "error";
@@ -875,12 +908,19 @@ void IO::saveVerticeBufferToFile(struct VERTEX_BUFFER* buffer, const char* name)
 	outbin.write((char*)&buffer->nV,sizeof(int));
 	if (!outbin) std::cerr << "error";
 
+	outbin.write((char*)&buffer->nF,sizeof(int));
+	if (!outbin) std::cerr << "error";
+
 	outbin.write((char*)buf,3*buffer->nV*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)bufFace,3*buffer->nF*sizeof(int));
 	if (!outbin) std::cerr << "error";
 
 	outbin.close();
 
 	delete buf;
+	delete bufFace;
 }
 
 void IO::saveBoundingBoxBufferToFile(struct BB_BUFFER* buffer, const char* name)
@@ -908,5 +948,66 @@ void IO::printCentroid(struct CENTROID* centroid)
 	CudaMem::cudaMemCpyReport(centroid->cy,centroid->d_cy, sizeof(float), cudaMemcpyDeviceToHost);
 	CudaMem::cudaMemCpyReport(centroid->cz,centroid->d_cz, sizeof(float), cudaMemcpyDeviceToHost);
 	printf("centroid: [%.6f  %.6f  %.6f]\n", centroid->cx[0], centroid->cy[0], centroid->cz[0]);
+
+}
+
+void IO::loadSampleFitting(struct SAMPLE_FITTING* sampleFitting,struct LAUNCH_CONFIG* config, const char* name)
+{
+	ifstream inbin;
+	inbin.open(name, ifstream::binary);
+	if(!inbin.is_open()) std::cerr << "error";
+	
+	inbin.read((char*)&sampleFitting->n, sizeof(int));
+	if (!inbin) std::cerr << "error";
+	 
+	sampleFitting->R = new float[sampleFitting->n*9];
+	sampleFitting->Fx = new float[sampleFitting->n];
+	sampleFitting->Fy = new float[sampleFitting->n];
+	
+	CudaMem::cudaMemAllocReport((void**)&sampleFitting->d_R, sampleFitting->n*9*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&sampleFitting->d_Fx, sampleFitting->n*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&sampleFitting->d_Fy, sampleFitting->n*sizeof(float));	
+
+	inbin.read((char*)sampleFitting->R, sampleFitting->n*9*sizeof(float));
+	if (!inbin) std::cerr << "error";
+
+	inbin.read((char*)sampleFitting->Fx, sampleFitting->n*sizeof(float));
+	if (!inbin) std::cerr << "error";
+
+	inbin.read((char*)sampleFitting->Fy, sampleFitting->n*sizeof(float));
+	if (!inbin) std::cerr << "error";
+
+	char c;
+	inbin.get(c);
+
+	if(!inbin.eof()) std::cerr << "error";
+	inbin.close();
+
+	CudaMem::cudaMemCpyReport(sampleFitting->d_R, sampleFitting->R, sampleFitting->n*9*sizeof(float), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(sampleFitting->d_Fx,sampleFitting->Fx, sampleFitting->n*sizeof(float), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(sampleFitting->d_Fy,sampleFitting->Fy, sampleFitting->n*sizeof(float), cudaMemcpyHostToDevice);
+
+	if (sampleFitting->n%THREADS_MODEL_FITTING != 0) std::cerr << "error";
+
+	config->nblocks = sampleFitting->n/THREADS_MODEL_FITTING;
+	config->nthreads = THREADS_MODEL_FITTING;
+
+}
+
+void IO::saveProbResult2File(struct PROB_RESULT* probResult, const char* name)
+{
+	
+	CudaMem::cudaMemCpyReport(probResult->p, probResult->d_p, probResult->n*sizeof(float), cudaMemcpyDeviceToHost);
+
+	ofstream outbin(name, ofstream::binary );
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)&probResult->n,sizeof(int));
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)probResult->p, probResult->n*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin.close();
 
 }

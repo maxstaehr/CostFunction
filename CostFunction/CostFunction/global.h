@@ -19,10 +19,13 @@
 #define ACCUM_N_WS 1024
 #define IS_VALID_POS_N 80938
 #define MAX_NUM_CAMS 20
+
 #define VERTEX_BUFFER_SIZE (1365)
 #define POINT_BUFFER_SIZE (4096)
 #define AVG_BUFFER_SIZE (512)
 
+#define THREADS_MODEL_FITTING (256)
+#define MAX_BUFFER_SIZE THREADS_MODEL_FITTING
 
 #define WS_NX 64
 #define WS_NY 64
@@ -53,11 +56,17 @@
 #define CAM_ITE 256
 #define SHARED_MEM_WS_INT 4096
 
+#define human_rx (0.1582f)
+#define human_ry (0.2488f)
+#define human_rz (0.8001f)
+
 
 #define CONSTANT_MEM_ALLOC_SIZE N_OF_A*N_OF_A*N_OF_A
 #define MATH_PI 3.14159265359f
 #define DA  (2*MATH_PI/(float)N_OF_A)
 #define INF_DIST 1000.0f
+
+
 //
 //#define d_nx 64
 //#define d_ny 64

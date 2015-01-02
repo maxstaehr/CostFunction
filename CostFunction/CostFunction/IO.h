@@ -40,6 +40,9 @@ public:
 	static void saveVerticeBufferToFile(struct VERTEX_BUFFER* buffer, const char* name);
 	static void saveBoundingBoxBufferToFile(struct BB_BUFFER* buffer, const char* name);
 	static void printCentroid(struct CENTROID* centroid);
+	static void loadSampleFitting(struct SAMPLE_FITTING* sampleFitting, struct LAUNCH_CONFIG* config, const char* name);
+	static void saveProbResult2File(struct PROB_RESULT* probResult,  const char* name);
+	static void saveBoundingBoxBuffer(struct BB_BUFFER* bbBuffer, const char* name);
 
 };
 
