@@ -978,7 +978,7 @@
 //
 //
 //
-//		cudaStatus = cudaStreamCreate (&opt_data.launchConfigurations[i].cudaStreams);
+//		cudaStatus = cudaStreamCreate (&opt_data.launchConfigurations[i].optiSession);
 //		if(cudaStatus != cudaSuccess)
 //		{
 //			fprintf(stderr, "stream creation failed: %s\n", cudaGetErrorString(cudaStatus));
@@ -1122,7 +1122,7 @@
 //		//////fusing multiple grids
 //	for(unsigned int i=0; i<PAR_KERNEL_LAUNCHS; i++)
 //	{		
-//		cuda_calc::fuseGrids_shared<<<CAM_ITE, 1024, 0,opt_data.launchConfigurations[i].cudaStreams>>>(
+//		cuda_calc::fuseGrids_shared<<<CAM_ITE, 1024, 0,opt_data.launchConfigurations[i].optiSession>>>(
 //				opt_data.launchConfigurations[i].d_hs_final,
 //				opt_data.launchConfigurations[i].d_fa_final,
 //				opt_data.launchConfigurations[i].d_ksdf,
@@ -1143,7 +1143,7 @@
 //
 //	for(unsigned int i=0; i<PAR_KERNEL_LAUNCHS; i++)
 //	{
-//		cuda_calc::calcCalcCosts<<<1, CAM_ITE,0, opt_data.launchConfigurations[i].cudaStreams>>>(
+//		cuda_calc::calcCalcCosts<<<1, CAM_ITE,0, opt_data.launchConfigurations[i].optiSession>>>(
 //				opt_data.launchConfigurations[i].d_hs_costs,
 //				opt_data.launchConfigurations[i].d_fa_costs,
 //				opt_data.launchConfigurations[i].d_costs);
@@ -1306,7 +1306,7 @@
 //
 //	for(unsigned int i=0; i<PAR_KERNEL_LAUNCHS; i++)
 //	{
-//		cuda_calc::raytrace_shared<<<10,320,0,opt_data.launchConfigurations[i].cudaStreams>>>(
+//		cuda_calc::raytrace_shared<<<10,320,0,opt_data.launchConfigurations[i].optiSession>>>(
 //				opt_data.launchConfigurations[i].d_robotoccupancy,
 //				opt_data.launchConfigurations[i].d_humanoccupancy,
 //				opt_data.launchConfigurations[i].d_mi+c*MAX_ITE*NUMELEM_Mi,
@@ -1333,7 +1333,7 @@
 //	dim3 dimGrid(8, 8, 4);
 //	for(unsigned int i=0; i<PAR_KERNEL_LAUNCHS; i++)
 //	{
-//		cuda_calc::project_voxel_into_ws<<<dimGrid,dimBlock,0, opt_data.launchConfigurations[i].cudaStreams>>>(
+//		cuda_calc::project_voxel_into_ws<<<dimGrid,dimBlock,0, opt_data.launchConfigurations[i].optiSession>>>(
 //				opt_data.launchConfigurations[i].d_humanoccupancy,
 //				opt_data.launchConfigurations[i].d_edm,
 //				opt_data.launchConfigurations[i].d_hdm,

@@ -35,7 +35,7 @@ public:
 	static void loadEnvironmentPCL(struct ENVIRONMENT_PCL* pcl, const char* name);
 	static void loadHumanPCL(struct HUMAN_PCL* pcl, const char* name);
 	static void loadSamplePositions(struct SAMPLE_POSITIONS* pso, const char* name);
-	static void loadSampleCamera(struct SAMPLE_CAMERA* cam, const char* name);
+	static void loadSampleCamera(struct POSSIBLE_CAMERA_TYPES* cams, const char* name);
 	static void saveDepthBufferToFile(struct DEPTH_BUFFER* depth, const char* name);
 	static void saveVerticeBufferToFile(struct VERTEX_BUFFER* buffer, const char* name);
 	static void saveBoundingBoxBufferToFile(struct BB_BUFFER* buffer, const char* name);
@@ -43,6 +43,13 @@ public:
 	static void loadSampleFitting(struct SAMPLE_FITTING* sampleFitting, struct LAUNCH_CONFIG* config, const char* name);
 	static void saveProbResult2File(struct PROB_RESULT* probResult,  const char* name);
 	static void saveBoundingBoxBuffer(struct BB_BUFFER* bbBuffer, const char* name);
+	static bool is_nan(float x) { return x != x; }
+	static void saveOptimisationResults(struct SAMPLE_POINTS_BUFFER* samplePoints, struct SAMPLE_PCL* sP,struct SAMPLE_ROTATIONS* sR, float* costs, const char* name);
+	static void loadDistanceMatrix(struct DISTANCE_MATRIX* dM, const char* name);
+	static void waitForEnter();
+	static void plotIntermediateResults(struct PROB_RESULT* probResult ,struct CENTROID* centroid);
+
+
 
 };
 

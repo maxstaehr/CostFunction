@@ -99,6 +99,7 @@ struct LAUNCH_CONFIG{
 
 struct PROB_RESULT{
 	int n;
+	int nmax;
 
 	float* p;
 	float* maxp;
@@ -226,6 +227,7 @@ struct SAMPLE_ROTATIONS
 struct SAMPLE_POSITIONS
 {
 	int nP;
+	int nS;
 
 	float* qr;
 	float* qh;
@@ -235,21 +237,45 @@ struct SAMPLE_POSITIONS
 	float* d_qr;
 	float* d_qh;
 	float* d_qe;
+	float* d_pr;
 };
 
 struct SAMPLE_CAMERA
 {
+	int nBlocks;
+	int nThreads;
 	int nRays;
+
 
 	float* x;
 	float* y;
 	float* z;
+	float* c;
+	float* d;
+	
 
 	float* d_x;
 	float* d_y;
 	float* d_z;
+	float* d_c;
+	float* d_d;
+
+	int* d_angleIndex;
+	int* d_positionIndex;
 };
 
+struct CAM_COMBINATION{
+	unsigned long long n;
+	unsigned long long k;
+	unsigned long long* vector;
+	int gen_result;
+};
+
+struct POSSIBLE_CAMERA_TYPES
+{
+	int nCameraTypes;
+	struct SAMPLE_CAMERA* possibleCameraTypes;
+};
 struct CENTROID{
 
 	float* cx;
@@ -260,6 +286,54 @@ struct CENTROID{
 	float* d_cy;
 	float* d_cz;
 
+};
+struct RAYTRACING_LAUNCH{
+	int						n;	
+	SAMPLE_CAMERA**	cams;
+	cudaStream_t**	cudaStream;
+	
+	
+	DEPTH_BUFFER*	depthBuffers;
+
+	//for all camera within one launch
+	DEPTH_BUFFER	depthBuffer;
+	CENTROID		centroid;
+	PROB_RESULT		probResult;
+
+	int**	aI;
+	int**	pI;
+};
+
+struct OPTIMIZATION_SESSION
+{
+	int n;
+	struct RAYTRACING_LAUNCH* launchs;
+
+	int*	aI;
+	int*	pI;
+		
+};
+
+struct DISTANCE_MATRIX{
+	int n;
+	float*		ws_l_params;
+	int*		ws_n_params;
+	float*		d;
+
+	float*		d_ws_l_params;
+	int*		d_ws_n_params;
+	float*		d_d;
+
+};
+
+
+
+
+struct CURRENT_TRANS{
+	float* d_r;
+	float* d_h;
+	float* d_e;
+	float* d_pr;
 };
 
 

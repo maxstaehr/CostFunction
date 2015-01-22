@@ -10,6 +10,7 @@
 #include <iostream>
 #include <string>
 #include "global.h"
+#include "SearchClass.h"
 
 
 class CF2 {
@@ -17,13 +18,13 @@ public:
 	CF2();
 
 private:
-	ROBOT_PCL			robot;
-	HUMAN_PCL			human;
-	ENVIRONMENT_PCL		environment;
-	SAMPLE_POSITIONS	samplePositions;
-	SAMPLE_PCL			samplePoints;
-	SAMPLE_ROTATIONS	sampleRotations;
-	SAMPLE_CAMERA		sampleCamera;
+	ROBOT_PCL				robot;
+	HUMAN_PCL				human;
+	ENVIRONMENT_PCL			environment;
+	SAMPLE_POSITIONS		samplePositions;
+	SAMPLE_PCL				samplePoints;
+	SAMPLE_ROTATIONS		sampleRotations;
+	POSSIBLE_CAMERA_TYPES	sampleCameraTypes;
 
 	//vertex buffer
 	VERTEX_BUFFER		vertexBuffer;
@@ -54,6 +55,23 @@ private:
 	//probability calculation
 	PROB_RESULT			probResult;
 
+	//currentTransformations
+	CURRENT_TRANS		currentTrans;
+
+	RAYTRACING_LAUNCH*	raytracingLaunchs;
+	int					nRaytracingLaunch;
+
+	CAM_COMBINATION		cameraCombination;
+	int					currentNumberOfCams;
+
+	OPTIMIZATION_SESSION optiSession;
+
+	cudaStream_t*	cudaStream;
+
+	SearchClass*	sC;
+
+	DISTANCE_MATRIX distMatrix;
+
 
 
 
@@ -61,20 +79,47 @@ private:
 	//init functions
 	void initVertexBuffer();
 	void initBoundingBoxBuffer();
-	void initDepthBuffer(int size);
 	void initSamplePointsBuffer();
-	void initCentroidBuffer();
-	void initPropBuffer(int n);
-	void clearPropBuffer();
 
-	void transformVertexBuffer(int i);
-	void transformBoundingBoxBuffer(int i);
-	void transformSamplePointBuffer(int i);
+	void initDepthBuffer(DEPTH_BUFFER* depthBuffer, int size);	
+	void initCentroidBuffer(CENTROID* centroid, int n);
+	void initPropBuffer(PROB_RESULT* probResult, int n, int session);
+	void clearPropBuffer(PROB_RESULT* probResult, int n);
+	void createCudaStream(cudaStream_t** streams, int n);
+
+	void initRadomNumberGenerator(curandState *devStates, SAMPLE_CAMERA* sampleCamera );
+	void initRaytracingLaunch();
+	void initCameraCombination();
+	void iterateCameraCombination();
+
+	void saveAllVertices();
+	
+
+	
+
+	void transformVertexBuffer();
+	void transformBoundingBoxBuffer();
+	void transformSamplePointBuffer();
+	void setCurrentTans(int i);
 	
 	void rayTrace();
 	void calculateCentroid();
 	void calculateProbOfHumanDetection();
 	void calculateMaxProb();
+
+	void initParallelOptiRuns();
+	void freeParallelOptiRuns();
+
+	void freeDepthBuffer(DEPTH_BUFFER* depthBuffer);
+	void freeCentroidBuffer(CENTROID* centroid);
+	void freePropBuffer(PROB_RESULT* probResult);
+	void freeCudaStream(cudaStream_t* streams,int n);
+
+	void zeroProb();
+	void normalizeProb();
+
+public:
+	void run();
 	
 	
 };

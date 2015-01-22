@@ -6,7 +6,11 @@
 
 #define N_OF_A_SQ (N_OF_A*N_OF_A)
 #define WS_BORDER (1.0)
-#define PAR_KERNEL_LAUNCHS 1
+
+#define CAM_ITE 256
+#define PAR_KERNEL_LAUNCHS 4
+
+
 #define MAX_ITE (PAR_KERNEL_LAUNCHS*CAM_ITE)
 
 #define shared_mem_workspace 16384
@@ -20,12 +24,13 @@
 #define IS_VALID_POS_N 80938
 #define MAX_NUM_CAMS 20
 
-#define VERTEX_BUFFER_SIZE (1365)
-#define POINT_BUFFER_SIZE (4096)
+#define VERTEX_BUFFER_SIZE (1364)
+
 #define AVG_BUFFER_SIZE (512)
 
-#define THREADS_MODEL_FITTING (256)
+#define THREADS_MODEL_FITTING (512)
 #define MAX_BUFFER_SIZE THREADS_MODEL_FITTING
+#define POINT_BUFFER_SIZE (2218)
 
 #define WS_NX 64
 #define WS_NY 64
@@ -53,18 +58,23 @@
 #define RES_Y 64
 #define WS_ID_SIZE (WS_NX*WS_NY*WS_NZ)
 #define MAX_PCL_SIZE 2622
-#define CAM_ITE 256
 #define SHARED_MEM_WS_INT 4096
 
 #define human_rx (0.1582f)
 #define human_ry (0.2488f)
 #define human_rz (0.8001f)
 
+#define human_rx_2 (0.02502724f)
+#define human_ry_2 (0.06190144f)
+#define human_rz_2 (0.64016001f)
+
 
 #define CONSTANT_MEM_ALLOC_SIZE N_OF_A*N_OF_A*N_OF_A
 #define MATH_PI 3.14159265359f
 #define DA  (2*MATH_PI/(float)N_OF_A)
-#define INF_DIST 1000.0f
+#define MINIMUM_POINTS_DETECTION (100)
+
+
 
 
 //
@@ -74,6 +84,9 @@
 #define d_xdim 6.0f
 #define d_ydim 6.0f
 #define d_zdim 3.0f
+
+#define N_COEFFS 4
+#define N_SAMPLE_TRANSFORMATION 100
 
 #define v_dx (d_xdim/d_nx)
 #define v_dy (d_ydim/d_ny)

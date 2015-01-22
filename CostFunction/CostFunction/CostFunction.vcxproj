@@ -87,21 +87,27 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CF2.h" />
+    <ClInclude Include="CompleteEnumeration.h" />
     <ClInclude Include="CostFunctionClass.h" />
     <ClInclude Include="CudaMem.h" />
     <ClInclude Include="global.h" />
     <ClInclude Include="IO.h" />
     <ClInclude Include="mathcuda.h" />
     <ClInclude Include="NearestNeighbour.h" />
+    <ClInclude Include="Progress.h" />
+    <ClInclude Include="SearchClass.h" />
     <ClInclude Include="SimulatedAnnealing.h" />
     <ClInclude Include="struct_definitions.h" />
     <ClInclude Include="TestSuit.h" />
     <ClInclude Include="_generate.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CompleteEnumeration.cpp" />
     <ClCompile Include="CudaMem.cpp" />
     <ClCompile Include="IO.cpp" />
     <ClCompile Include="NearestNeighbour.cpp" />
+    <ClCompile Include="Progress.cpp" />
+    <ClCompile Include="SearchClass.cpp" />
     <ClCompile Include="SimulatedAnnealing.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -353,6 +359,8 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <CodeGeneration>compute_20,sm_21</CodeGeneration>
+      <FastMath>false</FastMath>
+      <Emulation>false</Emulation>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugPositions|x64'">
@@ -531,6 +539,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <CodeGeneration>compute_20,sm_21</CodeGeneration>
+      <FastMath>false</FastMath>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release3.0|x64'">
@@ -554,6 +563,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <CodeGeneration>compute_30,sm_30</CodeGeneration>
+      <FastMath>false</FastMath>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDebugRecord|x64'">

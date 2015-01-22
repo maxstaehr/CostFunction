@@ -7,7 +7,9 @@
 
 namespace cuda_calc2{
 
-	#define EPSILON 0.000001
+	//#define EPSILON 0.000001
+	#define EPSILON 0.00000001
+	//#define EPSILON (0.5f)
 
 
 	__device__ void CROSS(float* r, const float *a, const float *b ) {
@@ -48,7 +50,7 @@ namespace cuda_calc2{
 		  det = DOT(e1, P);
 		  //NOT CULLING
 		  if(det > -EPSILON && det < EPSILON) return 0;
-		  inv_det = 1.f / det;
+		  inv_det = 1.0f / det;
  
 		  //calculate distance from V1 to ray origin
 		  SUB(T, O, V1);
@@ -64,7 +66,7 @@ namespace cuda_calc2{
 		  //Calculate V parameter and test bound
 		  v = DOT(D, Q) * inv_det;
 		  //The intersection lies outside of the triangle
-		  if(v < 0.f || u + v  > 1.f) return 0;
+		  if(v < 0.0f || u + v  > 1.0f) return 0;
  
 		  t = DOT(e2, Q) * inv_det;
  
@@ -345,7 +347,7 @@ namespace cuda_calc2{
 			{
 				//check if the distance value is within limits
 				
-				if(Dx[curIndex] < 7.0)
+				if(!isnan(Dx[curIndex]))
 				{
 					calcNewAverage(avg_x+threadIdx.x, avg_w[threadIdx.x], Dx[curIndex]);					
 					calcNewAverage(avg_y+threadIdx.x, avg_w[threadIdx.x], Dy[curIndex]);					
@@ -385,11 +387,20 @@ namespace cuda_calc2{
 			}
 		}
 		__syncthreads();
+
 		if (threadIdx.x == 0)
 		{
-			a_x[0] = avg_x[0];
-			a_y[0] = avg_y[0];
-			a_z[0] = avg_z[0];
+			if (avg_w[0] > MINIMUM_POINTS_DETECTION)
+			{
+				a_x[0] = avg_x[0];
+				a_y[0] = avg_y[0];
+				a_z[0] = avg_z[0];
+			}else
+			{
+				a_x[0] = nanf("");;
+				a_y[0] = nanf("");;
+				a_z[0] = nanf("");;
+			}
 		}
 
 
@@ -403,11 +414,35 @@ namespace cuda_calc2{
 		return x>0 && y>0 && z>0 && x<dim[0] && y<dim[1] && z<dim[2];
 	}
 
+	__global__ void setup_kernel(curandState *state)
+	{
+		int id = threadIdx.x + blockIdx.x * 64;
+		/* Each thread gets same seed, a different sequence 
+		   number, no offset */
+		curand_init(1234, id, 0, &state[id]);
+	}
+
+	__device__ float generateDepthValue(float* coeffs, float z, curandState_t *state)
+	{
+
+		float rand = curand_normal (state);
+		float sigma = 0.0f;
+		float z_value = z*1000;
+		float exp;
+		for(int i=0; i<N_COEFFS; i++)
+		{	exp = N_COEFFS-i-1;
+			sigma += coeffs[i]*powf(z_value, exp);
+		}
+		sigma /= 1000.0f;
+		return z+sigma*rand;
+	}
+
 	__global__ void raytraceVertices(					float* xi, float* yi, float* zi,
 														int* fx, int* fy, int* fz, int nF,
 														float* bb_H, float* bb_D, int nBB, 
 														float* camPos_H, float* camRot_H,
 														float* camRayX, float* camRayY, float* camRayZ,
+														curandState *devStates, float* c,
 														float* Dx, float* Dy, float* Dz)
 	{
 		//defining vertex buffer
@@ -418,8 +453,11 @@ namespace cuda_calc2{
 		int blockSize = blockDim.x * blockDim.y * blockDim.z;
 		int threadIDinBlock = threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x;
 		int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
-		int threadId = blockId*blockSize+threadIDinBlock;
-		float d = FLT_MAX;		
+		int threadId = blockId * (blockDim.x * blockDim.y * blockDim.z)
+			  + (threadIdx.z * (blockDim.x * blockDim.y))
+			  + (threadIdx.y * blockDim.x)
+			  + threadIdx.x;
+		float d = 7.0f;		
 		float dr;
 		int hit;
 
@@ -428,6 +466,10 @@ namespace cuda_calc2{
 		//calculating current origin
 		float o[3];
 		float di[3];
+		float p[3];
+		float* v1_d;
+		float* v2_d;
+		float* v3_d;
 		calculateOrginAndDirection(camPos_H, camRot_H, camRayX[threadId], camRayY[threadId], camRayZ[threadId], o, di);
 
 		//determining number of vertices to be copied by each thread into buffer
@@ -448,6 +490,7 @@ namespace cuda_calc2{
 				numberOfValidVertices = nF - numOfVerticesCopied;
 			}
 			
+			//calcNumberOfValidPoints(nF, int bufferSize, int numOfVerticesCopied)
 
 			for(int i=0; i<nItePerThread; i++)
 			{
@@ -479,26 +522,53 @@ namespace cuda_calc2{
 			numOfVerticesCopied += numberOfValidVertices;
 			__syncthreads();
 
+			
 			//raytrace and check minum distance
 			for(int i=0; i<numberOfValidVertices; i++)
-			{				
-				hit = triangle_intersection(	
-										v1+3*i,  // Triangle vertices
-										v2+3*i,
-										v3+3*i,
+			{
+				
+				v1_d = v1+3*i;
+				v2_d = v2+3*i;
+				v3_d = v3+3*i;
+				hit =  triangle_intersection(	
+										v1_d,  // Triangle vertices
+										v2_d,
+										v3_d,
 										o,  //Ray origin
 										di,  //Ray direction
 										&dr);
 
-				if(hit){
+				if(hit > 0){
 					d = fminf(d, dr);
+
+				//	v1_d = v1+3*i;
+				//	v2_d = v2+3*i;
+				//	v3_d = v3+3*i;
+
+				//	p[0] = o[0]+dr*di[0];
+				//	p[1] = o[1]+dr*di[1];
+				//	p[2] = o[2]+dr*di[2];
+
+				//int hit2 = triangle_intersection(	
+				//						v1_d,  // Triangle vertices
+				//						v2_d,
+				//						v3_d,
+				//						o,  //Ray origin
+				//						di,  //Ray direction
+				//						&dr);
+
+
+					
 				}
 				
 			}
+			__syncthreads();
 
 		}
 
-		float p[3];
+		//d = generateDepthValue(c,d,&devStates[blockId*blockSize+threadIDinBlock]);
+
+		
 		p[0] = o[0]+d*di[0];
 		p[1] = o[1]+d*di[1];
 		p[2] = o[2]+d*di[2];
@@ -509,34 +579,63 @@ namespace cuda_calc2{
 			isInBox |= isInBB(bb_H+i*16, bb_D+i*3, p);
 		}
 
-		if(d < 7.0 && !isInBox)
+		if(d < 7.0f && !isInBox)
 		{
 			//setting real value and calculate weighted average
-			Dx[blockId*blockSize+threadIDinBlock] = p[0];
-			Dy[blockId*blockSize+threadIDinBlock] = p[1];
-			Dz[blockId*blockSize+threadIDinBlock] = p[2];
+			Dx[threadId] = p[0];
+			Dy[threadId] = p[1];
+			Dz[threadId] = p[2];
 		}else
 		{
 			//setting to error value
-			Dx[blockId*blockSize+threadIDinBlock] = INF_DIST;
-			Dy[blockId*blockSize+threadIDinBlock] = INF_DIST;
-			Dz[blockId*blockSize+threadIDinBlock] = INF_DIST;
+			Dx[threadId] = nanf("");
+			Dy[threadId] = nanf("");
+			Dz[threadId] = nanf("");
 		}
 
 
 	}
 
+		//	float v0_2 = v[0]*v[0];
+		//float v1_2 = v[1]*v[1];
+		//float v2_2 = v[2]*v[2];
+		//float t1 = v0_2/human_rx_2;
+		//float t2 = v1_2/human_ry_2;
+		//float t3 = v2_2/human_rz_2;		
+		//float mg = sqrtf(t1+t2+t3);
+		//float t = powf((1/mg)-1, 2.0);
+		//return sqrtf(v0_2+v0_2+v0_2*t);
+
 	__device__ float distanceToEllipse(float* v)
 	{
-		float vp[3];
+		/*float vp[3];*/
 		float t1 = powf(v[0]/human_rx, 2.0);
 		float t2 = powf(v[1]/human_ry, 2.0);
 		float t3 = powf(v[2]/human_rz, 2.0);
 		float mag = sqrtf(t1+t2+t3);
-		vp[0] = v[0]/mag;
+	/*	vp[0] = v[0]/mag;
 		vp[1] = v[1]/mag;
-		vp[2] = v[2]/mag;
-		return sqrtf(powf(vp[0]-v[0],2.0)+powf(vp[1]-v[1],2.0)+powf(vp[2]-v[2],2.0));
+		vp[2] = v[2]/mag;*/
+		float inner = powf(v[0], 2.0f)+powf(v[1], 2.0f)+powf(v[2], 2.0f);
+		float factor = powf((-1.0f + 1.0f/mag), 2.0f);
+		return sqrtf(inner*factor);
+		//return sqrtf(powf(vp[0]-v[0],2.0)+powf(vp[1]-v[1],2.0)+powf(vp[2]-v[2],2.0));
+	}
+
+	__device__ void distanceToEllipseCache(float* v, float* ws_l, int* ws_n, float* d, float* dist, int* w)
+	{
+		int x = floorf((v[0]-ws_l[0])/ws_l[6]);
+		int y = floorf((v[1]-ws_l[2])/ws_l[7]);
+		int z = floorf((v[2]-ws_l[4])/ws_l[8]);
+		if(	x >= 0 && x < ws_n[0] &&
+			y >= 0 && y < ws_n[1] &&
+			z >= 0 && z < ws_n[2]){
+			int index = x*ws_n[1]*ws_n[2] + y*ws_n[2] +z;
+			//printf("%d\t%d\t%d\t%d\t%.4f\n",x,y,z,index, d[index]);
+			(*dist) += d[index];
+			(*w) ++;
+		}
+
 	}
 
 	__device__ void rotatePoint(float* R, float* p)
@@ -551,17 +650,39 @@ namespace cuda_calc2{
 		p[2] = b[2];
 	}
 
-	#define	tailor_a (1.927683761067405f)
-	#define	tailor_b (-12.914812798334909f)
-	#define tailor_min (0.050819128176881f)
+	#define	tailor_a (1.001728649930781f)
+	#define	tailor_b (-11.517243358808045f)
+	#define tailor_min (1.499627542216331e-04f)
+
+	#define tailor_weight_a (0.008254041852680f)
+	#define tailor_weight_b (0.009594104554142f)
+	#define tailor_weight_max 500
+
 
 	__device__ float calculateProbabilityOfDetection(float meanDistance)
 	{
+		//meanDistance = 4.0*meanDistance;
 		if(meanDistance < tailor_min){
+			//printf("%.5f\n", meanDistance);
 			return 1.0f;
 		}else{
 			return tailor_a*expf(tailor_b*meanDistance);
 		}
+	}
+
+	__device__ float calculateWeightOfDetection(int w)
+	{
+		if(w > MINIMUM_POINTS_DETECTION)
+			return 1.0f;
+		else
+			return 0.0f;
+		//meanDistance = 4.0*meanDistance;
+		//if(w > tailor_weight_max){
+		//	//printf("%.5f\n", meanDistance);
+		//	return 1.0f;
+		//}else{
+		//	return tailor_weight_a*expf(tailor_weight_b*w);
+		//}
 	}
 
 	__device__ int calcNumberOfValidPoints(int nP, int bufferSize, int numOfPointsCopied)
@@ -579,38 +700,53 @@ namespace cuda_calc2{
 
 	}
 
-	__device__ float generateDepthValue(float* coeffs, curandState_t *state)
+	__global__ void zeroProb(float* prob)
 	{
-		float rand = curand_normal (state);
+		int threadId =  blockIdx.x *blockDim.x + threadIdx.x;
+		prob[threadId] = 0.0f;
 	}
+
+	__global__ void normalizeProb(float* prob, int n)
+	{
+		int threadId =  blockIdx.x *blockDim.x + threadIdx.x;
+		prob[threadId] /= n;
+	}
+
+
 		
 
 	__global__ void distanceToEllipseModel(float* Dx, float* Dy, float* Dz, int nP,
 									  float* R, float* Fx, float* Fy,
-									  float* cx, float* cy, float* cz,									  
+									  float* cx, float* cy, float* cz,	
+									  float* ws_l_params, int* ws_n_params, float* d_m,									 
 									  float* prop)
 	{
 		__shared__ float vx[POINT_BUFFER_SIZE];
 		__shared__ float vy[POINT_BUFFER_SIZE];
 		__shared__ float vz[POINT_BUFFER_SIZE];
 
-		//int threadId =  blockIdx.x *blockDim.x + threadIdx.x;
-		//int threadId =  blockIdx.y  * gridDim.x  * blockDim.z * blockDim.y * blockDim.x
-		//	+ blockIdx.x  * blockDim.z * blockDim.y * blockDim.x
-		//	+ threadIdx.z * blockDim.y * blockDim.x
-		//	+ threadIdx.y * blockDim.x
-		//	+ threadIdx.x;
+		__shared__ float ws_l[9];
+		__shared__ int ws_n[3];
+		
+
+		//__shared__ float R_l[THREADS_MODEL_FITTING*9];
+		//__shared__ float Fx_l[THREADS_MODEL_FITTING];
+		//__shared__ float Fy_l[THREADS_MODEL_FITTING];
+
 
 		int blockSize = blockDim.x * blockDim.y * blockDim.z;
 		int threadIDinBlock = threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x;
 		int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
 		int threadId = blockId*blockSize+threadIDinBlock;
 
+		//checking if the centroid calculation was valid
+		if(isnan(cx[0]))
+		{
+			//probability of detection zero and leave
+			prop[threadId] = 0.0f;
+			return;
+		}
 
-		//determining number of vertices to be copied by each thread into buffer
-		int nItePerThread = (int)((POINT_BUFFER_SIZE/blockSize)+1);
-
-		//loading vertex data into local buffer
 		int index,i;
 		int numOfPointsCopied = 0;
 		int numberOfValidPoints;
@@ -618,6 +754,35 @@ namespace cuda_calc2{
 		float	dist = 0.0f;
 		int		w = 0;
 		float	p[3];
+
+
+		//copying the rotation and offset in x and y first into shared memory		 
+
+
+		//copying rotations
+		//for(int j=0; j<9; j++)
+		//{
+		//	R_l[threadIDinBlock*9+j] =R[(blockId*blockSize+threadIDinBlock)*9+j];
+		//}
+		//Fx_l[threadIDinBlock] = Fx[blockId*blockSize+threadIDinBlock];
+		//Fy_l[threadIDinBlock] = Fy[blockId*blockSize+threadIDinBlock];
+		
+	
+
+
+		//determining number of vertices to be copied by each thread into buffer
+		int nItePerThread = (int)((POINT_BUFFER_SIZE/blockSize)+1);
+
+		//loading vertex data into local buffer
+		if(threadIDinBlock < 9)
+		{
+			ws_l[threadIDinBlock] = ws_l_params[threadIDinBlock];
+		}
+
+		if(threadIDinBlock < 3)
+		{
+			ws_n[threadIDinBlock] = ws_n_params[threadIDinBlock];
+		}
 
 
 		
@@ -630,6 +795,7 @@ namespace cuda_calc2{
 
 			for(i=0; i<nItePerThread; i++)
 			{
+			
 				index = threadIDinBlock*nItePerThread+i;
 				//check if enough space in vertex buffer and enough remaing faces
 				if(index < numberOfValidPoints)
@@ -648,26 +814,49 @@ namespace cuda_calc2{
 			for(i=0; i<numberOfValidPoints; i++)
 			{
 				//checking if valid point is in buffer
-				if(vx[i] < INF_DIST)
+				if(!isnan(vx[i]))
 				{
+					//p[0] = vx[i]-(cx[0]+Fx[threadId]);
+					//p[1] = vy[i]-(cy[0]+Fy[threadId]);
+					//p[2] = vz[i]-(cz[0]);
+
+					//rotatePoint(R+9*threadId, p);
+					//dist += distanceToEllipse(p);
+					//w++;
 					p[0] = vx[i]-(cx[0]+Fx[threadId]);
 					p[1] = vy[i]-(cy[0]+Fy[threadId]);
-					p[2] = vz[i]-(cz[0]);
+					p[2] = vz[i];
 
-					rotatePoint(R+9*threadId, p);
-					dist += distanceToEllipse(p);
-					w++;
+					rotatePoint(R+9*threadId, p);					
+					distanceToEllipseCache(p, ws_l, ws_n, d_m, &dist, &w);
+					
 				}
 			}
 			__syncthreads();
 			
 		}
-		dist = dist/w;
-		prop[threadId] = calculateProbabilityOfDetection(dist);
+
+		float w_w = calculateWeightOfDetection(w);
+		dist /= w;
+		float w_p = calculateProbabilityOfDetection(dist);
+		if(w > MINIMUM_POINTS_DETECTION)
+			prop[threadId] = calculateProbabilityOfDetection(dist);
+		else
+			prop[threadId] = 0.0f;
+		//if(w > MINIMUM_POINTS_DETECTION)
+		//{
+		//	dist = dist/w;
+		//	prop[threadId] = dist;// calculateProbabilityOfDetection(dist);
+		//	//printf("%.5f\t%.5f\n", dist,prop[threadId]);
+		//}
+		//else{
+		//	prop[threadId] = nanf("");
+		//	//prop[threadId] = FLT_MAX;
+		//}
 		
 	}
 
-	__global__ void calculateMaxProb(float* prob, int n, float* maxp)
+	__global__ void calculateMaxProb(float* prob, int n, float* maxp, float* pr)
 	{
 		__shared__ float max_buffer[MAX_BUFFER_SIZE];
 
@@ -678,6 +867,7 @@ namespace cuda_calc2{
 		
 
 		float localMax = 0.0f;
+		//float localMax = FLT_MAX;
 		for(i=0; i<nItePerThread; i++)
 		{
 			curIndex = threadIdx.x*nItePerThread+i;
@@ -685,6 +875,7 @@ namespace cuda_calc2{
 			if(curIndex < n)
 			{
 				localMax = fmaxf(prob[curIndex],  localMax);
+				//localMax = fmin(prob[curIndex],  localMax);
 			}
 		}
 		max_buffer[threadIdx.x] = localMax;
@@ -699,9 +890,16 @@ namespace cuda_calc2{
 			if(threadIdx.x < i)
 			{
 				max_buffer[threadIdx.x] = fmaxf(max_buffer[threadIdx.x],  max_buffer[threadIdx.x+i]);
+				//max_buffer[threadIdx.x] = fmin(max_buffer[threadIdx.x],  max_buffer[threadIdx.x+i]);
 			}
 		}
-		maxp[0] = max_buffer[0];
+
+		__syncthreads();
+		if(threadIdx.x == 0)
+		{
+			//maxp[0] = pr[0] * max_buffer[0];
+			maxp[0] = max_buffer[0];
+		}
 
 	}
 

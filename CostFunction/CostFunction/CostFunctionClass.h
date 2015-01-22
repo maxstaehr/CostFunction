@@ -47,7 +47,7 @@
 //
 //		unsigned int* d_fa_final;
 //		unsigned int* d_hs_final;
-//		cudaStream_t 	cudaStreams;
+//		cudaStream_t 	optiSession;
 //	};
 //
 //
