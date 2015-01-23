@@ -205,6 +205,10 @@ struct HUMAN_PCL
 struct SAMPLE_PCL
 {
 	int n;
+
+	float* x;
+	float* y;
+	float* z;
 	
 	float* h;
 	int *i;
@@ -222,6 +226,8 @@ struct SAMPLE_ROTATIONS
 
 	float* R;
 	float* d_R;
+
+	float* angleLimits;
 };
 
 struct SAMPLE_POSITIONS

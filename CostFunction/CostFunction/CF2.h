@@ -11,6 +11,7 @@
 #include <string>
 #include "global.h"
 #include "SearchClass.h"
+#include "NearestNeighbour.h"
 
 
 class CF2 {
@@ -71,6 +72,8 @@ private:
 	SearchClass*	sC;
 
 	DISTANCE_MATRIX distMatrix;
+
+	NearestNeighbour* nn;
 
 
 

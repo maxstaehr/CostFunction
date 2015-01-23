@@ -4,7 +4,7 @@
 #include <assert.h>
 
 using namespace std;
-CompleteEnumeration::CompleteEnumeration(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, int nI):SearchClass(sp,sr,nC,nI)
+CompleteEnumeration::CompleteEnumeration(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, int nI,  int* nn_indices):SearchClass(sp,sr,nC,nI, nn_indices)
 {
 	//just a single camera for complete enumeration
 	assert(nC == 1);

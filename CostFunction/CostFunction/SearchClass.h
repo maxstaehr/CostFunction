@@ -4,7 +4,7 @@ class SearchClass
 {
 
 public:
-	SearchClass(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, int nI);
+	SearchClass(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, int nI, int* const nn_indices);
 	virtual ~SearchClass(void);
 
 	virtual bool iterate(int* pI, int* aI, float* prob) = 0;
@@ -16,7 +16,8 @@ protected:
 	SAMPLE_PCL* sp;
 	SAMPLE_ROTATIONS* sr;
 	int nC;
-	int nI;
+	int nI; 
+	int* nn_indices;
 	
 };
 

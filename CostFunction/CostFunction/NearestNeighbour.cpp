@@ -16,13 +16,18 @@ int NearestNeighbour::zm[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
 int NearestNeighbour::zz[] = {9, 10, 11, 12, 13, 14, 15, 16, 17};
 int NearestNeighbour::zp[] = {18, 19, 20, 21, 22, 23, 24, 25, 26};
 
-NearestNeighbour::NearestNeighbour(void)
+NearestNeighbour::NearestNeighbour(SAMPLE_PCL* pcl, SAMPLE_ROTATIONS* sr)
 {
+	this->pcl = pcl;
+	this->sr = sr;	
+	indices = new int[pcl->n*6];
+	calcNearestNeighbourIndices();
 }
 
 
 NearestNeighbour::~NearestNeighbour(void)
 {
+	delete indices;
 }
 
 float NearestNeighbour::calcDistance(float x1, float y1, float z1, float x2, float y2, float z2)
@@ -35,7 +40,7 @@ float NearestNeighbour::calcDistance(float x1, float y1, float z1, float x2, flo
 
 }
 
-unsigned int NearestNeighbour::calcMin(struct PCL* pcl, float x, float y, float z)
+unsigned int NearestNeighbour::calcMin(float x, float y, float z)
 {
 	float minCost=FLT_MAX, cost;
 	unsigned int minIndex= 0;
@@ -56,18 +61,18 @@ unsigned int NearestNeighbour::calcMin(struct PCL* pcl, float x, float y, float 
 	return minIndex;
 }
 
-void NearestNeighbour::calcNearestNeighbourIndices(int* indices, struct PCL* pcl)
+void NearestNeighbour::calcNearestNeighbourIndices()
 {
 	
 	float eps = 0.05;
 	for(unsigned int r=0; r < pcl->n; r++)
 	{
-		indices[6*r+0] = calcMin(pcl, pcl->x[r]-eps, pcl->y[r], pcl->z[r]);
-		indices[6*r+1] = calcMin(pcl, pcl->x[r]+eps, pcl->y[r], pcl->z[r]);
-		indices[6*r+2] = calcMin(pcl, pcl->x[r], pcl->y[r]-eps, pcl->z[r]);
-		indices[6*r+3] = calcMin(pcl, pcl->x[r], pcl->y[r]+eps, pcl->z[r]);
-		indices[6*r+4] = calcMin(pcl, pcl->x[r], pcl->y[r], pcl->z[r]-eps);
-		indices[6*r+5] = calcMin(pcl, pcl->x[r], pcl->y[r], pcl->z[r]+eps);
+		indices[6*r+0] = calcMin(pcl->x[r]-eps, pcl->y[r], pcl->z[r]);
+		indices[6*r+1] = calcMin(pcl->x[r]+eps, pcl->y[r], pcl->z[r]);
+		indices[6*r+2] = calcMin(pcl->x[r], pcl->y[r]-eps, pcl->z[r]);
+		indices[6*r+3] = calcMin(pcl->x[r], pcl->y[r]+eps, pcl->z[r]);
+		indices[6*r+4] = calcMin(pcl->x[r], pcl->y[r], pcl->z[r]-eps);
+		indices[6*r+5] = calcMin(pcl->x[r], pcl->y[r], pcl->z[r]+eps);
 	}
 }
 
@@ -85,25 +90,29 @@ void NearestNeighbour::setNearestNeighbour(const int* const indices, int pointIn
 	for(unsigned int i=6; i<12; i++)
 		pclIndices[i] = pointIndex;
 
-	int ri = angleIndex/N_OF_A_SQ;
-	int pi = (angleIndex - ri*N_OF_A_SQ)/N_OF_A;
-	int yi = angleIndex-ri*N_OF_A_SQ-pi*N_OF_A;
+	
 
-	int ri_m = (ri+N_OF_A-1)%N_OF_A;
-	int ri_p = (ri+N_OF_A+1)%N_OF_A;
+	int ri = angleIndex/sr->nPitch*sr->nYaw;
+	int pi = (angleIndex - ri*sr->nPitch*sr->nYaw)/sr->nYaw;
+	int yi = angleIndex-ri*sr->nPitch*sr->nYaw-pi*sr->nYaw;
 
-	int yi_m = (yi+N_OF_A-1)%N_OF_A;
-	int yi_p = (yi+N_OF_A+1)%N_OF_A;
+	int ri_m = (ri+sr->nRoll-1)%sr->nRoll;
+	int ri_p = (ri+sr->nRoll+1)%sr->nRoll;
 
-	int pi_m = (pi+N_OF_A-1)%N_OF_A;
-	int pi_p = (pi+N_OF_A+1)%N_OF_A;
+	int pi_m = (pi+sr->nPitch-1)%sr->nPitch;
+	int pi_p = (pi+sr->nPitch+1)%sr->nPitch;
 
-	angleIndices[6] = ri_m * N_OF_A_SQ + pi * N_OF_A + yi;
-	angleIndices[7] = ri_p * N_OF_A_SQ + pi * N_OF_A + yi;
-	angleIndices[8] = ri * N_OF_A_SQ + pi_m * N_OF_A + yi;
-	angleIndices[9] = ri * N_OF_A_SQ + pi_p * N_OF_A + yi;
-	angleIndices[10] = ri * N_OF_A_SQ + pi * N_OF_A + yi_p;
-	angleIndices[11] = ri * N_OF_A_SQ + pi * N_OF_A + yi_m;
+	int yi_m = (yi+sr->nPitch-1)%sr->nYaw;
+	int yi_p = (yi+sr->nPitch+1)%sr->nYaw;
+
+
+
+	angleIndices[6] = ri_m * sr->nPitch*sr->nYaw + pi * sr->nYaw + yi;
+	angleIndices[7] = ri_p * sr->nPitch*sr->nYaw + pi * sr->nYaw + yi;
+	angleIndices[8] = ri * sr->nPitch*sr->nYaw + pi_m * sr->nYaw + yi;
+	angleIndices[9] = ri * sr->nPitch*sr->nYaw + pi_p * sr->nYaw + yi;
+	angleIndices[10] = ri * sr->nPitch*sr->nYaw + pi * sr->nYaw + yi_p;
+	angleIndices[11] = ri * sr->nPitch*sr->nYaw + pi * sr->nYaw + yi_m;
 }
 
 int NearestNeighbour::findGradieantIndices(int* x, int* y, int* z)
@@ -166,9 +175,10 @@ void NearestNeighbour::setNextIteration(double cm, double cp, double c_t1, unsig
 	}
 	*dir_return = dir;
 
-	int ri = angleIndex/N_OF_A_SQ;
-	int pi = (angleIndex - ri*N_OF_A_SQ)/N_OF_A;
-	int yi = angleIndex-ri*N_OF_A_SQ-pi*N_OF_A;
+
+	int ri = angleIndex/sr->nPitch*sr->nYaw;
+	int pi = (angleIndex - ri*sr->nPitch*sr->nYaw)/sr->nYaw;
+	int yi = angleIndex-ri*sr->nPitch*sr->nYaw-pi*sr->nYaw;
 	int roll = ri, pitch = pi, yaw = yi;
 
 	switch(dim){
@@ -192,13 +202,13 @@ void NearestNeighbour::setNextIteration(double cm, double cp, double c_t1, unsig
 		//roll
 		switch(dir){
 		case GRADIENT_DIM::minus:
-			roll = (ri+N_OF_A-1)%N_OF_A;
+			roll = (ri+sr->nRoll-1)%sr->nRoll;
 			break;
 		case GRADIENT_DIM::zero:
 			roll = ri;
 			break;
 		case GRADIENT_DIM::plus:
-			roll = (ri+N_OF_A+1)%N_OF_A;
+			roll = (ri+sr->nRoll+1)%sr->nRoll;
 			break;
 		};
 		break;
@@ -206,13 +216,13 @@ void NearestNeighbour::setNextIteration(double cm, double cp, double c_t1, unsig
 		//pitch
 		switch(dir){
 		case GRADIENT_DIM::minus:
-			pitch = (pi+N_OF_A-1)%N_OF_A;;
+			pitch = (pi+sr->nPitch-1)%sr->nPitch;;
 			break;
 		case GRADIENT_DIM::zero:
 			pitch = pi;
 			break;
 		case GRADIENT_DIM::plus:
-			pitch = (pi+N_OF_A+1)%N_OF_A;;
+			pitch = (pi+sr->nPitch+1)%sr->nPitch;;
 			break;
 		};
 		break;
@@ -220,19 +230,19 @@ void NearestNeighbour::setNextIteration(double cm, double cp, double c_t1, unsig
 		//yaw
 		switch(dir){
 		case GRADIENT_DIM::minus:
-			yaw = (yi+N_OF_A-1)%N_OF_A;
+			yaw = (yi+sr->nYaw-1)%sr->nYaw;
 			break;
 		case GRADIENT_DIM::zero:
 			yaw = yi;
 			break;
 		case GRADIENT_DIM::plus:
-			yaw = (yi+N_OF_A+1)%N_OF_A;
+			yaw = (yi+sr->nYaw+1)%sr->nYaw;
 			break;
 		};
 		break;
 
 	};
-	*angleIndexReturn = roll * N_OF_A_SQ + pitch * N_OF_A + yaw;
+	*angleIndexReturn = roll * sr->nPitch*sr->nYaw + pitch * sr->nYaw + yaw;
 
 }
 
@@ -281,45 +291,45 @@ void NearestNeighbour::findNextPointIndexAndAngleIndex(const int* const indices,
 	*pointIndexReturn = NearestNeighbour::findGradieantIndices(x,y,z);
 
 
-	int ri = angleIndex/N_OF_A_SQ;
-	int pi = (angleIndex - ri*N_OF_A_SQ)/N_OF_A;
-	int yi = angleIndex-ri*N_OF_A_SQ-pi*N_OF_A;
+	int ri = angleIndex/(sr->nPitch*sr->nYaw);
+	int pi = (angleIndex - ri*sr->nPitch*sr->nYaw)/sr->nYaw;
+	int yi = angleIndex-ri*sr->nPitch*sr->nYaw-pi*sr->nYaw;
 
 	int roll, pitch, yaw;
 	switch(direction[3]){
 	case GRADIENT_DIM::minus:
-		roll = (ri+N_OF_A-1)%N_OF_A;
+		roll = (ri+sr->nRoll-1)%sr->nRoll;
 		break;
 	case GRADIENT_DIM::zero:
 		roll = ri;
 		break;
 	case GRADIENT_DIM::plus:
-		roll = (ri+N_OF_A+1)%N_OF_A;
+		roll = (ri+sr->nRoll+1)%sr->nRoll;
 		break;
 	};
 
 	switch(direction[4]){
 	case GRADIENT_DIM::minus:
-		pitch = (pi+N_OF_A-1)%N_OF_A;
+		pitch = (pi+sr->nPitch-1)%sr->nPitch;
 		break;
 	case GRADIENT_DIM::zero:
 		pitch = pi;
 		break;
 	case GRADIENT_DIM::plus:
-		pitch = (pi+N_OF_A+1)%N_OF_A;
+		pitch = (pi+sr->nPitch+1)%sr->nPitch;
 		break;
 	};
 
 	switch(direction[5]){
 	case GRADIENT_DIM::minus:
-		yaw = (yi+N_OF_A-1)%N_OF_A;;
+		yaw = (yi+sr->nYaw-1)%sr->nYaw;;
 		break;
 	case GRADIENT_DIM::zero:
 		yaw = yi;
 		break;
 	case GRADIENT_DIM::plus:
-		yaw = (yi+N_OF_A+1)%N_OF_A;;
+		yaw = (yi+sr->nYaw+1)%sr->nYaw;;
 		break;
 	};
-	*angleIndexReturn = roll * N_OF_A_SQ + pitch * N_OF_A + yaw;
+	*angleIndexReturn = roll * sr->nPitch*sr->nYaw + pitch * sr->nYaw + yaw;
 }

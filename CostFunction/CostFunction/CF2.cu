@@ -23,6 +23,7 @@
 #include <stdlib.h>     /* srand, rand */
 #include "_generate.h"
 #include "CompleteEnumeration.h"
+#include "SimulatedAnnealing.h"
 #include "Progress.h"
 #include "cudaProfiler.h"
 
@@ -96,7 +97,7 @@ CF2::CF2():currentNumberOfCams(1)
 	IO::saveBoundingBoxBufferToFile(&boundingBoxBuffer, "boundingBox.bin");
 	IO::saveBoundingBoxBuffer(&boundingBoxBuffer, "boundingBoxBuffer.bin");
 
-
+	nn = new NearestNeighbour(&samplePoints, &sampleRotations);
 
 	
 	
@@ -142,7 +143,8 @@ void CF2::run()
 		initParallelOptiRuns();
 
 		//inner loop for possible positions		
-		sC = new CompleteEnumeration(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE);
+	//	sC = new CompleteEnumeration(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, NULL);
+		sC = new SimulatedAnnealing(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, nn->getNN());
 		time_t start;
 		time(&start);
 		int debugIte = 0;

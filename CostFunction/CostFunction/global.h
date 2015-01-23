@@ -1,10 +1,10 @@
 #pragma once
 
 //#define N_OF_A (360)
-#define N_OF_A (10)
+//#define N_OF_A (10)
 
 
-#define N_OF_A_SQ (N_OF_A*N_OF_A)
+//#define N_OF_A_SQ (N_OF_A*N_OF_A)
 #define WS_BORDER (1.0)
 
 #define CAM_ITE 256

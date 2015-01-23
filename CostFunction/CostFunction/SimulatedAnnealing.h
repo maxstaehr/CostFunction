@@ -1,6 +1,7 @@
 #pragma once
 #include "NearestNeighbour.h"
 #include <time.h>
+#include "SearchClass.h"
 
 struct COST
 {
@@ -15,14 +16,17 @@ struct COST
 	unsigned char dim;
 };
 
-class SimulatedAnnealing
+class SimulatedAnnealing : public SearchClass
 {
 public:
-	SimulatedAnnealing(int N, double T, double alpha, int Npcl, int Nangle, int nOfCams, int* NN, struct PCL* robot);
+	//SimulatedAnnealing(int N, double T, double alpha, int Npcl, int Nangle, int nOfCams, int* NN, struct PCL* robot);
+
+
+	SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, int nI, int* nn_indices);
 	~SimulatedAnnealing(void);
 
 	void initializeFirstRun(int* pclIndex, int* angleIndex);
-	bool iterate(const int* const nn_indices, int* pclIndex, int* angleIndex, double* costs);
+	//bool iterate2(const int* const nn_indices, int* pclIndex, int* angleIndex, double* costs);
 	void chooseRandomConfiguration(int* pclIndex, int* angleIndex, int i);
 	void printCurrentStatus();
 	void findGlobalMinimum();
@@ -36,8 +40,10 @@ public:
 	void writeAllResultToFile(std::string pre);
 	int createPCLIndexInRange(int i1);
 	int createAngleIndexInRange(int angle);
-	double iterateSingle(const int* const nn_indices, int* pclIndex, int* angleIndex, double* costs, int i);
-	void setCoolingPlan(double *costs);
+	double iterateSingle(const int* const nn_indices, int* pclIndex, int* angleIndex, float* costs, int i);
+	void setCoolingPlan(float *costs);
+
+	bool iterate(int* pI, int* aI, float* prob);
 
 private:
 	int NofE;
@@ -50,7 +56,9 @@ private:
 	int DOF;
 	int* NN;
 	struct PCL* robot;
-	int angleIndexRandomRange;
+	int angleIndexRandomRange_roll;
+	int angleIndexRandomRange_pitch;
+	int angleIndexRandomRange_yaw;
 	double minCostOverAll;
 
 	int* pclIndex_t1;
@@ -75,7 +83,7 @@ private:
 
 	std::vector<SOLUTION> recordSol;
 	
-	std::vector<double*> recordedSolution;
+	std::vector<float*> recordedSolution;
 	
 
 	double neighbourRadius;

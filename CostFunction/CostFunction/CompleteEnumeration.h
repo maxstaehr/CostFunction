@@ -4,7 +4,7 @@ class CompleteEnumeration :
 	public SearchClass
 {
 public:
-	CompleteEnumeration(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, int nI);
+	CompleteEnumeration(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, int nI,  int* nn_indices);
 
 	bool iterate(int* pI, int* aI, float* prob);
 

@@ -540,25 +540,6 @@ namespace cuda_calc2{
 
 				if(hit > 0){
 					d = fminf(d, dr);
-
-				//	v1_d = v1+3*i;
-				//	v2_d = v2+3*i;
-				//	v3_d = v3+3*i;
-
-				//	p[0] = o[0]+dr*di[0];
-				//	p[1] = o[1]+dr*di[1];
-				//	p[2] = o[2]+dr*di[2];
-
-				//int hit2 = triangle_intersection(	
-				//						v1_d,  // Triangle vertices
-				//						v2_d,
-				//						v3_d,
-				//						o,  //Ray origin
-				//						di,  //Ray direction
-				//						&dr);
-
-
-					
 				}
 				
 			}
@@ -566,7 +547,7 @@ namespace cuda_calc2{
 
 		}
 
-		//d = generateDepthValue(c,d,&devStates[blockId*blockSize+threadIDinBlock]);
+		d = generateDepthValue(c,d,&devStates[blockId*blockSize+threadIDinBlock]);
 
 		
 		p[0] = o[0]+d*di[0];
@@ -579,7 +560,7 @@ namespace cuda_calc2{
 			isInBox |= isInBB(bb_H+i*16, bb_D+i*3, p);
 		}
 
-		if(d < 7.0f && !isInBox)
+		if(d > 0.15 && d < 7.0f && !isInBox)
 		{
 			//setting real value and calculate weighted average
 			Dx[threadId] = p[0];
@@ -672,17 +653,17 @@ namespace cuda_calc2{
 
 	__device__ float calculateWeightOfDetection(int w)
 	{
-		if(w > MINIMUM_POINTS_DETECTION)
-			return 1.0f;
-		else
-			return 0.0f;
-		//meanDistance = 4.0*meanDistance;
-		//if(w > tailor_weight_max){
-		//	//printf("%.5f\n", meanDistance);
+		//if(w > MINIMUM_POINTS_DETECTION)
 		//	return 1.0f;
-		//}else{
-		//	return tailor_weight_a*expf(tailor_weight_b*w);
-		//}
+		//else
+		//	return 0.0f;
+		//meanDistance = 4.0*meanDistance;
+		if(w > tailor_weight_max){
+			//printf("%.5f\n", meanDistance);
+			return 1.0f;
+		}else{
+			return tailor_weight_a*expf(tailor_weight_b*w);
+		}
 	}
 
 	__device__ int calcNumberOfValidPoints(int nP, int bufferSize, int numOfPointsCopied)
@@ -839,10 +820,12 @@ namespace cuda_calc2{
 		float w_w = calculateWeightOfDetection(w);
 		dist /= w;
 		float w_p = calculateProbabilityOfDetection(dist);
-		if(w > MINIMUM_POINTS_DETECTION)
-			prop[threadId] = calculateProbabilityOfDetection(dist);
-		else
-			prop[threadId] = 0.0f;
+		prop[threadId] = w_w * w_p;
+
+		//if(w > MINIMUM_POINTS_DETECTION)
+		//	prop[threadId] = calculateProbabilityOfDetection(dist);
+		//else
+		//	prop[threadId] = 0.0f;
 		//if(w > MINIMUM_POINTS_DETECTION)
 		//{
 		//	dist = dist/w;

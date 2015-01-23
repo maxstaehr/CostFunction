@@ -422,6 +422,9 @@ void IO::loadSamplePCL(struct SAMPLE_PCL* pcl, const char* name)
 
 	//allocating memory
 	pcl->h = new float[pcl->n*NUMELEM_H];
+	pcl->x = new float[pcl->n];
+	pcl->y = new float[pcl->n];
+	pcl->z = new float[pcl->n];
 	pcl->i = new int[pcl->n];
 
 	CudaMem::cudaMemAllocReport((void**)&pcl->d_h, pcl->n*NUMELEM_H*sizeof(float));
@@ -439,6 +442,14 @@ void IO::loadSamplePCL(struct SAMPLE_PCL* pcl, const char* name)
 	if(!inbin.eof()) std::cerr << "error";
 	inbin.close();
 
+	//setting x,y and z to the appropriate 
+	for(int i=0; i<pcl->n; i++)
+	{
+		pcl->x[i] = (pcl->h+i*NUMELEM_H)[3];
+		pcl->y[i] = (pcl->h+i*NUMELEM_H)[7];
+		pcl->z[i] = (pcl->h+i*NUMELEM_H)[11];
+	}
+
 	CudaMem::cudaMemCpyReport(pcl->d_h, pcl->h, pcl->n*NUMELEM_H*sizeof(float), cudaMemcpyHostToDevice);
 	CudaMem::cudaMemCpyReport(pcl->d_i, pcl->i, pcl->n*sizeof(int), cudaMemcpyHostToDevice);
 
@@ -448,6 +459,8 @@ void IO::loadSamplePCL(struct SAMPLE_PCL* pcl, const char* name)
 }
 void IO::loadSampleRotations(struct SAMPLE_ROTATIONS* rot, const char* name)
 {
+	rot->angleLimits = new float[6];
+
 	ifstream inbin;
 	inbin.open(name, ifstream::binary);
 	if(!inbin.is_open()) std::cerr << "error";
@@ -461,10 +474,12 @@ void IO::loadSampleRotations(struct SAMPLE_ROTATIONS* rot, const char* name)
 	inbin.read((char*)&rot->nYaw, sizeof(int));
 	if (!inbin) std::cerr << "error";
 
-	inbin.read((char*)&rot->nRotations, sizeof(int));
+	inbin.read((char*)rot->angleLimits, 6*sizeof(float));
 	if (!inbin) std::cerr << "error";
 
-	//rot->nRotations = 2;
+	inbin.read((char*)&rot->nRotations, sizeof(int));
+	if (!inbin) std::cerr << "error";
+	
 
 	rot->R = new float[rot->nRotations*NUMELEM_H];
 
@@ -480,8 +495,7 @@ void IO::loadSampleRotations(struct SAMPLE_ROTATIONS* rot, const char* name)
 	CudaMem::cudaMemAllocReport((void**)&rot->d_R, rot->nRotations*NUMELEM_H*sizeof(float));
 	
 	CudaMem::cudaMemCpyReport(rot->d_R, rot->R, rot->nRotations*NUMELEM_H*sizeof(float), cudaMemcpyHostToDevice);
-
-	//rot->nRotations = 1;
+	
 }
 
 
