@@ -11,20 +11,21 @@
 #include <iostream>
 
 #include "global.h"
-  
+#include "mathcuda.h"
 
 
 
 double const SimulatedAnnealing::e( 2.7182818284590452353602874713526624977572 );
 
 
-SimulatedAnnealing::SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, int nI, int* nn_indices):SearchClass(sp, sr, nC, nI, nn_indices),ite(0),neighbourRadius(1.2), neighbourAngle(2.4), firstEvaluation(true), NofIteration(300), maxIteration(nOfCams*NofIteration)
+SimulatedAnnealing::SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, int nI, int* nn_indices, AngleGenerator* ag):SearchClass(sp, sr, nC, nI, nn_indices, ag),ite(0),neighbourRadius(1.2), neighbourAngle(2.4), firstEvaluation(true), NofIteration(300), maxIteration(nC*NofIteration), firstIteration(true), min_threshold(1.0e-1)
 {
+	assert(nI>0 && nI%2==0);
 	NofE = (int)nI/2;
-
 	Npcl = sp->n;
 	Nangle = sr->nRotations;
 	nOfCams = nC;
+	robot = sp;
 
 	minEnergy = new double [NofE];
 	DOF = 6*nOfCams;
@@ -37,9 +38,8 @@ SimulatedAnnealing::SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int
 
 	this->solu = new struct SOLUTION[NofE];
 	this->curStates = new enum STATE[NofE];
-	this->globalMin.costs = DBL_MAX;
-	this->NN = NN;
-	this->robot = robot;
+	this->globalMin.costs = DBL_MAX;	
+	
 
 
 	//checking if we have enough angle to iterate
@@ -128,21 +128,39 @@ void SimulatedAnnealing::setCoolingPlan(float* costs)
 	float maxTemperature(FLT_MIN);
 	for(unsigned int i=0; i<2*NofE; i++)
 	{
-		if(costs[i] > maxTemperature)
+		if(1.0f-costs[i] > maxTemperature)
 		{
-			maxTemperature = costs[i];
+			maxTemperature = 1.0f-costs[i];
 		}
 	}
-	T = maxTemperature/2.0;
+	//float maxTemperature = 1.0;
+	T = maxTemperature/2.0;	
+	T = 0.5;
 	float basis = 1.0/((float)T);
-	float expo = 1.0/((float)maxIteration);
+	float expo = (T-min_threshold)/((float)maxIteration);
 	alpha = pow(basis, expo);
+	alpha = 1.0f-((5e-3f)/nOfCams);
 	time_t end;
 	time(&end);
 	loopTime = difftime(end, start);
 	maxTime = maxIteration*loopTime;
 }
 
+void SimulatedAnnealing::writeResultsToFile(unsigned long long* vec, int nOfCams)
+{
+	std::string suffix = "";
+	for(int i=0; i<nOfCams; i++)
+	{
+		suffix += "_";
+		suffix += std::to_string((_Longlong)vec[i]);
+		
+	}
+	std::string fn = "cost_behave" +suffix;
+	writeEnergyResultsToFile(fn);
+	fn = "cost_energy" + suffix;
+	writeAllResultToFile(fn);
+	//IO::printMinPositionToFile(&currentMultiCameraCosts, &pos, &robotPCL_qa0, nOfCams);
+}
 
 SimulatedAnnealing::~SimulatedAnnealing(void)
 {
@@ -159,8 +177,10 @@ void SimulatedAnnealing::initializeFirstRun(int* pclIndex, int* angleIndex)
 {
 	for(unsigned int i=0; i<nOfCams*MAX_ITE; i++)
 	{
-		pclIndex[i] = rand() % Npcl;
-		angleIndex[i] = rand() % Nangle;
+		pclIndex[i] =  rand() % Npcl; //72
+		angleIndex[i] =  aG->generateRandomAngle(); //rand() % Nangle; //196
+
+		assert(pclIndex[i] >= 0 && pclIndex[i] < Npcl && angleIndex[i] >= 0 && angleIndex[i]<Nangle);
 	}
 	time(&start);
 }
@@ -181,26 +201,25 @@ int SimulatedAnnealing::createPCLIndexInRange(int i1)
 }
 int SimulatedAnnealing::createAngleIndexInRange(int a_i)
 {
-	
-	int ri = a_i/(sr->nPitch*sr->nYaw);
-	int pi = (a_i - ri*sr->nPitch*sr->nYaw)/sr->nYaw;
-	int yi = a_i-ri*sr->nPitch*sr->nYaw-pi*sr->nYaw;
-
-	
+	//int ri, pi, yi;
+	//convertAItoRPY(a_i, sr, &ri, &pi, &yi);
 
 
-	int di;
-	di = (rand()%angleIndexRandomRange_roll) - angleIndexRandomRange_roll/2;
-	ri = (ri+di+sr->nRoll)%sr->nRoll;
+	//int di;
+	//di = (rand()%angleIndexRandomRange_roll) - angleIndexRandomRange_roll/2;
+	//ri = (ri+di+sr->nRoll)%sr->nRoll;
 
-	di = (rand()%angleIndexRandomRange_pitch) - angleIndexRandomRange_pitch/2;
-	pi = (pi+di+sr->nPitch)%sr->nPitch;
+	//di = (rand()%angleIndexRandomRange_pitch) - angleIndexRandomRange_pitch/2;
+	//pi = (pi+di+sr->nPitch)%sr->nPitch;
 
-	di = (rand()%angleIndexRandomRange_yaw) - angleIndexRandomRange_yaw/2;
-	yi = (yi+di+sr->nYaw)%sr->nYaw;
+	//di = (rand()%angleIndexRandomRange_yaw) - angleIndexRandomRange_yaw/2;
+	//yi = (yi+di+sr->nYaw)%sr->nYaw;
 
 
-	return ri * sr->nPitch*sr->nYaw + pi * sr->nYaw + yi;
+	int ret;
+	//convertRPYtoAI(ri, pi, yi, sr, &ret);
+	ret = aG->generateRandomAngle();
+	return ret;
 }
 
 void SimulatedAnnealing::chooseRandomConfiguration(int* pclIndex, int* angleIndex, int index)
@@ -232,25 +251,25 @@ void SimulatedAnnealing::printCurrentStatus(void)
 {
 	system("cls");	
 	printf("minI\tST\tminE\t\tcosts\t\tprob\t\tpcl\tangle\n");
-	for(unsigned int i=0; i< 50; i++)
+	for(unsigned int i=0; i< 50 && i< NofE; i++)
 	{
 		
 		if(curStates[i] == STATE::HC)
 		{
-			printf("%i\tHC\t%.5lf\t%.5f\t%.10f\t%i\t%i  %i\n", i, minEnergy[i], solu[i].costs, solu[i].currProp, solu[i].pcl, solu[i].angle, cDim[i]);
+			printf("%i\tHC\t%.5f\t\t%.5f\t\t%.10f\t%i\t%i  %i\n", i, 1.0f-minEnergy[i], 1.0f-solu[i].costs, solu[i].currProp, solu[i].pcl, solu[i].angle, cDim[i]);
 		}else if(curStates[i] == STATE::NS)
 		{
-			printf("%i\tNS\t%.5lf\t%.5f\t%.10f\t%i\t%i  %i\n", i, minEnergy[i], solu[i].costs, solu[i].currProp, solu[i].pcl, solu[i].angle, cDim[i]);
+			printf("%i\tNS\t%.5f\t\t%.5f\t\t%.10f\t%i\t%i  %i\n", i, 1.0f-minEnergy[i], 1.0f-solu[i].costs, solu[i].currProp, solu[i].pcl, solu[i].angle, cDim[i]);
 		}else if (curStates[i] == STATE::OR)
 		{
-			printf("%i\tOR\t%.5lf\t%.5f\t%.10f\t%i\t%i  %i\n", i, minEnergy[i], solu[i].costs, solu[i].currProp, solu[i].pcl, solu[i].angle, cDim[i]);
+			printf("%i\tOR\t%.5f\t\t%.5f\t\t%.10f\t%i\t%i  %i\n", i, 1.0f-minEnergy[i], 1.0f-solu[i].costs, solu[i].currProp, solu[i].pcl, solu[i].angle, cDim[i]);
 		}
 		
 	}
 	double currPro = (double)ite/(double)(maxIteration);
 	double remainingTime = loopTime * (double) (maxIteration - ite);
 	printf("max : %.1fmin\trem : %.2fmin\tpro: %.6f%%\n", maxTime/60.0, remainingTime/60.0, currPro*100.0);
-	printf("global min costs at: %.5f at %i:%i at T:%.3f  pos:%i  cams:%i\n\n\n", globalMin.costs, globalMin.pcl, globalMin.angle, T, ite, nOfCams);
+	printf("global min costs at: %.5f at %i:%i at T:%.3f  pos:%i  cams:%i\n\n\n", 1.0f-globalMin.costs, globalMin.pcl, globalMin.angle, T, ite, nOfCams);
 
 	
 	
@@ -281,18 +300,31 @@ double SimulatedAnnealing::iterateSingle(const int* const nn_indices, int* pclIn
 	int p_i, a_i;
 	float localMinE = 0.0;
 
-
-	if(costs[2*i+0] < costs[2*i+1])
+	
+	if(1.0f - costs[2*i+0] < 1.0f - costs[2*i+1])
 	{	//change to minus
-		localMinE = costs[2*i+0];
+		localMinE = 1.0f - costs[2*i+0];
 		p_i = pclIndex[2*i+0];
 		a_i = angleIndex[2*i+0];
 	}else
 	{	//change to plus
-		localMinE = costs[2*i+1];
+		localMinE = 1.0f - costs[2*i+1];
 		p_i = pclIndex[2*i+1];
 		a_i = angleIndex[2*i+1];				
 	}
+
+
+	//if(costs[2*i+0] < costs[2*i+1])
+	//{	//change to minus
+	//	localMinE = costs[2*i+0];
+	//	p_i = pclIndex[2*i+0];
+	//	a_i = angleIndex[2*i+0];
+	//}else
+	//{	//change to plus
+	//	localMinE = costs[2*i+1];
+	//	p_i = pclIndex[2*i+1];
+	//	a_i = angleIndex[2*i+1];				
+	//}
 
 	//double prop = (rand() / (double)RAND_MAX);
 	//double newprop = pow(e, (minEnergy[i]-localMinE) / T);
@@ -315,11 +347,12 @@ double SimulatedAnnealing::iterateSingle(const int* const nn_indices, int* pclIn
 	cDim[i] = (cDim[i]+1)%DOF;
 	
 	
-
-	int ri = a_i/(sr->nPitch*sr->nYaw);
-	int pi = (a_i - ri*sr->nPitch*sr->nYaw)/sr->nYaw;
-	int yi = a_i-ri*sr->nPitch*sr->nYaw-pi*sr->nYaw;
-
+	
+	//int ri = a_i/(sr->nPitch*sr->nYaw);
+	//int pi = (a_i - ri*sr->nPitch*sr->nYaw)/sr->nYaw;
+	//int yi = a_i-ri*sr->nPitch*sr->nYaw-pi*sr->nYaw;
+	int ri, pi, yi;
+	convertAItoRPY(a_i, sr, &ri, &pi, &yi);
 
 	int roll = ri, pitch = pi, yaw = yi;
 	int am, ap;
@@ -336,22 +369,22 @@ double SimulatedAnnealing::iterateSingle(const int* const nn_indices, int* pclIn
 		//roll
 		am = (ri+sr->nRoll-1)%sr->nRoll;
 		ap = (ri+sr->nRoll+1)%sr->nRoll;
-		angleIndex[2*i+0] = am * sr->nRoll*sr->nPitch + pitch * sr->nYaw + yaw;
-		angleIndex[2*i+0] = ap * sr->nRoll*sr->nPitch + pitch * sr->nYaw + yaw;
+		convertRPYtoAI(am, yi, yi, sr, &(angleIndex[2*i+0]));
+		convertRPYtoAI(ap, yi, yi, sr, &(angleIndex[2*i+1]));
 		break;
 	case 4:
 		//pitch
 		am = (pi+sr->nPitch-1)%sr->nPitch;
 		ap = (pi+sr->nPitch+1)%sr->nPitch;
-		angleIndex[2*i+0] = roll * sr->nRoll*sr->nPitch + am * sr->nYaw + yaw;
-		angleIndex[2*i+0] = roll * sr->nRoll*sr->nPitch + ap * sr->nYaw + yaw;
+		convertRPYtoAI(ri, am, yi, sr, &(angleIndex[2*i+0]));
+		convertRPYtoAI(ri, ap, yi, sr, &(angleIndex[2*i+1]));
 		break;
 	case 5:
 		//yaw
-		am = (yi+sr->nRoll-1)%sr->nRoll;
-		ap = (yi+sr->nRoll+1)%sr->nRoll;
-		angleIndex[2*i+0] = roll * sr->nRoll*sr->nPitch + pitch * sr->nYaw + am;
-		angleIndex[2*i+0] = roll * sr->nRoll*sr->nPitch + pitch * sr->nYaw + ap;
+		am = (yi+sr->nYaw-1)%sr->nYaw;
+		ap = (yi+sr->nYaw+1)%sr->nYaw;
+		convertRPYtoAI(ri, pi, am, sr, &(angleIndex[2*i+0]));
+		convertRPYtoAI(ri, pi, ap, sr, &(angleIndex[2*i+1]));
 		break;
 	};
 	//assert(localMinE > 0.0);
@@ -471,8 +504,15 @@ void SimulatedAnnealing::setNewVector(int i)
 //	return true;
 //}
 
-bool SimulatedAnnealing::iterate(int* pclIndex, int* angleIndex, float* costs)
+bool SimulatedAnnealing::iterate(int* pclIndex, int* angleIndex, float* costs, float* d, int* weights)
 {
+	if(firstIteration)
+	{
+		initializeFirstRun(pclIndex, angleIndex);
+		firstIteration = false;
+		return true;
+	}
+
 	
 	if(firstEvaluation)
 	{
@@ -575,7 +615,7 @@ bool SimulatedAnnealing::iterate(int* pclIndex, int* angleIndex, float* costs)
 	//	return false;
 	//}
 
-	if(T >1)
+	if(T >min_threshold)
 	{
 		T *= alpha;
 		return true;

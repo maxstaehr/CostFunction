@@ -75,6 +75,8 @@ private:
 
 	NearestNeighbour* nn;
 
+	float* debug_distance_buffer;
+	float* debug_propability_buffer;
 
 
 
@@ -120,6 +122,8 @@ private:
 
 	void zeroProb();
 	void normalizeProb();
+
+	void checkIntermediateResults();
 
 public:
 	void run();

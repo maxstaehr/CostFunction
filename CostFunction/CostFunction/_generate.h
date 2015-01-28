@@ -22,5 +22,8 @@ combinatorial generation functions public interfaces
 int gen_comb_norep_lex_init(unsigned long long *vector, const unsigned long long n, const unsigned long long k);
 int gen_comb_norep_lex_next(unsigned long long *vector, const unsigned long long n, const unsigned long long k);
 
+int gen_comb_rep_lex_init(unsigned long long *vector, const unsigned long long n, const unsigned long long k);
+int gen_comb_rep_lex_next(unsigned long long *vector, const unsigned long long n, const unsigned long long k);
+
 
 #endif

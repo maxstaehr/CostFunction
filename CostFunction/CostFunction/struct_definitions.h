@@ -104,9 +104,20 @@ struct PROB_RESULT{
 	float* p;
 	float* maxp;
 
-
 	float* d_p;
 	float* d_maxp;
+
+	float* d;
+	float* maxd;
+
+	float* d_d;
+	float* d_maxd;
+
+	int* w;
+	int* maxw;
+
+	int* d_w;
+	int* d_maxw;
 	
 };
 

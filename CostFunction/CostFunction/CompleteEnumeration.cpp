@@ -4,7 +4,7 @@
 #include <assert.h>
 
 using namespace std;
-CompleteEnumeration::CompleteEnumeration(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, int nI,  int* nn_indices):SearchClass(sp,sr,nC,nI, nn_indices)
+CompleteEnumeration::CompleteEnumeration(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, int nI,  int* nn_indices):SearchClass(sp,sr,nC,nI, nn_indices, NULL)
 {
 	//just a single camera for complete enumeration
 	assert(nC == 1);
@@ -12,15 +12,24 @@ CompleteEnumeration::CompleteEnumeration(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, i
 	c_vi = 0;
 	l_vi = 0;
 	this->prop = new float[sp->n*sr->nRotations];
+	this->dist = new float[sp->n*sr->nRotations];
+	this->weights = new int[sp->n*sr->nRotations];
+
 	printf("staring complete enumearion for %d positions and %d rotation and %d samples", sp->n, sr->nRotations, sp->n*sr->nRotations);
 }
 
-bool CompleteEnumeration::iterate(int* pI, int* aI, float* p)
+void CompleteEnumeration::writeResultsToFile(unsigned long long* vec, int nOfCams)
+{
+}
+
+bool CompleteEnumeration::iterate(int* pI, int* aI, float* p, float* d, int* weights)
 {
 	//saving results of the last iteration when it is not the first	
 	if(c_vi > 0)
 	{
 		memcpy(this->prop+l_vi, p, c_vi*sizeof(float));
+		memcpy(this->dist+l_vi, d, c_vi*sizeof(float));		
+		memcpy(this->weights+l_vi, weights, c_vi*sizeof(int));		
 		l_vi += c_vi;
 	}
 	
@@ -65,5 +74,7 @@ CompleteEnumeration::~CompleteEnumeration(void)
 	//outbin.close();
 
 	delete prop;
+	delete weights;
+	delete dist;
 
 }

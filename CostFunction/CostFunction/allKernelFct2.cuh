@@ -547,7 +547,7 @@ namespace cuda_calc2{
 
 		}
 
-		d = generateDepthValue(c,d,&devStates[blockId*blockSize+threadIDinBlock]);
+		//d = generateDepthValue(c,d,&devStates[blockId*blockSize+threadIDinBlock]);
 
 		
 		p[0] = o[0]+d*di[0];
@@ -635,9 +635,9 @@ namespace cuda_calc2{
 	#define	tailor_b (-11.517243358808045f)
 	#define tailor_min (1.499627542216331e-04f)
 
-	#define tailor_weight_a (0.008254041852680f)
-	#define tailor_weight_b (0.009594104554142f)
-	#define tailor_weight_max 500
+	#define tailor_weight_a (0.056234132519035f)
+	#define tailor_weight_b (0.028782313662426f)
+	#define tailor_weight_max 100
 
 
 	__device__ float calculateProbabilityOfDetection(float meanDistance)
@@ -700,7 +700,7 @@ namespace cuda_calc2{
 									  float* R, float* Fx, float* Fy,
 									  float* cx, float* cy, float* cz,	
 									  float* ws_l_params, int* ws_n_params, float* d_m,									 
-									  float* prop)
+									  float* prop, float* distance, int* weight)
 	{
 		__shared__ float vx[POINT_BUFFER_SIZE];
 		__shared__ float vy[POINT_BUFFER_SIZE];
@@ -725,6 +725,8 @@ namespace cuda_calc2{
 		{
 			//probability of detection zero and leave
 			prop[threadId] = 0.0f;
+			distance[threadId] = FLT_MAX;
+			weight[threadId] = 0;
 			return;
 		}
 
@@ -817,15 +819,33 @@ namespace cuda_calc2{
 			
 		}
 
-		float w_w = calculateWeightOfDetection(w);
-		dist /= w;
-		float w_p = calculateProbabilityOfDetection(dist);
-		prop[threadId] = w_w * w_p;
 
-		//if(w > MINIMUM_POINTS_DETECTION)
-		//	prop[threadId] = calculateProbabilityOfDetection(dist);
-		//else
-		//	prop[threadId] = 0.0f;
+		if(w > 0 )
+		{
+			dist /= w;
+			
+			float w_w = calculateWeightOfDetection(w);
+			float w_p = calculateProbabilityOfDetection(dist);
+			prop[threadId] = ((WEIGHT_P*w_p)+(WEIGHT_W*w_w))/WEIGHT_SUM;
+			distance[threadId] = dist;
+			weight[threadId] = w;
+			//if(w > MINIMUM_POINTS_DETECTION)
+			//{
+			//	prop[threadId] = calculateProbabilityOfDetection(dist);
+			//	distance[threadId] = dist;
+			//}
+			//else
+			//{
+			//	prop[threadId] = 0.0f;
+			//	distance[threadId] = FLT_MAX;
+			//}
+
+		}else
+		{
+				prop[threadId] = 0.0f;
+				distance[threadId] = FLT_MAX;
+				weight[threadId] = 0;
+		}
 		//if(w > MINIMUM_POINTS_DETECTION)
 		//{
 		//	dist = dist/w;
@@ -837,6 +857,102 @@ namespace cuda_calc2{
 		//	//prop[threadId] = FLT_MAX;
 		//}
 		
+	}
+	__global__ void calculateMinWeight(int* weights, int n, float* dist, float* mindist, int* w)
+	{
+		__shared__ int max_buffer[MAX_BUFFER_SIZE];
+
+		int nItePerThread = (int)((n/MAX_BUFFER_SIZE)+1);
+		int curIndex;
+		int i;
+
+		max_buffer[threadIdx.x] = -1;
+		__syncthreads();
+		
+		float localMax = FLT_MAX;
+		for(i=0; i<nItePerThread; i++)
+		{
+			curIndex = threadIdx.x*nItePerThread+i;
+			//check if the iteration is still within limits
+			if(curIndex < n)
+			{				
+				if(dist[curIndex] == mindist[0])
+				{
+					max_buffer[threadIdx.x] = weights[curIndex];
+				}
+			}
+		}
+		
+		__syncthreads();
+		
+		////starting reduction
+		////1024 threads turn out to 10 iterations
+		for (i = MAX_BUFFER_SIZE / 2; i > 0; i >>= 1)
+		{
+			__syncthreads();
+			if(threadIdx.x < i)
+			{	
+				if (max_buffer[threadIdx.x+i] > 0)
+				{
+					max_buffer[threadIdx.x] = max_buffer[threadIdx.x+i];
+				}
+				//max_buffer[threadIdx.x] = fmin(max_buffer[threadIdx.x],  max_buffer[threadIdx.x+i]);
+			}
+		}
+
+		__syncthreads();
+		if(threadIdx.x == 0)
+		{
+			//maxp[0] = pr[0] * max_buffer[0];
+			w[0] = max_buffer[0];
+		}
+
+	}
+
+
+	__global__ void calculateMinDist(float* prob, int n, float* maxp, float* pr)
+	{
+		__shared__ float max_buffer[MAX_BUFFER_SIZE];
+
+		int nItePerThread = (int)((n/MAX_BUFFER_SIZE)+1);
+		int curIndex;
+		int i;
+
+		
+
+		
+		float localMax = FLT_MAX;
+		for(i=0; i<nItePerThread; i++)
+		{
+			curIndex = threadIdx.x*nItePerThread+i;
+			//check if the iteration is still within limits
+			if(curIndex < n)
+			{				
+				localMax = fmin(prob[curIndex],  localMax);
+			}
+		}
+		max_buffer[threadIdx.x] = localMax;
+
+		__syncthreads();
+		
+		////starting reduction
+		////1024 threads turn out to 10 iterations
+		for (i = MAX_BUFFER_SIZE / 2; i > 0; i >>= 1)
+		{
+			__syncthreads();
+			if(threadIdx.x < i)
+			{				
+				max_buffer[threadIdx.x] = fmin(max_buffer[threadIdx.x],  max_buffer[threadIdx.x+i]);
+			}
+		}
+
+		__syncthreads();
+		if(threadIdx.x == 0)
+		{
+			//maxp[0] = pr[0] * max_buffer[0];
+			maxp[0] = max_buffer[0];
+		}
+
 	}
 
 	__global__ void calculateMaxProb(float* prob, int n, float* maxp, float* pr)

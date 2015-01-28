@@ -77,6 +77,7 @@
   <ItemGroup>
     <CudaCompile Include="CF2.cu" />
     <CudaCompile Include="comb_norep_lex.cu" />
+    <CudaCompile Include="comb_rep_lex.cu" />
     <CudaCompile Include="CostFunctionClass.cu" />
     <CudaCompile Include="main.cu" />
     <CudaCompile Include="TestSuit.cu" />
@@ -86,11 +87,13 @@
     <None Include="allKernelFct2.cuh" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AngleGenerator.h" />
     <ClInclude Include="CF2.h" />
     <ClInclude Include="CompleteEnumeration.h" />
     <ClInclude Include="CostFunctionClass.h" />
     <ClInclude Include="CudaMem.h" />
     <ClInclude Include="global.h" />
+    <ClInclude Include="InversionSearch.h" />
     <ClInclude Include="IO.h" />
     <ClInclude Include="mathcuda.h" />
     <ClInclude Include="NearestNeighbour.h" />
@@ -102,8 +105,10 @@
     <ClInclude Include="_generate.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AngleGenerator.cpp" />
     <ClCompile Include="CompleteEnumeration.cpp" />
     <ClCompile Include="CudaMem.cpp" />
+    <ClCompile Include="InversionSearch.cpp" />
     <ClCompile Include="IO.cpp" />
     <ClCompile Include="NearestNeighbour.cpp" />
     <ClCompile Include="Progress.cpp" />

@@ -453,7 +453,7 @@ void IO::loadSamplePCL(struct SAMPLE_PCL* pcl, const char* name)
 	CudaMem::cudaMemCpyReport(pcl->d_h, pcl->h, pcl->n*NUMELEM_H*sizeof(float), cudaMemcpyHostToDevice);
 	CudaMem::cudaMemCpyReport(pcl->d_i, pcl->i, pcl->n*sizeof(int), cudaMemcpyHostToDevice);
 
-	//pcl->n = 300;
+	pcl->n = 100;
 
 
 }
@@ -495,6 +495,8 @@ void IO::loadSampleRotations(struct SAMPLE_ROTATIONS* rot, const char* name)
 	CudaMem::cudaMemAllocReport((void**)&rot->d_R, rot->nRotations*NUMELEM_H*sizeof(float));
 	
 	CudaMem::cudaMemCpyReport(rot->d_R, rot->R, rot->nRotations*NUMELEM_H*sizeof(float), cudaMemcpyHostToDevice);
+
+	//rot->nRotations = 200;
 	
 }
 
@@ -896,6 +898,8 @@ void IO::loadSampleCamera(struct POSSIBLE_CAMERA_TYPES* cams, const char* name)
 
 	if(!inbin.eof()) std::cerr << "error";
 	inbin.close();
+
+	cams->nCameraTypes = 1;
 }
 
 void IO::saveBoundingBoxBuffer(struct BB_BUFFER* bbBuffer, const char* name)
@@ -1162,7 +1166,7 @@ void IO::loadDistanceMatrix(struct DISTANCE_MATRIX* dM, const char* name)
 
 }
 
-void IO::saveOptimisationResults(struct SAMPLE_POINTS_BUFFER* samplePoints, struct SAMPLE_PCL* sP,struct SAMPLE_ROTATIONS* sR, float* costs, const char* name)
+void IO::saveOptimisationResults(struct SAMPLE_POINTS_BUFFER* samplePoints, struct SAMPLE_PCL* sP,struct SAMPLE_ROTATIONS* sR, float* costs, float* d,int* weights,  const char* name)
 {
 	float* buffer = new float[samplePoints->n*NUMELEM_H];
 	float* res_pos_buffer = new float[samplePoints->n*sR->nRotations*NUMELEM_H];
@@ -1218,6 +1222,12 @@ void IO::saveOptimisationResults(struct SAMPLE_POINTS_BUFFER* samplePoints, stru
 	//if (!outbin) std::cerr << "error";
 
 	outbin.write((char*)costs, samplePoints->n*sR->nRotations*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)d, samplePoints->n*sR->nRotations*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)weights, samplePoints->n*sR->nRotations*sizeof(int));
 	if (!outbin) std::cerr << "error";
 
 	outbin.close();

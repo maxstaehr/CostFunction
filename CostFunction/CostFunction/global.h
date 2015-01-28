@@ -7,11 +7,15 @@
 //#define N_OF_A_SQ (N_OF_A*N_OF_A)
 #define WS_BORDER (1.0)
 
-#define CAM_ITE 256
-#define PAR_KERNEL_LAUNCHS 4
+#define CAM_ITE 64
+#define PAR_KERNEL_LAUNCHS 1
 
 
 #define MAX_ITE (PAR_KERNEL_LAUNCHS*CAM_ITE)
+
+#define WEIGHT_W (1.0f)
+#define WEIGHT_P (99.0f)
+#define WEIGHT_SUM (WEIGHT_W+WEIGHT_P)
 
 #define shared_mem_workspace 16384
 #define shared_loop_ite 256

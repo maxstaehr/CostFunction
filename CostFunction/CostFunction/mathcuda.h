@@ -5,7 +5,27 @@
 #include "_generate.h"
 #include <stdio.h>
 #include <math.h>
+#include <assert.h>
 
+static void convertAItoRPY(int a_i, SAMPLE_ROTATIONS* sr, int* ri, int *pi, int* yi)
+{
+	int ntheta = sr->nPitch;
+	int nZ = sr->nYaw;
+
+	*ri = a_i/(ntheta*nZ);
+	*pi = (a_i-(*ri)*ntheta*nZ)/nZ;
+	*yi = a_i-(*ri)*ntheta*nZ - (*pi)*nZ;
+}
+
+
+static void convertRPYtoAI(int ri, int pi, int yi, SAMPLE_ROTATIONS* sr, int* a_i)
+{
+	int ntheta = sr->nPitch;
+	int nZ = sr->nYaw;
+
+	*a_i = ri*ntheta*nZ + pi*nZ + yi;
+	assert(*a_i >=0 && *a_i < sr->nRotations);
+}
 
 
 static inline void mm16(const float *a, const float *b, float *c)

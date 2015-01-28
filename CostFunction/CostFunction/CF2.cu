@@ -8,6 +8,7 @@
 #include "cuda_runtime.h"
 #include "mathcuda.h"
 #include "NearestNeighbour.h"
+#include "InversionSearch.h"
 
 
 #include <cstdio>
@@ -26,6 +27,7 @@
 #include "SimulatedAnnealing.h"
 #include "Progress.h"
 #include "cudaProfiler.h"
+#include "AngleGenerator.h"
 
 
 #define DOF_ROBOT_Q 9
@@ -120,7 +122,7 @@ void CF2::iterateCameraCombination()
 	for(int x = 0; x < currentNumberOfCams; x++)
 		printf("%u ", cameraCombination.vector[x]);
 	printf("\n"); 
-	cameraCombination.gen_result = gen_comb_norep_lex_next(cameraCombination.vector, sampleCameraTypes.nCameraTypes, currentNumberOfCams);
+	cameraCombination.gen_result = gen_comb_rep_lex_next(cameraCombination.vector, sampleCameraTypes.nCameraTypes, currentNumberOfCams);
 }
 
 void CF2::initCameraCombination()
@@ -128,81 +130,135 @@ void CF2::initCameraCombination()
 	if(cameraCombination.vector != NULL) delete cameraCombination.vector;
 
 	cameraCombination.vector = new unsigned long long[currentNumberOfCams];
-	cameraCombination.gen_result = gen_comb_norep_lex_init(cameraCombination.vector, sampleCameraTypes.nCameraTypes, currentNumberOfCams);
+	cameraCombination.gen_result = gen_comb_rep_lex_init(cameraCombination.vector, sampleCameraTypes.nCameraTypes, currentNumberOfCams);
 }
 
 void CF2::run()
 {
 	//outer loop for combination of multiple cameras
 	initCameraCombination();
-	//do
-	//{
-			
 
-		//camera specific allocation
-		initParallelOptiRuns();
+	//camera specific allocation
+	initParallelOptiRuns();
 
-		//inner loop for possible positions		
-	//	sC = new CompleteEnumeration(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, NULL);
-		sC = new SimulatedAnnealing(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, nn->getNN());
-		time_t start;
-		time(&start);
-		int debugIte = 0;
-		cudaProfilerStart();
-		while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp) )
-		{
-			//zeroProb();
+	////finding first the probability density funtion of the angles to reduces the amount of raytracing angles
+	sC = new InversionSearch(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, nn->getNN());
+	((InversionSearch*)sC)->setInversionParamters(&samplePointsBuffer);
 
-			//samplePositions.nP = 2;
-			for(int i=0; i< samplePositions.nP; i++)
-			{				
-				setCurrentTans(i);
-				transformVertexBuffer();
-				transformBoundingBoxBuffer();
-				transformSamplePointBuffer();
-
-				rayTrace();
-				calculateCentroid();
-				calculateProbOfHumanDetection();
-				calculateMaxProb();
-				//Progress::printProgress((double)i, (double)samplePositions.nP, start, "raytracing rp ");	
+	while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp, probResult.maxd, probResult.maxw) )
+	{
+		for(int i=0; i< samplePositions.nP; i++)
+		{				
+			for(int j=0; j <MAX_ITE;j++)
+			{
+				printf("%d\t%d\n",optiSession.pI[j], optiSession.aI[j]); 
 			}
-			//normalizeProb();
-			//for(int i=0; i<optiSession.n; i++)
-			//{
-			//	RAYTRACING_LAUNCH* p_rtl;
-			//	p_rtl = &optiSession.launchs[0];	
-			//	std::ostringstream s;
-			//	s << i;
-			//	std::string depth =   "depthBuffer"+ s.str()+".bin";     
-			//	std::string prob =   "probResult"+ s.str()+".bin";     
-			//
-			//	IO::saveDepthBufferToFile(&p_rtl->depthBuffer,depth.c_str());
-			//	IO::saveProbResult2File(&p_rtl->probResult, prob.c_str());
-			//	IO::printCentroid(&p_rtl->centroid);
-			//}
-			//RAYTRACING_LAUNCH* p_rtl;
-			//p_rtl = &optiSession.launchs[0];
-			//IO::plotIntermediateResults(&p_rtl->probResult, &p_rtl->centroid);
-			Progress::printProgress((double)optiSession.pI[0], (double)samplePoints.n, start, "raytracing cp ");
-			debugIte++;
+
+			setCurrentTans(i);
+			transformVertexBuffer();
+			transformBoundingBoxBuffer();
+			transformSamplePointBuffer();
+
+			rayTrace();
+			calculateCentroid();
+			calculateProbOfHumanDetection();
+			calculateMaxProb();				
 		}
-		cudaProfilerStop();
+		//printf("angle initializing....\n");
+	}
+	AngleGenerator aG(sC->prop, sampleRotations.nRotations, SEARCH_DOF);
+	delete sC;
+	freeParallelOptiRuns();
+	printf("starting optimisation...\n");
+	IO::waitForEnter();
+	while(currentNumberOfCams < 5)
+	{
 	
-		//saving results
-		saveAllVertices();
-		setCurrentTans(0);
-		transformSamplePointBuffer();
-		IO::saveOptimisationResults(&samplePointsBuffer, &samplePoints, &sampleRotations, sC->prop, "completeEnumeration.bin");
+		do
+		{
+			//sC = new CompleteEnumeration(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, NULL);
+			sC = new SimulatedAnnealing(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, nn->getNN(), &aG);
 
-		delete sC;
-		freeParallelOptiRuns();
+			initParallelOptiRuns();			
+			time_t start;			
+			time(&start);
+			while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp, probResult.maxd, probResult.maxw) )
+			{
 
+				for(int i=0; i< samplePositions.nP; i++)
+				{				
+					setCurrentTans(i);
+					transformVertexBuffer();
+					transformBoundingBoxBuffer();
+					transformSamplePointBuffer();
 
-		iterateCameraCombination();
-	//}while(cameraCombination.gen_result == GEN_NEXT);
+					rayTrace();
+					calculateCentroid();
+					calculateProbOfHumanDetection();
+					calculateMaxProb();
+					//Progress::printProgress((double)i, (double)samplePositions.nP, start, "raytracing rp ");	
+				}
+
+				//Progress::printProgress((double)optiSession.pI[0], (double)samplePoints.n, start, "raytracing cp ");
+
+			}
+
+	
+			//saving results
+			//saveAllVertices();
+			//setCurrentTans(0);
+			//transformSamplePointBuffer();
+			//IO::saveOptimisationResults(&samplePointsBuffer, &samplePoints, &sampleRotations, sC->prop, sC->dist,sC->weights,  "completeEnumeration.bin");
+			sC->writeResultsToFile(cameraCombination.vector, currentNumberOfCams);
+			delete sC;
+			freeParallelOptiRuns();
+
+			printf("finished current camera combination\n");
+
+			IO::waitForEnter();
+			
+			iterateCameraCombination();
+		}while(cameraCombination.gen_result == GEN_NEXT);
+
+		printf("adding another camera\n");
+		IO::waitForEnter();
+
+		currentNumberOfCams++;
+		initCameraCombination();
+	}
+
 }
 
+void CF2::checkIntermediateResults()
+{
+
+
+	RAYTRACING_LAUNCH* p_rtl;
+	p_rtl = &optiSession.launchs[0];	
+
+	float* p = new float[p_rtl->probResult.n];
+	float* d = new float[p_rtl->probResult.n];
+	float maxp, mind;
+
+	CudaMem::cudaMemCpyReport(p, p_rtl->probResult.d_p, p_rtl->probResult.n*sizeof(float), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(d, p_rtl->probResult.d_d, p_rtl->probResult.n*sizeof(float), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(&maxp, p_rtl->probResult.d_maxp, sizeof(float), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(&mind, p_rtl->probResult.d_maxd, sizeof(float), cudaMemcpyDeviceToHost);
+
+	float maxp2 = 0.0f, mind2= FLT_MAX;
+	for(int i=0;i<p_rtl->probResult.n; i++)
+	{
+		maxp2 = std::max(maxp2,p[i]);
+		mind2 = std::min(mind2,d[i]);
+	}
+	float eps=1e-5;
+	float diff_p = abs(maxp-maxp2);
+	float diff_d = abs(mind-mind2);
+	assert(diff_p < eps);
+    assert(diff_d < eps);
+	delete p;
+	delete d;
+}
 
 void CF2::initBoundingBoxBuffer()
 {
@@ -241,6 +297,7 @@ void CF2::createCudaStream(cudaStream_t** streams, int n)
 			if(cudaStatus != cudaSuccess)
 			{
 				fprintf(stderr, "stream creation failed: %s\n", cudaGetErrorString(cudaStatus));
+				IO::waitForEnter();
 			}
 		}
 }
@@ -255,6 +312,7 @@ void CF2::freeCudaStream(cudaStream_t* streams,int n)
 			if(cudaStatus != cudaSuccess)
 			{
 				fprintf(stderr, "stream creation failed: %s\n", cudaGetErrorString(cudaStatus));
+				IO::waitForEnter();
 			}
 		}
 		delete streams;
@@ -357,9 +415,24 @@ void CF2::initParallelOptiRuns()
 		optiSession.launchs[ite].centroid.d_cy = centroid.d_cy + ite;
 		optiSession.launchs[ite].centroid.d_cz = centroid.d_cz + ite;
 
+		optiSession.launchs[ite].probResult.p = probResult.p + nofProps;
 		optiSession.launchs[ite].probResult.d_p = probResult.d_p + nofProps;
+
+		optiSession.launchs[ite].probResult.d = probResult.d + nofProps;
+		optiSession.launchs[ite].probResult.d_d = probResult.d_d + nofProps;
+
+		optiSession.launchs[ite].probResult.w = probResult.w + nofProps;
+		optiSession.launchs[ite].probResult.d_w = probResult.d_w + nofProps;
+
 		optiSession.launchs[ite].probResult.d_maxp = probResult.d_maxp+ite;
 		optiSession.launchs[ite].probResult.maxp = probResult.maxp+ite;
+
+		optiSession.launchs[ite].probResult.d_maxd = probResult.d_maxd+ite;
+		optiSession.launchs[ite].probResult.maxd = probResult.maxd+ite;
+
+		optiSession.launchs[ite].probResult.d_maxw = probResult.d_maxw+ite;
+		optiSession.launchs[ite].probResult.maxw = probResult.maxw+ite;
+
 		optiSession.launchs[ite].probResult.n = sampleFitting.n;
 
 		//init random states for rays
@@ -533,12 +606,13 @@ void CF2::transformVertexBuffer()
 	cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "transformVertexRobot launch failed: %s\n", cudaGetErrorString(cudaStatus));
+		IO::waitForEnter();
 	}
 
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching transformVertexRobot!\n", cudaStatus);
-
+		IO::waitForEnter();
 	}
 
 	
@@ -555,11 +629,13 @@ void CF2::transformVertexBuffer()
 	cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "transformVertexHumanOrEnvironment launch failed: %s\n", cudaGetErrorString(cudaStatus));
+		IO::waitForEnter();
 	}
 
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching transformVertexHumanOrEnvironment!\n", cudaStatus);
+		IO::waitForEnter();
 
 	}
 
@@ -574,12 +650,13 @@ void CF2::transformVertexBuffer()
 	cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "transformVertexHumanOrEnvironment launch failed: %s\n", cudaGetErrorString(cudaStatus));
+		IO::waitForEnter();
 	}
 
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching transformVertexHumanOrEnvironment!\n", cudaStatus);
-
+		IO::waitForEnter();
 	}
 }
 
@@ -614,12 +691,13 @@ void CF2::transformBoundingBoxBuffer()
 	cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "transformVertexRobot launch failed: %s\n", cudaGetErrorString(cudaStatus));
+		IO::waitForEnter();
 	}
 
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching transformVertexRobot!\n", cudaStatus);
-
+		IO::waitForEnter();
 	}
 
 	//(float* hi_robot, float* h_bb, float* h_inv)
@@ -633,12 +711,13 @@ void CF2::transformBoundingBoxBuffer()
 	cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "transformVertexRobot launch failed: %s\n", cudaGetErrorString(cudaStatus));
+		IO::waitForEnter();
 	}
 
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching transformVertexRobot!\n", cudaStatus);
-
+		IO::waitForEnter();
 	}
 
 }
@@ -682,12 +761,13 @@ void CF2::initRadomNumberGenerator(curandState *devStates, SAMPLE_CAMERA* sample
 	cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "raytraceVertices launch failed: %s\n", cudaGetErrorString(cudaStatus));
+		IO::waitForEnter();
 	}
 
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching raytraceVertices!\n", cudaStatus);
-
+		IO::waitForEnter();
 	}
 	
 }
@@ -773,6 +853,7 @@ void CF2::rayTrace()
 			cudaStatus = cudaGetLastError();
 			if (cudaStatus != cudaSuccess) {
 				fprintf(stderr, "raytraceVertices stream %d camera %d launch failed: %s\n", i,j,cudaGetErrorString(cudaStatus));
+				IO::waitForEnter();
 			}
 		}
 	}
@@ -780,6 +861,7 @@ void CF2::rayTrace()
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching raytraceVertices!\n", cudaStatus);
+		IO::waitForEnter();
 
 	}
 }
@@ -805,11 +887,13 @@ void CF2::transformSamplePointBuffer()
 	cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "transformSamplePointBuffer launch failed: %s\n", cudaGetErrorString(cudaStatus));
+		IO::waitForEnter();
 	}
 
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching transformSamplePointBuffer!\n", cudaStatus);
+		IO::waitForEnter();
 
 	}
 }
@@ -870,6 +954,7 @@ void CF2::calculateCentroid()
 			cudaStatus = cudaGetLastError();
 			if (cudaStatus != cudaSuccess) {
 				fprintf(stderr, "calcMiddlePoint stream %d camera %d launch failed: %s\n", i,j,cudaGetErrorString(cudaStatus));
+				IO::waitForEnter();
 			}
 		}
 	}
@@ -878,7 +963,7 @@ void CF2::calculateCentroid()
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching calcMiddlePoint!\n", cudaStatus);
-
+		IO::waitForEnter();
 	}
 }
 
@@ -906,13 +991,16 @@ void CF2::calculateProbOfHumanDetection()
 														distMatrix.d_ws_l_params,
 														distMatrix.d_ws_n_params,
 														distMatrix.d_d,
-														p_rtl->probResult.d_p);
+														p_rtl->probResult.d_p,
+														p_rtl->probResult.d_d,
+														p_rtl->probResult.d_w);
 
 
 
 		cudaStatus = cudaGetLastError();
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "distanceToEllipseModel stream %d launch failed: %s\n", i,cudaGetErrorString(cudaStatus));
+			IO::waitForEnter();
 		}
 		
 	}
@@ -921,7 +1009,7 @@ void CF2::calculateProbOfHumanDetection()
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching distanceToEllipseModel!\n", cudaStatus);
-
+		IO::waitForEnter();
 	}
 }
 
@@ -935,6 +1023,18 @@ void CF2::initPropBuffer(PROB_RESULT* probResult, int n, int session)
 
 	CudaMem::cudaMemAllocReport((void**)&probResult->d_p, n*session*sizeof(float));
 	CudaMem::cudaMemAllocReport((void**)&probResult->d_maxp, session*sizeof(float));
+
+	probResult->d = new float[n*session];
+	probResult->maxd = new float[session];
+
+	CudaMem::cudaMemAllocReport((void**)&probResult->d_d, n*session*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&probResult->d_maxd, session*sizeof(float));
+
+	probResult->w = new int[n*session];
+	probResult->maxw = new int[session];
+
+	CudaMem::cudaMemAllocReport((void**)&probResult->d_w, n*session*sizeof(int));
+	CudaMem::cudaMemAllocReport((void**)&probResult->d_maxw, session*sizeof(int));
 }
 
 void CF2::freePropBuffer(PROB_RESULT* probResult)
@@ -944,6 +1044,16 @@ void CF2::freePropBuffer(PROB_RESULT* probResult)
 	delete probResult->maxp;
 	CudaMem::cudaFreeReport(probResult->d_p);
 	CudaMem::cudaFreeReport(probResult->d_maxp);
+
+	delete probResult->d;
+	delete probResult->maxd;
+	CudaMem::cudaFreeReport(probResult->d_d);
+	CudaMem::cudaFreeReport(probResult->d_maxd);
+
+	delete probResult->w;
+	delete probResult->maxw;
+	CudaMem::cudaFreeReport(probResult->d_w);
+	CudaMem::cudaFreeReport(probResult->d_maxw);
 }
 
 void CF2::clearPropBuffer(PROB_RESULT* probResult, int n)
@@ -979,19 +1089,77 @@ void CF2::calculateMaxProb()
 		cudaStatus = cudaGetLastError();
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "calculateMaxProb stream %d launch failed: %s\n", i,cudaGetErrorString(cudaStatus));
+			IO::waitForEnter();
 		}
 	}
 
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching calcMiddlePoint!\n", cudaStatus);
-
+		IO::waitForEnter();
 	}
 
 	for(int i=0; i<optiSession.n; i++)
 	{
 		p_rtl = &optiSession.launchs[i];
+		cuda_calc2::calculateMinDist<<<1,MAX_BUFFER_SIZE,0, *(p_rtl->cudaStream[0])>>>(
+														p_rtl->probResult.d_d,
+														p_rtl->probResult.n,
+														p_rtl->probResult.d_maxd,
+														currentTrans.d_pr);
+		
+
+					
+
+		cudaStatus = cudaGetLastError();
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "calculateMaxProb stream %d launch failed: %s\n", i,cudaGetErrorString(cudaStatus));
+			IO::waitForEnter();
+		}
+	}
+
+	cudaStatus = cudaDeviceSynchronize();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching calcMiddlePoint!\n", cudaStatus);
+		IO::waitForEnter();
+	}
+
+
+	for(int i=0; i<optiSession.n; i++)
+	{
+		//calculateMinWeight(int* weights, int n, float* dist, float* mindist, int* w)
+		p_rtl = &optiSession.launchs[i];
+		cuda_calc2::calculateMinWeight<<<1,MAX_BUFFER_SIZE,0, *(p_rtl->cudaStream[0])>>>(
+														p_rtl->probResult.d_w,
+														p_rtl->probResult.n,
+														p_rtl->probResult.d_d,
+														p_rtl->probResult.d_maxd,
+														p_rtl->probResult.d_maxw);
+		
+
+					
+
+		cudaStatus = cudaGetLastError();
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "calculateMaxProb stream %d launch failed: %s\n", i,cudaGetErrorString(cudaStatus));
+			IO::waitForEnter();
+		}
+	}
+
+	cudaStatus = cudaDeviceSynchronize();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching calcMiddlePoint!\n", cudaStatus);
+		IO::waitForEnter();
+	}
+
+
+
+	for(int i=0; i<optiSession.n; i++)
+	{
+		p_rtl = &optiSession.launchs[i];
 		CudaMem::cudaMemCpyReport(p_rtl->probResult.maxp, p_rtl->probResult.d_maxp, sizeof(float), cudaMemcpyDeviceToHost);
+		CudaMem::cudaMemCpyReport(p_rtl->probResult.maxd, p_rtl->probResult.d_maxd, sizeof(float), cudaMemcpyDeviceToHost);
+		CudaMem::cudaMemCpyReport(p_rtl->probResult.maxw, p_rtl->probResult.d_maxw, sizeof(int), cudaMemcpyDeviceToHost);
 	}
 	
 }

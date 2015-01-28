@@ -2,6 +2,7 @@
 #include "NearestNeighbour.h"
 #include <time.h>
 #include "SearchClass.h"
+#include "AngleGenerator.h"
 
 struct COST
 {
@@ -22,7 +23,7 @@ public:
 	//SimulatedAnnealing(int N, double T, double alpha, int Npcl, int Nangle, int nOfCams, int* NN, struct PCL* robot);
 
 
-	SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, int nI, int* nn_indices);
+	SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, int nI, int* nn_indices, AngleGenerator* ag);
 	~SimulatedAnnealing(void);
 
 	void initializeFirstRun(int* pclIndex, int* angleIndex);
@@ -43,7 +44,8 @@ public:
 	double iterateSingle(const int* const nn_indices, int* pclIndex, int* angleIndex, float* costs, int i);
 	void setCoolingPlan(float *costs);
 
-	bool iterate(int* pI, int* aI, float* prob);
+	bool iterate(int* pI, int* aI, float* prob, float* d, int* weights);
+	void writeResultsToFile(unsigned long long* vec, int nOfCams);
 
 private:
 	int NofE;
@@ -54,8 +56,11 @@ private:
 	int nOfCams;
 	double alpha;
 	int DOF;
-	int* NN;
-	struct PCL* robot;
+
+
+	
+	
+	struct SAMPLE_PCL* robot;
 	int angleIndexRandomRange_roll;
 	int angleIndexRandomRange_pitch;
 	int angleIndexRandomRange_yaw;
@@ -70,11 +75,13 @@ private:
 	static const double e;
 
 	bool firstEvaluation;
+	bool firstIteration;
 	time_t start;
 	double loopTime;
 	double maxTime;
 	int NofIteration;
 	int maxIteration;
+	float min_threshold;
 
 	
 	struct SOLUTION * solu;	

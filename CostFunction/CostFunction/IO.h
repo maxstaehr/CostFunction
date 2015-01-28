@@ -44,7 +44,7 @@ public:
 	static void saveProbResult2File(struct PROB_RESULT* probResult,  const char* name);
 	static void saveBoundingBoxBuffer(struct BB_BUFFER* bbBuffer, const char* name);
 	static bool is_nan(float x) { return x != x; }
-	static void saveOptimisationResults(struct SAMPLE_POINTS_BUFFER* samplePoints, struct SAMPLE_PCL* sP,struct SAMPLE_ROTATIONS* sR, float* costs, const char* name);
+	static void saveOptimisationResults(struct SAMPLE_POINTS_BUFFER* samplePoints, struct SAMPLE_PCL* sP,struct SAMPLE_ROTATIONS* sR, float* costs,float* dist, int* weights,  const char* name);
 	static void loadDistanceMatrix(struct DISTANCE_MATRIX* dM, const char* name);
 	static void waitForEnter();
 	static void plotIntermediateResults(struct PROB_RESULT* probResult ,struct CENTROID* centroid);
