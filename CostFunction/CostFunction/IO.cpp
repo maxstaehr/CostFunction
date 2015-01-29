@@ -827,7 +827,7 @@ void IO::loadSamplePositions(struct SAMPLE_POSITIONS* pos, const char* name)
 	CudaMem::cudaMemCpyReport(pos->d_qe, pos->qe, pos->nP*pos->nS*N_ELEMENT_EV*NUMELEM_H*sizeof(float), cudaMemcpyHostToDevice);
 	CudaMem::cudaMemCpyReport(pos->d_pr, pos->pr, pos->nP*sizeof(float), cudaMemcpyHostToDevice);
 	
-	pos->nP = 1;
+	//pos->nP = 1;
 }
 
 
@@ -1242,9 +1242,9 @@ void IO::saveOptimisationResults(struct SAMPLE_POINTS_BUFFER* samplePoints, stru
 
 void IO::waitForEnter() 
 { 
-        std::cout << "Bitte druecken Sie die Eingabetaste um fortzufahren..." << std::endl; 
-        std::cin.clear(); 
-        std::cin.ignore(std::cin.rdbuf()->in_avail()); 
-        std::cin.get(); 
+        //std::cout << "Bitte druecken Sie die Eingabetaste um fortzufahren..." << std::endl; 
+        //std::cin.clear(); 
+        //std::cin.ignore(std::cin.rdbuf()->in_avail()); 
+        //std::cin.get(); 
 }  
 
