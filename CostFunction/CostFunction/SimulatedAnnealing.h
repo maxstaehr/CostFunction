@@ -3,19 +3,20 @@
 #include <time.h>
 #include "SearchClass.h"
 #include "AngleGenerator.h"
+#include "struct_definitions.h"
 
-struct COST
-{
-	struct COST_POINT m;
-	struct COST_POINT p;
-	struct COST_POINT c;
-	struct COST_POINT c_t1;
-	struct COST_POINT min;
-	struct COST_POINT nm;
-	struct COST_POINT np;
-	NearestNeighbour::GRADIENT_DIM dir[6];
-	unsigned char dim;
-};
+//struct COST
+//{
+//	struct COST_POINT m;
+//	struct COST_POINT p;
+//	struct COST_POINT c;
+//	struct COST_POINT c_t1;
+//	struct COST_POINT min;
+//	struct COST_POINT nm;
+//	struct COST_POINT np;
+//	NearestNeighbour::GRADIENT_DIM dir[6];
+//	unsigned char dim;
+//};
 
 class SimulatedAnnealing : public SearchClass
 {
@@ -45,7 +46,8 @@ public:
 	void setCoolingPlan(float *costs);
 
 	bool iterate(int* pI, int* aI, float* prob, float* d, int* weights);
-	void writeResultsToFile(unsigned long long* vec, int nOfCams);
+	void writeResultsToFile(unsigned long long* vec, int nOfCams, struct SAMPLE_POINTS_BUFFER* samplePoints);
+	void printMinPositionToFile(std::string pre, struct SAMPLE_POINTS_BUFFER* samplePoints);
 
 private:
 	int NofE;
@@ -64,12 +66,12 @@ private:
 	int angleIndexRandomRange_roll;
 	int angleIndexRandomRange_pitch;
 	int angleIndexRandomRange_yaw;
-	double minCostOverAll;
+	float minCostOverAll;
 
 	int* pclIndex_t1;
 	int* angleIndex_t1;
 
-	double* minEnergy;
+	float* minEnergy;
 	bool* noChange;
 	unsigned char* cDim;
 	static const double e;
@@ -95,6 +97,8 @@ private:
 
 	double neighbourRadius;
 	double neighbourAngle;
+
+
 	
 
 	

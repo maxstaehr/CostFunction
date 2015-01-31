@@ -13,9 +13,9 @@ InversionSearch::InversionSearch(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, i
 	y_d[0] = 1.0f;
 	z_d[0] = -1.0f;
 
-	//x_d[0] = 1.0f;
-	//y_d[0] = -1.0f;
-	//z_d[0] = -1.0f;
+	x_d[0] = 1.0f;
+	y_d[0] = -1.0f;
+	z_d[0] = -1.0f;
 
 	x_d[1] = -1.0f;
 	y_d[1] = 1.0f;
@@ -137,7 +137,7 @@ void InversionSearch::buildProbabilityList()
 
 }
 
-void InversionSearch::writeResultsToFile(unsigned long long* vec, int nOfCams)
+void InversionSearch::writeResultsToFile(unsigned long long* vec, int nOfCams, struct SAMPLE_POINTS_BUFFER* samplePoints)
 {
 }
 

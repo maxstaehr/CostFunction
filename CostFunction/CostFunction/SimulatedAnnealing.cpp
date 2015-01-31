@@ -13,6 +13,8 @@
 #include "global.h"
 #include "mathcuda.h"
 
+#include "CudaMem.h"
+
 
 
 double const SimulatedAnnealing::e( 2.7182818284590452353602874713526624977572 );
@@ -27,18 +29,29 @@ SimulatedAnnealing::SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int
 	nOfCams = nC;
 	robot = sp;
 
-	minEnergy = new double [NofE];
+	minEnergy = new float [NofE];
 	DOF = 6*nOfCams;
 	noChange = new bool[NofE*DOF];
 	cDim = new unsigned char[NofE];	
 
-	pclIndex_t1 = new int[nOfCams*MAX_ITE];
-	angleIndex_t1 = new int[nOfCams*MAX_ITE];
+	pclIndex_t1 = new int[nOfCams*nI];
+	angleIndex_t1 = new int[nOfCams*nI];
 
 
 	this->solu = new struct SOLUTION[NofE];
+	for(int i=0; i<NofE; i++)
+	{
+		this->solu->angle = new int[nC];
+		memset(this->solu->angle, 0, nC*sizeof(int));
+		this->solu->pcl = new int[nC];
+		memset(this->solu->pcl, 0, nC*sizeof(int));
+	}
+
 	this->curStates = new enum STATE[NofE];
+	this->globalMin = solu[0];
 	this->globalMin.costs = DBL_MAX;	
+
+
 	
 
 
@@ -135,18 +148,19 @@ void SimulatedAnnealing::setCoolingPlan(float* costs)
 	}
 	//float maxTemperature = 1.0;
 	T = maxTemperature/2.0;	
-	T = 0.5;
-	float basis = 1.0/((float)T);
-	float expo = (T-min_threshold)/((float)maxIteration);
+	min_threshold = T/5.0;
+
+	float basis = min_threshold/T;
+	float expo = 1.0f/((float)nOfCams*maxIteration);
 	alpha = pow(basis, expo);
-	alpha = 1.0f-((5e-3f)/nOfCams);
+	assert(alpha < 1.0f);
 	time_t end;
 	time(&end);
 	loopTime = difftime(end, start);
 	maxTime = maxIteration*loopTime;
 }
 
-void SimulatedAnnealing::writeResultsToFile(unsigned long long* vec, int nOfCams)
+void SimulatedAnnealing::writeResultsToFile(unsigned long long* vec, int nOfCams,  struct SAMPLE_POINTS_BUFFER* samplePoints)
 {
 	std::string suffix = "";
 	for(int i=0; i<nOfCams; i++)
@@ -159,7 +173,9 @@ void SimulatedAnnealing::writeResultsToFile(unsigned long long* vec, int nOfCams
 	writeEnergyResultsToFile(fn);
 	fn = "cost_energy" + suffix;
 	writeAllResultToFile(fn);
-	//IO::printMinPositionToFile(&currentMultiCameraCosts, &pos, &robotPCL_qa0, nOfCams);
+	fn = "min_cost" + suffix;
+	printMinPositionToFile(fn, samplePoints);
+	
 }
 
 SimulatedAnnealing::~SimulatedAnnealing(void)
@@ -167,10 +183,17 @@ SimulatedAnnealing::~SimulatedAnnealing(void)
 	delete minEnergy;
 	delete noChange;
 	delete cDim;
+	for(int i=0; i<NofE; i++)
+	{
+		delete solu[i].angle;
+		delete solu[i].pcl;
+	}
 	delete solu;
 	delete curStates;
 	delete pclIndex_t1;
 	delete angleIndex_t1;
+
+	
 }
 
 void SimulatedAnnealing::initializeFirstRun(int* pclIndex, int* angleIndex)
@@ -188,15 +211,15 @@ void SimulatedAnnealing::initializeFirstRun(int* pclIndex, int* angleIndex)
 int SimulatedAnnealing::createPCLIndexInRange(int i1)
 {
 	int i2;
-	float xd, yd, zd;
+	float xd, yd, zd, di;
 	do
 	{
 		i2 = rand()%Npcl;
 		xd = robot->x[i1] - robot->x[i2];
 		yd = robot->y[i1] - robot->y[i2];
 		zd = robot->z[i1] - robot->z[i2];
-	}
-	while(sqrt(pow(xd,2)+pow(yd,2)+pow(zd,2)) > neighbourRadius);
+		di = sqrt(pow(xd,2)+pow(yd,2)+pow(zd,2));
+	}while(di > neighbourRadius || di < 0.1);
 	return i2;
 }
 int SimulatedAnnealing::createAngleIndexInRange(int a_i)
@@ -243,6 +266,10 @@ void SimulatedAnnealing::findGlobalMinimum(void)
 		if(solu[i].costs < globalMin.costs)
 		{
 			globalMin = solu[i];
+			globalMin.globalMin = solu[i].costs;
+
+			//setting global minimum solution
+			//memcpy(minSol.aI, 
 		}
 	}
 }
@@ -256,20 +283,20 @@ void SimulatedAnnealing::printCurrentStatus(void)
 		
 		if(curStates[i] == STATE::HC)
 		{
-			printf("%i\tHC\t%.5f\t\t%.5f\t\t%.10f\t%i\t%i  %i\n", i, 1.0f-minEnergy[i], 1.0f-solu[i].costs, solu[i].currProp, solu[i].pcl, solu[i].angle, cDim[i]);
+			printf("%i\tHC\t%.5f\t\t%.5f\t\t%.10f\t%i\t%i  %i\n", i, minEnergy[i], solu[i].costs, solu[i].currProp, solu[i].pcl[0], solu[i].angle[0], cDim[i]);
 		}else if(curStates[i] == STATE::NS)
 		{
-			printf("%i\tNS\t%.5f\t\t%.5f\t\t%.10f\t%i\t%i  %i\n", i, 1.0f-minEnergy[i], 1.0f-solu[i].costs, solu[i].currProp, solu[i].pcl, solu[i].angle, cDim[i]);
+			printf("%i\tNS\t%.5f\t\t%.5f\t\t%.10f\t%i\t%i  %i\n", i, minEnergy[i], solu[i].costs, solu[i].currProp, solu[i].pcl[0], solu[i].angle[0], cDim[i]);
 		}else if (curStates[i] == STATE::OR)
 		{
-			printf("%i\tOR\t%.5f\t\t%.5f\t\t%.10f\t%i\t%i  %i\n", i, 1.0f-minEnergy[i], 1.0f-solu[i].costs, solu[i].currProp, solu[i].pcl, solu[i].angle, cDim[i]);
+			printf("%i\tOR\t%.5f\t\t%.5f\t\t%.10f\t%i\t%i  %i\n", i, minEnergy[i], solu[i].costs, solu[i].currProp, solu[i].pcl[0], solu[i].angle[0], cDim[i]);
 		}
 		
 	}
 	double currPro = (double)ite/(double)(maxIteration);
 	double remainingTime = loopTime * (double) (maxIteration - ite);
 	printf("max : %.1fmin\trem : %.2fmin\tpro: %.6f%%\n", maxTime/60.0, remainingTime/60.0, currPro*100.0);
-	printf("global min costs at: %.5f at %i:%i at T:%.3f  pos:%i  cams:%i\n\n\n", 1.0f-globalMin.costs, globalMin.pcl, globalMin.angle, T, ite, nOfCams);
+	printf("global min costs at: %.5f at %i:%i at T:%.3f  pos:%i  cams:%i\n\n\n", globalMin.costs, globalMin.pcl[0], globalMin.angle[0], T, ite, nOfCams);
 
 	
 	
@@ -300,19 +327,34 @@ double SimulatedAnnealing::iterateSingle(const int* const nn_indices, int* pclIn
 	int p_i, a_i;
 	float localMinE = 0.0;
 
-	
-	if(1.0f - costs[2*i+0] < 1.0f - costs[2*i+1])
+	float cm = 1.0-costs[2*i+0];
+	float cp = 1.0-costs[2*i+1];
+
+	int dim = cDim[i]%6;
+	int cam = cDim[i]/6;
+	int pa_index_m = i*2*nC+0*nC+cam;
+	int pa_index_p = i*2*nC+1*nC+cam;
+	int p_o_m;
+
+	if(cm < cp)
 	{	//change to minus
-		localMinE = 1.0f - costs[2*i+0];
-		p_i = pclIndex[2*i+0];
-		a_i = angleIndex[2*i+0];
+		localMinE = cm;
+		p_i = pclIndex[pa_index_m];
+		a_i = angleIndex[pa_index_m];
+		p_o_m = 0;
 	}else
 	{	//change to plus
-		localMinE = 1.0f - costs[2*i+1];
-		p_i = pclIndex[2*i+1];
-		a_i = angleIndex[2*i+1];				
+		localMinE = cp;
+		p_i = pclIndex[pa_index_p];
+		a_i = angleIndex[pa_index_p];	
+		p_o_m = 1;
 	}
 
+
+	int offset = i*2*nC+p_o_m*nC;
+	memcpy(solu[i].angle, angleIndex+offset, nC*sizeof(int));
+	memcpy(solu[i].pcl, pclIndex+offset, nC*sizeof(int));
+	solu[i].costs = localMinE;
 
 	//if(costs[2*i+0] < costs[2*i+1])
 	//{	//change to minus
@@ -341,11 +383,13 @@ double SimulatedAnnealing::iterateSingle(const int* const nn_indices, int* pclIn
 
 
 	//found best position setting next position
-	solu[i].angle = a_i;
-	solu[i].pcl = p_i;
-	solu[i].costs = localMinE;
-	cDim[i] = (cDim[i]+1)%DOF;
+
 	
+	cDim[i] = (cDim[i]+1)%DOF;
+	dim = cDim[i]%6;
+	cam = cDim[i]/6;
+	pa_index_m = i*2*nC+0*nC+cam;
+	pa_index_p = i*2*nC+1*nC+cam;
 	
 	
 	//int ri = a_i/(sr->nPitch*sr->nYaw);
@@ -357,36 +401,42 @@ double SimulatedAnnealing::iterateSingle(const int* const nn_indices, int* pclIn
 	int roll = ri, pitch = pi, yaw = yi;
 	int am, ap;
 
-	switch(cDim[i]%DOF){
+
+
+	switch(dim){
 	case 0:		
 	case 1:
 	case 2:
 		//x,y,z
-		pclIndex[2*i+0] = nn_indices[p_i*6+cDim[i]*2+0];
-		pclIndex[2*i+1] = nn_indices[p_i*6+cDim[i]*2+1];	
+		pclIndex[pa_index_m] = nn_indices[p_i*6+dim*2+0];
+		pclIndex[pa_index_p] = nn_indices[p_i*6+dim*2+1];	
 		break;
 	case 3:
 		//roll
 		am = (ri+sr->nRoll-1)%sr->nRoll;
 		ap = (ri+sr->nRoll+1)%sr->nRoll;
-		convertRPYtoAI(am, yi, yi, sr, &(angleIndex[2*i+0]));
-		convertRPYtoAI(ap, yi, yi, sr, &(angleIndex[2*i+1]));
+		convertRPYtoAI(am, yi, yi, sr, &(angleIndex[pa_index_m]));
+		convertRPYtoAI(ap, yi, yi, sr, &(angleIndex[pa_index_p]));
 		break;
 	case 4:
 		//pitch
 		am = (pi+sr->nPitch-1)%sr->nPitch;
 		ap = (pi+sr->nPitch+1)%sr->nPitch;
-		convertRPYtoAI(ri, am, yi, sr, &(angleIndex[2*i+0]));
-		convertRPYtoAI(ri, ap, yi, sr, &(angleIndex[2*i+1]));
+		convertRPYtoAI(ri, am, yi, sr, &(angleIndex[pa_index_m]));
+		convertRPYtoAI(ri, ap, yi, sr, &(angleIndex[pa_index_p]));
 		break;
 	case 5:
 		//yaw
 		am = (yi+sr->nYaw-1)%sr->nYaw;
 		ap = (yi+sr->nYaw+1)%sr->nYaw;
-		convertRPYtoAI(ri, pi, am, sr, &(angleIndex[2*i+0]));
-		convertRPYtoAI(ri, pi, ap, sr, &(angleIndex[2*i+1]));
+		convertRPYtoAI(ri, pi, am, sr, &(angleIndex[pa_index_m]));
+		convertRPYtoAI(ri, pi, ap, sr, &(angleIndex[pa_index_p]));
 		break;
+	default:
+		assert(false);
 	};
+
+	
 	//assert(localMinE > 0.0);
 	return localMinE;
 }
@@ -420,6 +470,52 @@ void SimulatedAnnealing::writeEnergyResultsToFile(std::string pre)
 
 }
 
+//(struct SAMPLE_POINTS_BUFFER* samplePoints, struct SAMPLE_PCL* sP,struct SAMPLE_ROTATIONS* sR, float* costs, float* d,int* weights,  const char* name)
+//{
+//	float* buffer = new float[samplePoints->n*NUMELEM_H];
+//	float* res_pos_buffer = new float[samplePoints->n*sR->nRotations*NUMELEM_H];
+//
+//	//float* x = new float[samplePoints->n];
+//	//float* y = new float[samplePoints->n];
+//	//float* z = new float[samplePoints->n];
+//	/*float* max = new float[samplePoints->n*sample];*/
+//
+//	CudaMem::cudaMemCpyReport(buffer, samplePoints->d_H, samplePoints->n*NUMELEM_H*sizeof(float), cudaMemcpyDeviceToHost);
+//	//calculating the resulting transformations
+//	for(int i=0; i<samplePoints->n; i++)
+//	{
+//		for(int j=0; j<sR->nRotations; j++)
+//		{
+//			mm16(buffer+i*NUMELEM_H, sR->R+j*NUMELEM_H, res_pos_buffer+(i*sR->nRotations+j)*NUMELEM_H);
+//		}
+//	}
+
+void SimulatedAnnealing::printMinPositionToFile(std::string pre, struct SAMPLE_POINTS_BUFFER* samplePoints)
+{
+	float* buf1 = new float[nC*NUMELEM_H];
+	float* buf2 = new float[nC*NUMELEM_H];
+
+	int index = 0;
+	for(int i=0; i<nC; i++)
+	{
+		index = globalMin.pcl[i];
+		CudaMem::cudaMemCpyReport(buf1+i*NUMELEM_H, samplePoints->d_H+index*NUMELEM_H, NUMELEM_H*sizeof(float), cudaMemcpyDeviceToHost);
+		index = globalMin.angle[i];
+		mm16(buf1+i*NUMELEM_H, this->sr->R+index*NUMELEM_H, buf2+i*NUMELEM_H);
+	}
+
+
+	std::string fn = "minCameraPos" + pre+ ".bin";
+	std::ofstream outbin(fn, std::ofstream::binary );
+
+	outbin.write((char*)&nC, sizeof(int));
+	outbin.write((char*)buf2, nC*NUMELEM_H*sizeof(float));
+	outbin.close();
+
+	delete buf1;
+	delete buf2;
+}
+
 void SimulatedAnnealing::addResult(void)
 {
 	solu[0].curT = T;
@@ -442,18 +538,18 @@ void SimulatedAnnealing::writeAllResultToFile(std::string pre)
 	//calculating the memory buffer size
 	int n = recordedSolution.size();
 	int nDouble = NofE * n+1+1;
-	double* buffer = new double[nDouble];
+	float* buffer = new float[nDouble];
 
 	buffer[0] = n;
 	buffer[1] = NofE;
 	for(unsigned int i=0; i<n; i++)
 	{
-		memcpy(buffer+i*NofE+2, recordedSolution[i], NofE*sizeof(double)); 
+		memcpy(buffer+i*NofE+2, recordedSolution[i], NofE*sizeof(float)); 
 	}
 
 	std::string fn = pre + ".bin";
 	std::ofstream outbin( fn.c_str(), std::ios::binary );
-	outbin.write((char*)buffer, (nDouble)*sizeof(double));
+	outbin.write((char*)buffer, (nDouble)*sizeof(float));
 	outbin.close();
 	delete buffer;
 }

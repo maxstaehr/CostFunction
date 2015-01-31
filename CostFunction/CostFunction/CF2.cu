@@ -149,10 +149,6 @@ void CF2::run()
 	{
 		for(int i=0; i< samplePositions.nP; i++)
 		{				
-			for(int j=0; j <MAX_ITE;j++)
-			{
-				printf("%d\t%d\n",optiSession.pI[j], optiSession.aI[j]); 
-			}
 
 			setCurrentTans(i);
 			transformVertexBuffer();
@@ -164,13 +160,14 @@ void CF2::run()
 			calculateProbOfHumanDetection();
 			calculateMaxProb();				
 		}
-		//printf("angle initializing....\n");
+		printf("angle initializing....\n");
 	}
 	AngleGenerator aG(sC->prop, sampleRotations.nRotations, SEARCH_DOF);
 	delete sC;
 	freeParallelOptiRuns();
 	printf("starting optimisation...\n");
 	IO::waitForEnter();
+	
 	while(currentNumberOfCams < 5)
 	{
 	
@@ -182,26 +179,29 @@ void CF2::run()
 			initParallelOptiRuns();			
 			time_t start;			
 			time(&start);
-			while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp, probResult.maxd, probResult.maxw) )
-			{
+			//if (currentNumberOfCams == 2)
+			//{
+				while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp, probResult.maxd, probResult.maxw) )
+				{
 
-				for(int i=0; i< samplePositions.nP; i++)
-				{				
-					setCurrentTans(i);
-					transformVertexBuffer();
-					transformBoundingBoxBuffer();
-					transformSamplePointBuffer();
+					for(int i=0; i< samplePositions.nP; i++)
+					{				
+						setCurrentTans(i);
+						transformVertexBuffer();
+						transformBoundingBoxBuffer();
+						transformSamplePointBuffer();
 
-					rayTrace();
-					calculateCentroid();
-					calculateProbOfHumanDetection();
-					calculateMaxProb();
-					//Progress::printProgress((double)i, (double)samplePositions.nP, start, "raytracing rp ");	
+						rayTrace();
+						calculateCentroid();
+						calculateProbOfHumanDetection();
+						calculateMaxProb();
+						//Progress::printProgress((double)i, (double)samplePositions.nP, start, "raytracing rp ");	
+					}
+
+					//Progress::printProgress((double)optiSession.pI[0], (double)samplePoints.n, start, "raytracing cp ");
+
 				}
-
-				//Progress::printProgress((double)optiSession.pI[0], (double)samplePoints.n, start, "raytracing cp ");
-
-			}
+			//}
 
 	
 			//saving results
@@ -209,7 +209,7 @@ void CF2::run()
 			//setCurrentTans(0);
 			//transformSamplePointBuffer();
 			//IO::saveOptimisationResults(&samplePointsBuffer, &samplePoints, &sampleRotations, sC->prop, sC->dist,sC->weights,  "completeEnumeration.bin");
-			sC->writeResultsToFile(cameraCombination.vector, currentNumberOfCams);
+			sC->writeResultsToFile(cameraCombination.vector, currentNumberOfCams, &samplePointsBuffer);
 			delete sC;
 			freeParallelOptiRuns();
 
@@ -358,14 +358,13 @@ void CF2::initParallelOptiRuns()
 	printf("total memory usage is: %.2f\n",usage);
 
 
-	int numberOfSessions = MAX_ITE;
 
 	//starting the real number of sessions
-	optiSession.n = numberOfSessions;
-	optiSession.launchs = new struct RAYTRACING_LAUNCH[numberOfSessions];
+	optiSession.n = MAX_ITE;
+	optiSession.launchs = new struct RAYTRACING_LAUNCH[optiSession.n];
 
-	optiSession.pI = new int[numberOfSessions*currentNumberOfCams];
-	optiSession.aI = new int[numberOfSessions*currentNumberOfCams];
+	optiSession.pI = new int[optiSession.n*currentNumberOfCams];
+	optiSession.aI = new int[optiSession.n*currentNumberOfCams];
 	
 
 
@@ -374,7 +373,8 @@ void CF2::initParallelOptiRuns()
 
 	//starting to initilize the rest of the model	
 	int nOfRays = 0;
-	for(int ite=0; ite<numberOfSessions; ite++)
+	int nOfSSRays = 0;
+	for(int ite=0; ite<optiSession.n; ite++)
 	{		
 		optiSession.launchs[ite].cams = new SAMPLE_CAMERA *[currentNumberOfCams];
 		optiSession.launchs[ite].depthBuffers = new DEPTH_BUFFER[currentNumberOfCams];
@@ -386,23 +386,25 @@ void CF2::initParallelOptiRuns()
 		{			
 			optiSession.launchs[ite].cams[i] = &sampleCameraTypes.possibleCameraTypes[cameraCombination.vector[i]];
 			nOfRays += sampleCameraTypes.possibleCameraTypes[cameraCombination.vector[i]].nRays;
+			nOfSSRays += sampleCameraTypes.possibleCameraTypes[cameraCombination.vector[i]].ssnRays;
 		}
 	}
 
 
 	////init the rest of the launch
-	initDepthBuffer(&depthBuffer, nOfRays);	
-	initCentroidBuffer(&centroid, numberOfSessions);
-	initPropBuffer(&probResult ,sampleFitting.n, numberOfSessions);	
+	initDepthBuffer(&depthBuffer, nOfRays, nOfSSRays);	
+	initCentroidBuffer(&centroid, optiSession.n);
+	initPropBuffer(&probResult ,sampleFitting.n, optiSession.n);	
 
-	clearPropBuffer(&probResult,sampleFitting.n*numberOfSessions);
-	createCudaStream(&cudaStream, currentNumberOfCams*numberOfSessions);
+	clearPropBuffer(&probResult,sampleFitting.n*optiSession.n);
+	createCudaStream(&cudaStream, currentNumberOfCams*optiSession.n);
 
 	//setting all the pointer
 	nOfRays = 0;
+	nOfSSRays = 0;
 	int nofProps = 0;
 
-	for(int ite=0; ite<numberOfSessions; ite++)
+	for(int ite=0; ite<optiSession.n; ite++)
 	{	
 		//setting pointer for depth
 		optiSession.launchs[ite].depthBuffer.devStates = depthBuffer.devStates + nOfRays;
@@ -410,6 +412,10 @@ void CF2::initParallelOptiRuns()
 		optiSession.launchs[ite].depthBuffer.d_dx = depthBuffer.d_dx + nOfRays;
 		optiSession.launchs[ite].depthBuffer.d_dy = depthBuffer.d_dy + nOfRays;
 		optiSession.launchs[ite].depthBuffer.d_dz = depthBuffer.d_dz + nOfRays;
+
+		optiSession.launchs[ite].depthBuffer.d_ss_dx = depthBuffer.d_ss_dx + nOfSSRays;
+		optiSession.launchs[ite].depthBuffer.d_ss_dy = depthBuffer.d_ss_dy + nOfSSRays;
+		optiSession.launchs[ite].depthBuffer.d_ss_dz = depthBuffer.d_ss_dz + nOfSSRays;
 
 		optiSession.launchs[ite].centroid.d_cx = centroid.d_cx + ite;
 		optiSession.launchs[ite].centroid.d_cy = centroid.d_cy + ite;
@@ -438,6 +444,7 @@ void CF2::initParallelOptiRuns()
 		//init random states for rays
 		//
 		int raysPerLaunch = 0;
+		int raysSSPerLaunch = 0;
 		for(int i=0; i<currentNumberOfCams; i++)
 		{
 			optiSession.launchs[ite].depthBuffers[i].size = optiSession.launchs[ite].cams[i]->nRays;
@@ -447,6 +454,10 @@ void CF2::initParallelOptiRuns()
 			optiSession.launchs[ite].depthBuffers[i].d_dy = depthBuffer.d_dy + nOfRays;
 			optiSession.launchs[ite].depthBuffers[i].d_dz = depthBuffer.d_dz + nOfRays;
 
+			optiSession.launchs[ite].depthBuffers[i].d_ss_dx = depthBuffer.d_ss_dx + nOfSSRays;
+			optiSession.launchs[ite].depthBuffers[i].d_ss_dy = depthBuffer.d_ss_dy + nOfSSRays;
+			optiSession.launchs[ite].depthBuffers[i].d_ss_dz = depthBuffer.d_ss_dz + nOfSSRays;
+
 			optiSession.launchs[ite].aI[i] = optiSession.aI+ite*currentNumberOfCams+i;
 			optiSession.launchs[ite].pI[i] = optiSession.pI+ite*currentNumberOfCams+i;
 
@@ -455,9 +466,13 @@ void CF2::initParallelOptiRuns()
 			initRadomNumberGenerator(optiSession.launchs[ite].depthBuffers[i].devStates, optiSession.launchs[ite].cams[i]);
 
 			nOfRays += optiSession.launchs[ite].cams[i]->nRays;
+			nOfSSRays += optiSession.launchs[ite].cams[i]->ssnRays;
+
 			raysPerLaunch += optiSession.launchs[ite].cams[i]->nRays;
+			raysSSPerLaunch += optiSession.launchs[ite].cams[i]->ssnRays;
 		}
 		optiSession.launchs[ite].depthBuffer.size = raysPerLaunch;
+		optiSession.launchs[ite].depthBuffer.sssize = raysSSPerLaunch;
 		//setting pointer for launch configuration of multiple sensors
 		nofProps += sampleFitting.n;
 	}
@@ -722,7 +737,7 @@ void CF2::transformBoundingBoxBuffer()
 
 }
 
-void CF2::initDepthBuffer(DEPTH_BUFFER* depthBuffer, int size)
+void CF2::initDepthBuffer(DEPTH_BUFFER* depthBuffer, int size, int ss_size)
 {
 	depthBuffer->size = size;
 	depthBuffer->dx = new float[size];
@@ -731,6 +746,11 @@ void CF2::initDepthBuffer(DEPTH_BUFFER* depthBuffer, int size)
 	CudaMem::cudaMemAllocReport((void**)&depthBuffer->d_dx, size*sizeof(float));
 	CudaMem::cudaMemAllocReport((void**)&depthBuffer->d_dy, size*sizeof(float));
 	CudaMem::cudaMemAllocReport((void**)&depthBuffer->d_dz, size*sizeof(float));
+
+	CudaMem::cudaMemAllocReport((void**)&depthBuffer->d_ss_dx, ss_size*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&depthBuffer->d_ss_dy, ss_size*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&depthBuffer->d_ss_dz, ss_size*sizeof(float));
+
 	CudaMem::cudaMemAllocReport((void**)&depthBuffer->devStates, sizeof(curandState) * size);	
 
 }
@@ -741,9 +761,15 @@ void CF2::freeDepthBuffer(DEPTH_BUFFER* depthBuffer)
 	delete depthBuffer->dx;
 	delete depthBuffer->dy;
 	delete depthBuffer->dz;
+
 	CudaMem::cudaFreeReport(depthBuffer->d_dx);
 	CudaMem::cudaFreeReport(depthBuffer->d_dy);
 	CudaMem::cudaFreeReport(depthBuffer->d_dz);
+
+	CudaMem::cudaFreeReport(depthBuffer->d_ss_dx);
+	CudaMem::cudaFreeReport(depthBuffer->d_ss_dy);
+	CudaMem::cudaFreeReport(depthBuffer->d_ss_dz);
+
 	CudaMem::cudaFreeReport(depthBuffer->devStates);
 
 }

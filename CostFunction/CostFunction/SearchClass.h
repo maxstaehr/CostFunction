@@ -9,7 +9,7 @@ public:
 	virtual ~SearchClass(void);
 
 	virtual bool iterate(int* pI, int* aI, float* prob, float* d, int* weights) = 0;
-	virtual void writeResultsToFile(unsigned long long* vec, int nOfCams) = 0;
+	virtual void writeResultsToFile(unsigned long long* vec, int nOfCams, struct SAMPLE_POINTS_BUFFER* samplePoints) = 0;
 	float* prop;
 	float* dist;
 	int* weights;

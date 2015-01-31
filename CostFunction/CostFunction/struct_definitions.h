@@ -20,22 +20,18 @@ enum STATE{
 };
 
 struct SOLUTION{
-	int pcl;
-	int angle;
-	double costs;
-	double currProp;
-	double curT;
+	int* pcl;
+	int* angle;
+	float costs;
+	float currProp;
+	float curT;
 	int ite;
-	double minEnergy;
+	float minEnergy;
 	enum STATE state;	
-	double globalMin;
+	float globalMin;
 };
 
-struct COST_POINT{
-	int pcl;
-	int angle;
-	double c;
-};
+
 
 
 
@@ -70,12 +66,19 @@ struct PCL
 
 struct DEPTH_BUFFER{
 	int size;
+	int sssize;
+
 	float* dx;
 	float* dy;
 	float* dz;
 	float* d_dx;
 	float* d_dy;
 	float* d_dz;
+
+	float* d_ss_dx;
+	float* d_ss_dy;
+	float* d_ss_dz;
+
 	curandState *devStates;
 
 };
@@ -263,10 +266,24 @@ struct SAMPLE_CAMERA
 	int nThreads;
 	int nRays;
 
+	int ssnBlocks;
+	int ssnThreads;
+	int ssnRays;
+
+	int nx;
+	int ny;
+	int ss_x;
+	int ss_y;
+
 
 	float* x;
 	float* y;
 	float* z;
+
+	float* ssx;
+	float* ssy;
+	float* ssz;
+
 	float* c;
 	float* d;
 	
@@ -274,6 +291,12 @@ struct SAMPLE_CAMERA
 	float* d_x;
 	float* d_y;
 	float* d_z;
+
+	float* d_ss_x;
+	float* d_ss_y;
+	float* d_ss_z;
+
+
 	float* d_c;
 	float* d_d;
 

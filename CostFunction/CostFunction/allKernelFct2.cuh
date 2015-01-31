@@ -1002,6 +1002,84 @@ namespace cuda_calc2{
 
 	}
 
+	__global__ void mergeSuperSampling(float* s_dx, float* s_dy, float* s_dz, int ss_x, int ss_y, int nx, int ny, float* dx, float* dy, float* dz, int minW)
+	{
+		int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
+		int threadId = blockId * (blockDim.x * blockDim.y * blockDim.z)
+			  + (threadIdx.z * (blockDim.x * blockDim.y))
+			  + (threadIdx.y * blockDim.x)
+			  + threadIdx.x;
+
+		int w = 0;
+		float dist, vec[3];
+		dist = 0.0f;		
+		vec[0] = 0.0f;
+		vec[1] = 0.0f;
+		vec[2] = 0.0f;
+		int ss_nx = ss_x*nx;
+		int u = (int)fmod((float)threadId, (float)nx);
+		int	v = (int)floor(((float)threadId)/((float)nx));
+		int id;
+		for(int x=0; x<ss_x; ss_x++)
+		{
+			for(int y=0; y<ss_y; ss_y++)
+			{
+				id = (ss_y*v+y)*(ss_nx*nx)+(ss_x*u+x);
+				//check if raytrace is valid
+				if(!isnan(s_dx[id]))
+				{
+					w++;
+					vec[0] += s_dx[id];
+					vec[1] += s_dy[id];
+					vec[2] += s_dz[id];
+				}
+			}
+		}
+
+		//check if the minimum number of rays have actually hit anything
+		if(w < minW)
+		{
+			dx[threadId] = nan("");
+			dy[threadId] = nan("");
+			dz[threadId] = nan("");
+			return;
+		}
+		//if not find the medium distance from model
+		vec[0] /= w;
+		vec[1] /= w;
+		vec[2] /= w;
+
+		for(int x=0; x<ss_x; ss_x++)
+		{
+			for(int y=0; y<ss_y; ss_y++)
+			{
+				id = (ss_y*v+y)*(ss_nx*nx)+(ss_x*u+x);
+				//check if raytrace is valid
+				if(!isnan(s_dx[id]))
+				{					
+					dist += powf(s_dx[id]-vec[0], 2.0f)+
+							powf(s_dy[id]-vec[1], 2.0f)+
+							powf(s_dz[id]-vec[2], 2.0f);
+				}
+			}
+		}
+		dist /= w;
+		if(dist > DIST_PIXEL)
+		{
+			//no valid pixel
+			dx[threadId] = nan("");
+			dy[threadId] = nan("");
+			dz[threadId] = nan("");
+		}else{
+			//valid pixel
+			dx[threadId] = vec[0];
+			dy[threadId] = vec[1];
+			dz[threadId] = vec[2];
+
+		}
+
+	}
+
 
 }
 #endif

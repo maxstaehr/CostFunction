@@ -86,7 +86,7 @@ private:
 	void initBoundingBoxBuffer();
 	void initSamplePointsBuffer();
 
-	void initDepthBuffer(DEPTH_BUFFER* depthBuffer, int size);	
+	void initDepthBuffer(DEPTH_BUFFER* depthBuffer, int size, int ss_size);	
 	void initCentroidBuffer(CENTROID* centroid, int n);
 	void initPropBuffer(PROB_RESULT* probResult, int n, int session);
 	void clearPropBuffer(PROB_RESULT* probResult, int n);

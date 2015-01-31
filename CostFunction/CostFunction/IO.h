@@ -26,7 +26,7 @@ public:
 	static void compareFloatValuesCuda(float* p_d1,  unsigned int n, int offset,  const char* task, const char* fn);
 	static void compareIntValuesCuda(unsigned int* p_d1, unsigned int n, int offset,  const char* task, const char* fn);
 	static void printMinCostSingleCameraToFile(double* h_costs, struct POSITIONS* pos, struct PCL* robotPCL_qa0);
-	static void printMinPositionToFile(std::vector<struct COST_POINT*>* p, struct POSITIONS* pos, struct PCL* robotPCL_qa0, int nofCams);
+	//static void printMinPositionToFile(std::vector<struct COST_POINT*>* p, struct POSITIONS* pos, struct PCL* robotPCL_qa0, int nofCams);
 
 	//new IO load Functions
 	static void loadSamplePCL(struct SAMPLE_PCL* pcl, const char* name);

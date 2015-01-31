@@ -18,7 +18,7 @@ CompleteEnumeration::CompleteEnumeration(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, i
 	printf("staring complete enumearion for %d positions and %d rotation and %d samples", sp->n, sr->nRotations, sp->n*sr->nRotations);
 }
 
-void CompleteEnumeration::writeResultsToFile(unsigned long long* vec, int nOfCams)
+void CompleteEnumeration::writeResultsToFile(unsigned long long* vec, int nOfCams, struct SAMPLE_POINTS_BUFFER* samplePoints)
 {
 }
 

@@ -1,7 +1,7 @@
 #pragma once
 #include "SearchClass.h"
 
-#define SEARCH_DOF 4
+#define SEARCH_DOF 1
 
 class InversionSearch :
 	public SearchClass
@@ -18,7 +18,7 @@ public:
 
 	void buildProbabilityList();
 
-	void writeResultsToFile(unsigned long long* vec, int nOfCams);
+	void writeResultsToFile(unsigned long long* vec, int nOfCams, struct SAMPLE_POINTS_BUFFER* samplePoints);
 
 private:
 	int maxPCLIndices[8]; 
