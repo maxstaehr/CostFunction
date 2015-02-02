@@ -98,6 +98,7 @@ private:
 	void iterateCameraCombination();
 
 	void saveAllVertices();
+	void printCentroid(struct DEPTH_BUFFER* depth);
 	
 
 	

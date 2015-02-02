@@ -338,15 +338,16 @@ namespace cuda_calc2{
 		int curIndex;
 		int i;
 
-
 		for(i=0; i<nItePerThread; i++)
 		{
 			curIndex = threadIdx.x*nItePerThread+i;
+			
 			//check if the iteration is still within limits
-			if(curIndex < nP)
+			if(curIndex < nP )
 			{
+			
 				//check if the distance value is within limits
-				
+				//avg_w[threadIdx.x]=1;
 				if(!isnan(Dx[curIndex]))
 				{
 					calcNewAverage(avg_x+threadIdx.x, avg_w[threadIdx.x], Dx[curIndex]);					
@@ -359,6 +360,17 @@ namespace cuda_calc2{
 			
 		}
 		__syncthreads();
+		//if(threadIdx.x == 0)
+		//{
+		//	int sum=0;
+		//	for(i=0; i< AVG_BUFFER_SIZE; i++)
+		//	{
+		//		sum += avg_w[i];
+		//	}
+		//	printf("weight %d\n", sum);
+		//}
+		//
+		//__syncthreads();
 		
 		int avg_weight = 0;
 		float value = 0;
@@ -439,10 +451,9 @@ namespace cuda_calc2{
 
 	__global__ void raytraceVertices(					float* xi, float* yi, float* zi,
 														int* fx, int* fy, int* fz, int nF,
-														float* bb_H, float* bb_D, int nBB, 
+														float dist_min, float dist_max,  
 														float* camPos_H, float* camRot_H,
 														float* camRayX, float* camRayY, float* camRayZ,
-														curandState *devStates, float* c,
 														float* Dx, float* Dy, float* Dz)
 	{
 		//defining vertex buffer
@@ -457,7 +468,7 @@ namespace cuda_calc2{
 			  + (threadIdx.z * (blockDim.x * blockDim.y))
 			  + (threadIdx.y * blockDim.x)
 			  + threadIdx.x;
-		float d = 7.0f;		
+		float d = dist_max;		
 		float dr;
 		int hit;
 
@@ -547,20 +558,13 @@ namespace cuda_calc2{
 
 		}
 
-		//d = generateDepthValue(c,d,&devStates[blockId*blockSize+threadIDinBlock]);
-
+		
 		
 		p[0] = o[0]+d*di[0];
 		p[1] = o[1]+d*di[1];
 		p[2] = o[2]+d*di[2];
 
-		bool isInBox = false;
-		for(int i=0; i<nBB; i++)
-		{
-			isInBox |= isInBB(bb_H+i*16, bb_D+i*3, p);
-		}
-
-		if(d > 0.15 && d < 7.0f && !isInBox)
+		if(d > dist_min && d < dist_max)
 		{
 			//setting real value and calculate weighted average
 			Dx[threadId] = p[0];
@@ -1002,8 +1006,22 @@ namespace cuda_calc2{
 
 	}
 
-	__global__ void mergeSuperSampling(float* s_dx, float* s_dy, float* s_dz, int ss_x, int ss_y, int nx, int ny, float* dx, float* dy, float* dz, int minW)
+	__global__ void mergeSuperSampling(float* s_dx, float* s_dy, float* s_dz,
+										int ss_x, int ss_y,
+										int nx, int ny,
+										int minW, 
+										float* bb_H, float* bb_D, int nBB,
+										float* camPos_H, float* camRot_H,
+										float* camRayX, float* camRayY, float* camRayZ,
+										float* c, curandState_t* devStates,
+										float* dx, float* dy, float* dz)
 	{
+		float o[3];
+		float di[3];
+		float p[3];
+		float d;
+
+
 		int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
 		int threadId = blockId * (blockDim.x * blockDim.y * blockDim.z)
 			  + (threadIdx.z * (blockDim.x * blockDim.y))
@@ -1017,14 +1035,15 @@ namespace cuda_calc2{
 		vec[1] = 0.0f;
 		vec[2] = 0.0f;
 		int ss_nx = ss_x*nx;
+
 		int u = (int)fmod((float)threadId, (float)nx);
 		int	v = (int)floor(((float)threadId)/((float)nx));
 		int id;
-		for(int x=0; x<ss_x; ss_x++)
+		for(int x=0; x<ss_x; x++)
 		{
-			for(int y=0; y<ss_y; ss_y++)
+			for(int y=0; y<ss_y; y++)
 			{
-				id = (ss_y*v+y)*(ss_nx*nx)+(ss_x*u+x);
+				id = (ss_y*v+y)*ss_nx+(ss_x*u+x);
 				//check if raytrace is valid
 				if(!isnan(s_dx[id]))
 				{
@@ -1045,15 +1064,18 @@ namespace cuda_calc2{
 			return;
 		}
 		//if not find the medium distance from model
-		vec[0] /= w;
-		vec[1] /= w;
-		vec[2] /= w;
+		vec[0] /= (float)w;
+		vec[1] /= (float)w;
+		vec[2] /= (float)w;
 
-		for(int x=0; x<ss_x; ss_x++)
+
+
+
+		for(int x=0; x<ss_x; x++)
 		{
-			for(int y=0; y<ss_y; ss_y++)
+			for(int y=0; y<ss_y; y++)
 			{
-				id = (ss_y*v+y)*(ss_nx*nx)+(ss_x*u+x);
+				id = (ss_y*v+y)*ss_nx+(ss_x*u+x);
 				//check if raytrace is valid
 				if(!isnan(s_dx[id]))
 				{					
@@ -1063,7 +1085,7 @@ namespace cuda_calc2{
 				}
 			}
 		}
-		dist /= w;
+		dist /= (float)w;
 		if(dist > DIST_PIXEL)
 		{
 			//no valid pixel
@@ -1072,12 +1094,40 @@ namespace cuda_calc2{
 			dz[threadId] = nan("");
 		}else{
 			//valid pixel
-			dx[threadId] = vec[0];
-			dy[threadId] = vec[1];
-			dz[threadId] = vec[2];
 
+			calculateOrginAndDirection(camPos_H, camRot_H, camRayX[threadId], camRayY[threadId], camRayZ[threadId], o, di);
+			//printf("%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f\n", o[0], o[1], o[2], di[0], di[1],di[2]);
+			float diff1 =vec[0]-o[0];
+			float diff2 =vec[1]-o[1];
+			float diff3 =vec[2]-o[2];
+			float sum = diff1*diff1 + diff2*diff2+ diff3*diff3;
+			d = sqrtf(sum);
+			
+
+			d = generateDepthValue(c,d,&devStates[threadId]);
+		
+
+			p[0] = o[0]+d*di[0];
+			p[1] = o[1]+d*di[1];
+			p[2] = o[2]+d*di[2];
+
+			bool isInBox = false;
+			for(int i=0; i<nBB; i++)
+			{
+				isInBox |= isInBB(bb_H+i*16, bb_D+i*3, vec);
+			}
+			
+			//if point is in bounding box, set nan and leave
+			if(isInBox){
+				dx[threadId] = nan("");
+				dy[threadId] = nan("");
+				dz[threadId] = nan("");
+			}else{
+				dx[threadId] = p[0];
+				dy[threadId] = p[1];
+				dz[threadId] = p[2];
+			}
 		}
-
 	}
 
 

@@ -37,6 +37,7 @@ public:
 	static void loadSamplePositions(struct SAMPLE_POSITIONS* pso, const char* name);
 	static void loadSampleCamera(struct POSSIBLE_CAMERA_TYPES* cams, const char* name);
 	static void saveDepthBufferToFile(struct DEPTH_BUFFER* depth, const char* name);
+	static void saveDepthBufferToFileSuperSamples(struct DEPTH_BUFFER* depth, const char* name);
 	static void saveVerticeBufferToFile(struct VERTEX_BUFFER* buffer, const char* name);
 	static void saveBoundingBoxBufferToFile(struct BB_BUFFER* buffer, const char* name);
 	static void printCentroid(struct CENTROID* centroid);

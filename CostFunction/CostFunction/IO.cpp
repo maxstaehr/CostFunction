@@ -858,11 +858,40 @@ void IO::loadSampleCamera(struct POSSIBLE_CAMERA_TYPES* cams, const char* name)
 	
 		inbin.read((char*)&pCamera->nRays, sizeof(int));
 		if (!inbin) std::cerr << "error";
-	 
-	
+
+		inbin.read((char*)&pCamera->ssnBlocks, sizeof(int));
+		if (!inbin) std::cerr << "error";
+
+		inbin.read((char*)&pCamera->ssnThreads, sizeof(int));
+		if (!inbin) std::cerr << "error";
+
+		inbin.read((char*)&pCamera->ssnRays, sizeof(int));
+		if (!inbin) std::cerr << "error";
+
+		inbin.read((char*)&pCamera->nx, sizeof(int));
+		if (!inbin) std::cerr << "error";
+
+		inbin.read((char*)&pCamera->ny, sizeof(int));
+		if (!inbin) std::cerr << "error";
+
+		inbin.read((char*)&pCamera->ss_x, sizeof(int));
+		if (!inbin) std::cerr << "error";
+
+		inbin.read((char*)&pCamera->ss_y, sizeof(int));
+		if (!inbin) std::cerr << "error";
+
+		inbin.read((char*)&pCamera->minW, sizeof(int));
+		if (!inbin) std::cerr << "error";
+
+
 		pCamera->x = new float[pCamera->nRays];
 		pCamera->y = new float[pCamera->nRays];
 		pCamera->z = new float[pCamera->nRays];
+
+		pCamera->ssx = new float[pCamera->ssnRays];
+		pCamera->ssy = new float[pCamera->ssnRays];
+		pCamera->ssz = new float[pCamera->ssnRays];
+
 		pCamera->c = new float[N_COEFFS];
 		pCamera->d = new float[2];
 
@@ -870,6 +899,12 @@ void IO::loadSampleCamera(struct POSSIBLE_CAMERA_TYPES* cams, const char* name)
 		CudaMem::cudaMemAllocReport((void**)&pCamera->d_x, pCamera->nRays*sizeof(float));
 		CudaMem::cudaMemAllocReport((void**)&pCamera->d_y, pCamera->nRays*sizeof(float));
 		CudaMem::cudaMemAllocReport((void**)&pCamera->d_z, pCamera->nRays*sizeof(float));	
+
+		CudaMem::cudaMemAllocReport((void**)&pCamera->d_ss_x, pCamera->ssnRays*sizeof(float));
+		CudaMem::cudaMemAllocReport((void**)&pCamera->d_ss_y, pCamera->ssnRays*sizeof(float));
+		CudaMem::cudaMemAllocReport((void**)&pCamera->d_ss_z, pCamera->ssnRays*sizeof(float));	
+
+
 		CudaMem::cudaMemAllocReport((void**)&pCamera->d_c, N_COEFFS*sizeof(float));	
 		CudaMem::cudaMemAllocReport((void**)&pCamera->d_d, 2*sizeof(float));
 
@@ -883,6 +918,17 @@ void IO::loadSampleCamera(struct POSSIBLE_CAMERA_TYPES* cams, const char* name)
 		inbin.read((char*)pCamera->z, pCamera->nRays*sizeof(float));
 		if (!inbin) std::cerr << "error";
 
+
+		inbin.read((char*)pCamera->ssx,pCamera->ssnRays*sizeof(float));
+		if (!inbin) std::cerr << "error";
+
+		inbin.read((char*)pCamera->ssy, pCamera->ssnRays*sizeof(float));
+		if (!inbin) std::cerr << "error";
+
+		inbin.read((char*)pCamera->ssz, pCamera->ssnRays*sizeof(float));
+		if (!inbin) std::cerr << "error";
+
+
 		inbin.read((char*)pCamera->c, N_COEFFS*sizeof(float));
 		if (!inbin) std::cerr << "error";
 
@@ -892,8 +938,14 @@ void IO::loadSampleCamera(struct POSSIBLE_CAMERA_TYPES* cams, const char* name)
 		CudaMem::cudaMemCpyReport(pCamera->d_x, pCamera->x, pCamera->nRays*sizeof(float), cudaMemcpyHostToDevice);
 		CudaMem::cudaMemCpyReport(pCamera->d_y, pCamera->y, pCamera->nRays*sizeof(float), cudaMemcpyHostToDevice);
 		CudaMem::cudaMemCpyReport(pCamera->d_z, pCamera->z, pCamera->nRays*sizeof(float), cudaMemcpyHostToDevice);
+
+		CudaMem::cudaMemCpyReport(pCamera->d_ss_x, pCamera->ssx, pCamera->ssnRays*sizeof(float), cudaMemcpyHostToDevice);
+		CudaMem::cudaMemCpyReport(pCamera->d_ss_y, pCamera->ssy, pCamera->ssnRays*sizeof(float), cudaMemcpyHostToDevice);
+		CudaMem::cudaMemCpyReport(pCamera->d_ss_z, pCamera->ssz, pCamera->ssnRays*sizeof(float), cudaMemcpyHostToDevice);
+
 		CudaMem::cudaMemCpyReport(pCamera->d_c, pCamera->c, N_COEFFS*sizeof(float), cudaMemcpyHostToDevice);
 		CudaMem::cudaMemCpyReport(pCamera->d_d, pCamera->d, 2*sizeof(float), cudaMemcpyHostToDevice);
+
 	}
 	char c;
 	inbin.get(c);
@@ -901,7 +953,7 @@ void IO::loadSampleCamera(struct POSSIBLE_CAMERA_TYPES* cams, const char* name)
 	if(!inbin.eof()) std::cerr << "error";
 	inbin.close();
 
-	cams->nCameraTypes = 1;
+
 }
 
 void IO::saveBoundingBoxBuffer(struct BB_BUFFER* bbBuffer, const char* name)
@@ -925,6 +977,38 @@ void IO::saveBoundingBoxBuffer(struct BB_BUFFER* bbBuffer, const char* name)
 	if (!outbin) std::cerr << "error";
 
 	outbin.close();
+}
+
+void IO::saveDepthBufferToFileSuperSamples(struct DEPTH_BUFFER* depth, const char* name)
+{
+	float* x = new float[depth->sssize];
+	float* y = new float[depth->sssize];
+	float* z = new float[depth->sssize];
+
+	CudaMem::cudaMemCpyReport(x, depth->d_ss_dx, depth->sssize*sizeof(float), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(y, depth->d_ss_dy, depth->sssize*sizeof(float), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(z, depth->d_ss_dz, depth->sssize*sizeof(float), cudaMemcpyDeviceToHost);
+
+	ofstream outbin(name, ofstream::binary );
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)&depth->size, sizeof(int));
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)x, depth->size*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)y, depth->size*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)z, depth->size*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin.close();
+
+	delete x;
+	delete y;
+	delete z;
 }
 
 void IO::saveDepthBufferToFile(struct DEPTH_BUFFER* depth, const char* name)
@@ -972,7 +1056,7 @@ void IO::saveDepthBufferToFile(struct DEPTH_BUFFER* depth, const char* name)
 	vx = vx/w;
 	vy = vy/w;
 	vz = vz/w;
-	printf("centroid: [%.6f  %.6f  %.6f]\n", vx, vy, vz);
+	printf("centroid: [%.6f  %.6f  %.6f]\t%d\n", vx, vy, vz, w);
 	delete x;
 	delete y;
 	delete z;
@@ -1244,9 +1328,9 @@ void IO::saveOptimisationResults(struct SAMPLE_POINTS_BUFFER* samplePoints, stru
 
 void IO::waitForEnter() 
 { 
-        //std::cout << "Bitte druecken Sie die Eingabetaste um fortzufahren..." << std::endl; 
-        //std::cin.clear(); 
-        //std::cin.ignore(std::cin.rdbuf()->in_avail()); 
-        //std::cin.get(); 
+        std::cout << "Bitte druecken Sie die Eingabetaste um fortzufahren..." << std::endl; 
+        std::cin.clear(); 
+        std::cin.ignore(std::cin.rdbuf()->in_avail()); 
+        std::cin.get(); 
 }  
 

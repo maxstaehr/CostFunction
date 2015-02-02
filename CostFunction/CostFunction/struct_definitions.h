@@ -270,10 +270,12 @@ struct SAMPLE_CAMERA
 	int ssnThreads;
 	int ssnRays;
 
+
 	int nx;
 	int ny;
 	int ss_x;
 	int ss_y;
+	int minW;
 
 
 	float* x;
