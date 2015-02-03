@@ -7,6 +7,17 @@
 #include <time.h>
 
 
+AngleGenerator::AngleGenerator()
+{
+	nOfLimits = 2;
+	limits = new float[nOfLimits];
+	limits[0] = 0.5;
+	limits[1] = 1.0;
+	indices = new int[nOfLimits];
+	indices[0] = 198;
+	indices[1] = 198;
+}
+
 AngleGenerator::AngleGenerator(float* prop, int nAngle, int DOF)
 {
 	time_t t;
@@ -53,7 +64,7 @@ AngleGenerator::AngleGenerator(float* prop, int nAngle, int DOF)
 
 	}
 	
-	assert(abs(limits[nOfLimits-1] - 1.0f) < 1.e-4);
+	assert(nOfLimits > 0 && abs(limits[nOfLimits-1] - 1.0f) < 1.e-4);
 	delete w;
 }
 

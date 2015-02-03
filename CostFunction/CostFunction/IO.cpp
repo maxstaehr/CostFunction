@@ -453,7 +453,7 @@ void IO::loadSamplePCL(struct SAMPLE_PCL* pcl, const char* name)
 	CudaMem::cudaMemCpyReport(pcl->d_h, pcl->h, pcl->n*NUMELEM_H*sizeof(float), cudaMemcpyHostToDevice);
 	CudaMem::cudaMemCpyReport(pcl->d_i, pcl->i, pcl->n*sizeof(int), cudaMemcpyHostToDevice);
 
-	pcl->n = 100;
+	//pcl->n = 100;
 
 
 }
@@ -496,7 +496,7 @@ void IO::loadSampleRotations(struct SAMPLE_ROTATIONS* rot, const char* name)
 	
 	CudaMem::cudaMemCpyReport(rot->d_R, rot->R, rot->nRotations*NUMELEM_H*sizeof(float), cudaMemcpyHostToDevice);
 
-	//rot->nRotations = 200;
+	rot->nRotations = 200;
 	
 }
 
@@ -802,7 +802,7 @@ void IO::loadSamplePositions(struct SAMPLE_POSITIONS* pos, const char* name)
 
 	inbin.close();
 
-	pos->nP = 1;
+	pos->nP = 2;
 	//normalizing priorities to one
 	float sum = 0.0;
 	for(int i=0; i<pos->nP; i++)

@@ -2,6 +2,7 @@
 class AngleGenerator
 {
 public:
+	AngleGenerator();
 	AngleGenerator(float* costs, int nAngle, int DOF);
 	~AngleGenerator(void);
 

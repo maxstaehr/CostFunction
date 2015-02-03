@@ -41,14 +41,15 @@ SimulatedAnnealing::SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int
 	this->solu = new struct SOLUTION[NofE];
 	for(int i=0; i<NofE; i++)
 	{
-		this->solu->angle = new int[nC];
-		memset(this->solu->angle, 0, nC*sizeof(int));
-		this->solu->pcl = new int[nC];
-		memset(this->solu->pcl, 0, nC*sizeof(int));
+		this->solu[i].angle = new int[nC];
+		memset(this->solu[i].angle, 0, nC*sizeof(int));
+		this->solu[i].pcl = new int[nC];
+		memset(this->solu[i].pcl, 0, nC*sizeof(int));
 	}
 
 	this->curStates = new enum STATE[NofE];
-	this->globalMin = solu[0];
+	this->globalMin.angle = new int[nC];
+	this->globalMin.pcl = new int[nC];
 	this->globalMin.costs = DBL_MAX;	
 
 
@@ -192,6 +193,8 @@ SimulatedAnnealing::~SimulatedAnnealing(void)
 	delete curStates;
 	delete pclIndex_t1;
 	delete angleIndex_t1;
+	delete globalMin.angle;
+	delete globalMin.pcl;
 
 	
 }
@@ -265,8 +268,19 @@ void SimulatedAnnealing::findGlobalMinimum(void)
 	{
 		if(solu[i].costs < globalMin.costs)
 		{
-			globalMin = solu[i];
-			globalMin.globalMin = solu[i].costs;
+			// not allowed because copying pointer is not good
+			// globalMin = solu[i];
+
+
+			globalMin.costs = solu[i].costs;
+			globalMin.globalMin = solu[i].globalMin;
+			globalMin.currProp = solu[i].currProp;
+			globalMin.curT = solu[i].curT;
+			globalMin.ite = solu[i].ite;
+			globalMin.minEnergy = solu[i].minEnergy;
+			globalMin.state = solu[i].state;
+			memcpy(globalMin.pcl, solu[i].pcl, nC*sizeof(int));
+			memcpy(globalMin.angle, solu[i].angle, nC*sizeof(int));
 
 			//setting global minimum solution
 			//memcpy(minSol.aI, 
@@ -296,7 +310,7 @@ void SimulatedAnnealing::printCurrentStatus(void)
 	double currPro = (double)ite/(double)(maxIteration);
 	double remainingTime = loopTime * (double) (maxIteration - ite);
 	printf("max : %.1fmin\trem : %.2fmin\tpro: %.6f%%\n", maxTime/60.0, remainingTime/60.0, currPro*100.0);
-	printf("global min costs at: %.5f at %i:%i at T:%.3f  pos:%i  cams:%i\n\n\n", globalMin.costs, globalMin.pcl[0], globalMin.angle[0], T, ite, nOfCams);
+	printf("global min costs at: %.10f at %i:%i at T:%.3f  pos:%i  cams:%i\n\n\n", globalMin.costs, globalMin.pcl[0], globalMin.angle[0], T, ite, nOfCams);
 
 	
 	
@@ -510,6 +524,7 @@ void SimulatedAnnealing::printMinPositionToFile(std::string pre, struct SAMPLE_P
 
 	outbin.write((char*)&nC, sizeof(int));
 	outbin.write((char*)buf2, nC*NUMELEM_H*sizeof(float));
+	outbin.write((char*)&globalMin.costs, sizeof(float));
 	outbin.close();
 
 	delete buf1;

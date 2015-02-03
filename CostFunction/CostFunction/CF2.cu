@@ -141,7 +141,7 @@ void CF2::run()
 	//camera specific allocation
 	//initParallelOptiRuns();
 
-	//////finding first the probability density funtion of the angles to reduces the amount of raytracing angles
+	////////finding first the probability density funtion of the angles to reduces the amount of raytracing angles
 	//sC = new InversionSearch(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, nn->getNN());
 	//((InversionSearch*)sC)->setInversionParamters(&samplePointsBuffer);
 
@@ -162,19 +162,19 @@ void CF2::run()
 	//	}
 	//	printf("angle initializing....\n");
 	//}
-	//AngleGenerator aG(sC->prop, sampleRotations.nRotations, SEARCH_DOF);
+	AngleGenerator aG;//(sC->prop, sampleRotations.nRotations, SEARCH_DOF);
 	//delete sC;
 	//freeParallelOptiRuns();
-	//printf("starting optimisation...\n");
-	//IO::waitForEnter();
+	printf("starting optimisation...\n");
+	IO::waitForEnter();
 	
-	while(currentNumberOfCams < 2)
+	while(currentNumberOfCams < 3)
 	{
 	
 		do
 		{
-			sC = new CompleteEnumeration(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, NULL);
-			//sC = new SimulatedAnnealing(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, nn->getNN(), &aG);
+			//sC = new CompleteEnumeration(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, NULL);
+			sC = new SimulatedAnnealing(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, nn->getNN(), &aG);
 
 			initParallelOptiRuns();			
 			time_t start;			
@@ -199,7 +199,8 @@ void CF2::run()
 					}
 					//IO::saveDepthBufferToFile(&depthBuffer, "depthBuffer.bin");
 					//IO::saveDepthBufferToFileSuperSamples(&depthBuffer, "depthBuffer.bin");
-					Progress::printProgress((double)optiSession.pI[0], (double)samplePoints.n, start, "raytracing cp ");
+					//Progress::printProgress((double)optiSession.pI[0], (double)samplePoints.n, start, "raytracing cp ");
+					//IO::waitForEnter();
 
 				}
 			//}
@@ -209,14 +210,14 @@ void CF2::run()
 			//saveAllVertices();
 			setCurrentTans(0);
 			transformSamplePointBuffer();
-			IO::saveOptimisationResults(&samplePointsBuffer, &samplePoints, &sampleRotations, sC->prop, sC->dist,sC->weights,  "completeEnumeration.bin");
+			//IO::saveOptimisationResults(&samplePointsBuffer, &samplePoints, &sampleRotations, sC->prop, sC->dist,sC->weights,  "completeEnumeration.bin");
 			sC->writeResultsToFile(cameraCombination.vector, currentNumberOfCams, &samplePointsBuffer);
 			delete sC;
 			freeParallelOptiRuns();
 
 			printf("finished current camera combination\n");
 
-			IO::waitForEnter();
+			//IO::waitForEnter();
 			
 			iterateCameraCombination();
 		}while(cameraCombination.gen_result == GEN_NEXT);
