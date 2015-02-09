@@ -10,6 +10,8 @@
 
 #include <iostream>
 #include <vector>
+
+
 class IO {
 public:
 	IO();
@@ -49,6 +51,8 @@ public:
 	static void loadDistanceMatrix(struct DISTANCE_MATRIX* dM, const char* name);
 	static void waitForEnter();
 	static void plotIntermediateResults(struct PROB_RESULT* probResult ,struct CENTROID* centroid);
+	static void saveInversionSearch(float* p, float* d, int* w, int n, const char* name);
+	static void loadInversionSearch(float* p, float* d, int* w, int* n, const char* name);
 
 
 

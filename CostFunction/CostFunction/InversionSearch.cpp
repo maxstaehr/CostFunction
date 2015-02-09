@@ -13,9 +13,9 @@ InversionSearch::InversionSearch(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, i
 	y_d[0] = 1.0f;
 	z_d[0] = -1.0f;
 
-	x_d[0] = 1.0f;
-	y_d[0] = -1.0f;
-	z_d[0] = -1.0f;
+	//x_d[0] = 1.0f;
+	//y_d[0] = -1.0f;
+	//z_d[0] = -1.0f;
 
 	x_d[1] = -1.0f;
 	y_d[1] = 1.0f;
@@ -96,13 +96,13 @@ void InversionSearch::setInversionParamters(SAMPLE_POINTS_BUFFER* buffer)
 }
 
 	
-bool InversionSearch::iterate(int* pI, int* aI, float* p, float* d, int* weights)
+bool InversionSearch::iterate(int* pI, int* aI, float* p, float* d, int* w)
 {
 	if(c_vi > 0)
 	{
 		memcpy(this->prop+l_vi, p, c_vi*sizeof(float));
 		memcpy(this->dist+l_vi, d, c_vi*sizeof(float));		
-		memcpy(this->weights+l_vi, weights, c_vi*sizeof(int));		
+		memcpy(this->weights+l_vi, w, c_vi*sizeof(int));		
 		l_vi += c_vi;
 	}
 	

@@ -15,6 +15,7 @@ private:
 	float *limits;
 	int* indices;
 	int nOfLimits;
+	int nAng;
 	
 };
 

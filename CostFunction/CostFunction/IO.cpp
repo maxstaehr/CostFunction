@@ -457,6 +457,54 @@ void IO::loadSamplePCL(struct SAMPLE_PCL* pcl, const char* name)
 
 
 }
+void IO::saveInversionSearch(float* p, float* d, int* w, int n, const char* name)
+{
+		
+
+	ofstream outbin(name, ofstream::binary );
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)&n, sizeof(int));
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)p, n*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)d, n*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)w, n*sizeof(int));
+	if (!outbin) std::cerr << "error";
+
+	outbin.close();
+}
+
+void IO::loadInversionSearch(float* p, float* d, int* w, int* n, const char* name)
+{
+	ifstream inbin;
+	inbin.open(name, ifstream::binary);
+	if(!inbin.is_open()) std::cerr << "error";
+
+	inbin.read((char*)n, sizeof(int));
+	if (!inbin) std::cerr << "error";
+
+	inbin.read((char*)p, (*n)*sizeof(float));
+	if (!inbin) std::cerr << "error";
+
+	inbin.read((char*)d, (*n)*sizeof(float));
+	if (!inbin) std::cerr << "error";
+
+	inbin.read((char*)w, (*n)*sizeof(int));
+	if (!inbin) std::cerr << "error";
+		
+	char c;
+	inbin.get(c);
+
+	if(!inbin.eof()) std::cerr << "error";
+	inbin.close();
+	
+}
+
 void IO::loadSampleRotations(struct SAMPLE_ROTATIONS* rot, const char* name)
 {
 	rot->angleLimits = new float[6];
@@ -492,11 +540,10 @@ void IO::loadSampleRotations(struct SAMPLE_ROTATIONS* rot, const char* name)
 	if(!inbin.eof()) std::cerr << "error";
 	inbin.close();
 
-	CudaMem::cudaMemAllocReport((void**)&rot->d_R, rot->nRotations*NUMELEM_H*sizeof(float));
-	
+	CudaMem::cudaMemAllocReport((void**)&rot->d_R, rot->nRotations*NUMELEM_H*sizeof(float));	
 	CudaMem::cudaMemCpyReport(rot->d_R, rot->R, rot->nRotations*NUMELEM_H*sizeof(float), cudaMemcpyHostToDevice);
 
-	rot->nRotations = 200;
+
 	
 }
 
@@ -813,7 +860,8 @@ void IO::loadSamplePositions(struct SAMPLE_POSITIONS* pos, const char* name)
 
 	for(int i=0; i<pos->nP; i++)
 	{
-		pos->pr[i] /= sum;
+		//pos->pr[i] /= sum;
+		pos->pr[i] = 1.0f/pos->nP;
 	}
 
 	sum = 0.0;

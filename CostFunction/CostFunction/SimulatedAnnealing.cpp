@@ -201,11 +201,12 @@ SimulatedAnnealing::~SimulatedAnnealing(void)
 
 void SimulatedAnnealing::initializeFirstRun(int* pclIndex, int* angleIndex)
 {
-	for(unsigned int i=0; i<nOfCams*MAX_ITE; i++)
+	printf("init first run...\n");
+	for(unsigned int i=0; i<MAX_ITE*nC; i++)
 	{
 		pclIndex[i] =  rand() % Npcl; //72
 		angleIndex[i] =  aG->generateRandomAngle(); //rand() % Nangle; //196
-
+		//printf("init angle %d to %d\n", i, angleIndex[i]);
 		assert(pclIndex[i] >= 0 && pclIndex[i] < Npcl && angleIndex[i] >= 0 && angleIndex[i]<Nangle);
 	}
 	time(&start);
@@ -251,13 +252,18 @@ int SimulatedAnnealing::createAngleIndexInRange(int a_i)
 void SimulatedAnnealing::chooseRandomConfiguration(int* pclIndex, int* angleIndex, int index)
 {
 
+	int offset;
 	for(int i=0; i<nOfCams; i++)
 	{
-		pclIndex[2*index+0+i*MAX_ITE] = createPCLIndexInRange(pclIndex_t1[2*index+0+i*MAX_ITE]);
-		angleIndex[2*index+0+i*MAX_ITE] = createAngleIndexInRange(angleIndex_t1[2*index+0+i*MAX_ITE]);
-		pclIndex[2*index+1+i*MAX_ITE] = createPCLIndexInRange(pclIndex_t1[2*index+1+i*MAX_ITE]);
-		angleIndex[2*index+1+i*MAX_ITE] = createAngleIndexInRange(angleIndex_t1[2*index+1+i*MAX_ITE]);
+		offset = index*2*nC+0*nC+i;
+		pclIndex[offset] = createPCLIndexInRange(pclIndex_t1[offset]);
+		angleIndex[offset] = createAngleIndexInRange(angleIndex_t1[offset]);
+
+		offset = index*2*nC+1*nC+i;
+		pclIndex[offset] = createPCLIndexInRange(pclIndex_t1[offset]);
+		angleIndex[offset] = createAngleIndexInRange(angleIndex_t1[offset]);
 	}
+
 
 	
 }
@@ -290,23 +296,58 @@ void SimulatedAnnealing::findGlobalMinimum(void)
 
 void SimulatedAnnealing::printCurrentStatus(void)
 {
+	//system("cls");	
+	//printf("minI\tST\tminE\t\tcosts\t\tprob\t\tpcl\tangle\n");
+	//for(unsigned int i=0; i< 50 && i< NofE; i++)
+	//{
+	//	
+	//	if(curStates[i] == STATE::HC)
+	//	{
+	//		printf("%i\tHC\t%.5f\t\t%.5f\t\t%.10f\t%i\t%i  %i\n", i, minEnergy[i], solu[i].costs, solu[i].currProp, solu[i].pcl[0], solu[i].angle[0], cDim[i]);
+	//	}else if(curStates[i] == STATE::NS)
+	//	{
+	//		printf("%i\tNS\t%.5f\t\t%.5f\t\t%.10f\t%i\t%i  %i\n", i, minEnergy[i], solu[i].costs, solu[i].currProp, solu[i].pcl[0], solu[i].angle[0], cDim[i]);
+	//	}else if (curStates[i] == STATE::OR)
+	//	{
+	//		printf("%i\tOR\t%.5f\t\t%.5f\t\t%.10f\t%i\t%i  %i\n", i, minEnergy[i], solu[i].costs, solu[i].currProp, solu[i].pcl[0], solu[i].angle[0], cDim[i]);
+	//	}
+	//	
+	//}
+	//double currPro = (double)ite/(double)(maxIteration);
+	//double remainingTime = loopTime * (double) (maxIteration - ite);
+	//printf("max : %.1fmin\trem : %.2fmin\tpro: %.6f%%\n", maxTime/60.0, remainingTime/60.0, currPro*100.0);
+	//printf("global min costs at: %.10f at %i:%i at T:%.3f  pos:%i  cams:%i\n\n\n", globalMin.costs, globalMin.pcl[0], globalMin.angle[0], T, ite, nOfCams);
+
+	std::string state;
+	switch(curStates[0]){
+	case STATE::HC:
+		state = "HC";
+		break;
+	case STATE::NS:
+		state = "NS";
+		break;
+	case STATE::OR:
+		state = "OR";
+		break;
+	};
+
 	system("cls");	
-	printf("minI\tST\tminE\t\tcosts\t\tprob\t\tpcl\tangle\n");
-	for(unsigned int i=0; i< 50 && i< NofE; i++)
-	{
-		
-		if(curStates[i] == STATE::HC)
-		{
-			printf("%i\tHC\t%.5f\t\t%.5f\t\t%.10f\t%i\t%i  %i\n", i, minEnergy[i], solu[i].costs, solu[i].currProp, solu[i].pcl[0], solu[i].angle[0], cDim[i]);
-		}else if(curStates[i] == STATE::NS)
-		{
-			printf("%i\tNS\t%.5f\t\t%.5f\t\t%.10f\t%i\t%i  %i\n", i, minEnergy[i], solu[i].costs, solu[i].currProp, solu[i].pcl[0], solu[i].angle[0], cDim[i]);
-		}else if (curStates[i] == STATE::OR)
-		{
-			printf("%i\tOR\t%.5f\t\t%.5f\t\t%.10f\t%i\t%i  %i\n", i, minEnergy[i], solu[i].costs, solu[i].currProp, solu[i].pcl[0], solu[i].angle[0], cDim[i]);
-		}
-		
+	printf("ST\tminE\tcosts\t\tprob\n");
+	printf("%s\t%.5f\t%.5f\t%.10f\n\n\n",   state.c_str(),minEnergy[0], solu[0].costs, solu[0].currProp);
+
+	printf("cam\tpcl\troll\tpitch\tyaw\tdim\n");
+	for(int i=0; i<nC; i++)
+	{			
+		int roll, pitch, yaw;
+		convertAItoRPY(solu[0].angle[i], sr, &roll, &pitch, &yaw);
+		int dim = (cDim[0]+DOF-1)%DOF;
+		printf("%i\t%i\t%i\t%i\t%i\t%i\n", i, solu[0].pcl[i], roll, pitch, yaw, cDim[0]);
 	}
+	printf("\n\n\n");
+
+		
+
+
 	double currPro = (double)ite/(double)(maxIteration);
 	double remainingTime = loopTime * (double) (maxIteration - ite);
 	printf("max : %.1fmin\trem : %.2fmin\tpro: %.6f%%\n", maxTime/60.0, remainingTime/60.0, currPro*100.0);
@@ -450,7 +491,9 @@ double SimulatedAnnealing::iterateSingle(const int* const nn_indices, int* pclIn
 		assert(false);
 	};
 
-	
+	assert(angleIndex[pa_index_p] >= 0 && angleIndex[pa_index_p] <sr->nRotations);
+	assert(angleIndex[pa_index_m] >= 0 && angleIndex[pa_index_m] <sr->nRotations);
+	//printf("iterate single...\n");
 	//assert(localMinE > 0.0);
 	return localMinE;
 }
@@ -660,6 +703,7 @@ bool SimulatedAnnealing::iterate(int* pclIndex, int* angleIndex, float* costs, f
 			{   //switch to ns
 				curStates[i] = STATE::NS;
 				setNewVector(i);
+				//printf("random jump...\n");
 				chooseRandomConfiguration(pclIndex, angleIndex, i);			
 			}
 
@@ -683,6 +727,7 @@ bool SimulatedAnnealing::iterate(int* pclIndex, int* angleIndex, float* costs, f
 			}else
 			{
 				//generate new random configuration
+				//printf("random config...\n");
 				setNewVector(i);
 				chooseRandomConfiguration(pclIndex, angleIndex, i);	
 			}

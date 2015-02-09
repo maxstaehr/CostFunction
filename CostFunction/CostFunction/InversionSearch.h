@@ -1,7 +1,7 @@
 #pragma once
 #include "SearchClass.h"
 
-#define SEARCH_DOF 1
+#define SEARCH_DOF 4
 
 class InversionSearch :
 	public SearchClass

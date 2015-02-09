@@ -44,7 +44,7 @@
 
 //#include "global.h"
 #include "allKernelFct2.cuh"
-CF2::CF2():currentNumberOfCams(1)
+CF2::CF2():currentNumberOfCams(2)
 {
 
 	cudaError_t	cudaStatus = cudaDeviceReset();
@@ -139,36 +139,41 @@ void CF2::run()
 	initCameraCombination();
 
 	//camera specific allocation
-	//initParallelOptiRuns();
+	initParallelOptiRuns();
 
 	////////finding first the probability density funtion of the angles to reduces the amount of raytracing angles
-	//sC = new InversionSearch(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, nn->getNN());
-	//((InversionSearch*)sC)->setInversionParamters(&samplePointsBuffer);
+	sC = new InversionSearch(&samplePoints, &sampleRotations, 1, MAX_ITE, nn->getNN());
+	((InversionSearch*)sC)->setInversionParamters(&samplePointsBuffer);
 
-	//while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp, probResult.maxd, probResult.maxw) )
-	//{
-	//	for(int i=0; i< samplePositions.nP; i++)
-	//	{				
+	while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp, probResult.maxd, probResult.maxw) )
+	{
+		for(int i=0; i< samplePositions.nP; i++)
+		{				
 
-	//		setCurrentTans(i);
-	//		transformVertexBuffer();
-	//		transformBoundingBoxBuffer();
-	//		transformSamplePointBuffer();
+			setCurrentTans(i);
+			transformVertexBuffer();
+			transformBoundingBoxBuffer();
+			transformSamplePointBuffer();
 
-	//		rayTrace();
-	//		calculateCentroid();
-	//		calculateProbOfHumanDetection();
-	//		calculateMaxProb();				
-	//	}
-	//	printf("angle initializing....\n");
-	//}
-	AngleGenerator aG;//(sC->prop, sampleRotations.nRotations, SEARCH_DOF);
-	//delete sC;
-	//freeParallelOptiRuns();
+			rayTrace();
+			calculateCentroid();
+			calculateProbOfHumanDetection();
+			calculateMaxProb();				
+		}
+		printf("angle initializing....\n");
+	}	
+	IO::saveInversionSearch(sC->prop, sC->dist, sC->weights, SEARCH_DOF*sampleRotations.nRotations, "inversionSearch.bin");
+	IO::waitForEnter();
+
+	int n;
+	IO::loadInversionSearch(sC->prop, sC->dist, sC->weights, &n, "inversionSearch.bin");
+	AngleGenerator aG(sC->prop, sampleRotations.nRotations, SEARCH_DOF);
+	delete sC;
+	freeParallelOptiRuns();
 	printf("starting optimisation...\n");
 	IO::waitForEnter();
 	
-	while(currentNumberOfCams < 3)
+	while(currentNumberOfCams < 5)
 	{
 	
 		do
@@ -183,7 +188,7 @@ void CF2::run()
 			//{
 				while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp, probResult.maxd, probResult.maxw) )
 				{
-
+					zeroProb();
 					for(int i=0; i< samplePositions.nP; i++)
 					{				
 						setCurrentTans(i);
@@ -223,7 +228,7 @@ void CF2::run()
 		}while(cameraCombination.gen_result == GEN_NEXT);
 
 		printf("adding another camera\n");
-		IO::waitForEnter();
+		//IO::waitForEnter();
 
 		currentNumberOfCams++;
 		initCameraCombination();
@@ -889,6 +894,7 @@ void CF2::rayTrace()
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaDeviceSynchronize returned error code after launching raytraceVertices: %s\n", cudaGetErrorString(cudaStatus));
+		fprintf(stderr, "position: %d\t rotation: %d\n", indexPos, indexRot);
 		IO::waitForEnter();
 
 	}

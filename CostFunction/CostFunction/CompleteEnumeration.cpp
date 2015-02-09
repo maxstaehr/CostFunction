@@ -22,14 +22,14 @@ void CompleteEnumeration::writeResultsToFile(unsigned long long* vec, int nOfCam
 {
 }
 
-bool CompleteEnumeration::iterate(int* pI, int* aI, float* p, float* d, int* weights)
+bool CompleteEnumeration::iterate(int* pI, int* aI, float* p, float* d, int* w)
 {
 	//saving results of the last iteration when it is not the first	
 	if(c_vi > 0)
 	{
 		memcpy(this->prop+l_vi, p, c_vi*sizeof(float));
 		memcpy(this->dist+l_vi, d, c_vi*sizeof(float));		
-		memcpy(this->weights+l_vi, weights, c_vi*sizeof(int));		
+		memcpy(this->weights+l_vi, w, c_vi*sizeof(int));		
 		l_vi += c_vi;
 	}
 	

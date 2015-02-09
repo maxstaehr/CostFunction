@@ -27,6 +27,7 @@ AngleGenerator::AngleGenerator(float* prop, int nAngle, int DOF)
 	float* w = new float[nAngle];
 	memset(w,0, nAngle*sizeof(float));
 
+	nAng = nAngle;
 	for(int r=0; r<nAngle; r++)
 	{
 		for(int d=0; d<DOF; d++)
@@ -72,10 +73,10 @@ bool AngleGenerator::checkIndex(int i, float value)
 {
 	if (i>0)
 	{
-		return  value < limits[i] &&  value >= limits[i-1];
+		return  value <= limits[i] &&  value > limits[i-1];
 	}else
 	{
-		return value < limits[0];
+		return value <= limits[0];
 	}
 }
 
@@ -91,8 +92,14 @@ int AngleGenerator::generateRandomAngle()
 			break;
 		}
 	}
-	assert(index>=0 && index<nOfLimits );
+	int angle = indices[index];
+	//printf("angle at %d gene: %d\t%d\n",index, angle,nOfLimits ); 
+	assert(index > -1);
+	assert(index<nOfLimits);
+	assert(angle > -1);
+	assert(indices[index] < nAng);                       
 	return indices[index];
+	//return rand()%nAng;   
 }
 
 

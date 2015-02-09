@@ -1000,7 +1000,7 @@ namespace cuda_calc2{
 		__syncthreads();
 		if(threadIdx.x == 0)
 		{
-			maxp[0] = pr[0] * max_buffer[0];
+			maxp[0] += pr[0] * max_buffer[0];
 			//maxp[0] = max_buffer[0];
 		}
 
