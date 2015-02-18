@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <cmath>
 #include "_generate.h"
+
 struct B{
 	int pcl;
 	int angle;

@@ -317,7 +317,7 @@ namespace cuda_calc2{
 
 
 
-	__global__ void calcMiddlePoint(float* Dx, float* Dy, float* Dz, int nP, float* a_x, float* a_y, float* a_z){
+	__global__ void calcMiddlePoint(float* Dx, float* Dy, float* Dz, int* cis, int nP, int maxIndex,  float* a_x, float* a_y, float* a_z){
 		//defining vertex buffer
 		__shared__ float avg_x[AVG_BUFFER_SIZE];
 		__shared__ float avg_y[AVG_BUFFER_SIZE];
@@ -348,7 +348,7 @@ namespace cuda_calc2{
 			
 				//check if the distance value is within limits
 				//avg_w[threadIdx.x]=1;
-				if(!isnan(Dx[curIndex]))
+				if(!isnan(Dx[curIndex]) && cis[curIndex] == maxIndex)
 				{
 					calcNewAverage(avg_x+threadIdx.x, avg_w[threadIdx.x], Dx[curIndex]);					
 					calcNewAverage(avg_y+threadIdx.x, avg_w[threadIdx.x], Dy[curIndex]);					
@@ -434,18 +434,17 @@ namespace cuda_calc2{
 		curand_init(1234, id, 0, &state[id]);
 	}
 
-	__device__ float generateDepthValue(float* coeffs, float z, curandState_t *state)
+	__device__ float generateDepthValue(float* coeffs, float z, float sigmaFactor, curandState_t *state)
 	{
 
 		float rand = curand_normal (state);
-		float sigma = 0.0f;
-		float z_value = z*1000;
+		float sigma = 0.0f;		
 		float exp;
 		for(int i=0; i<N_COEFFS; i++)
 		{	exp = N_COEFFS-i-1;
-			sigma += coeffs[i]*powf(z_value, exp);
+			sigma += coeffs[i]*powf(z, exp);
 		}
-		sigma /= 1000.0f;
+		sigma *= sigmaFactor;
 		return z+sigma*rand;
 	}
 
@@ -1006,10 +1005,18 @@ namespace cuda_calc2{
 
 	}
 
+	__device__ float calculateSigmaFactor(int nx, int ny, int u, int v, int rmax)
+	{
+		int du = u-nx/2;
+		int dv = v-ny/2;
+		int r = du*du+dv*dv;
+		return 1.0f + ((float)r)/((float)rmax);
+	}
+
 	__global__ void mergeSuperSampling(float* s_dx, float* s_dy, float* s_dz,
 										int ss_x, int ss_y,
 										int nx, int ny,
-										int minW, 
+										int minW, int rmax,
 										float* bb_H, float* bb_D, int nBB,
 										float* camPos_H, float* camRot_H,
 										float* camRayX, float* camRayY, float* camRayZ,
@@ -1038,6 +1045,9 @@ namespace cuda_calc2{
 
 		int u = (int)fmod((float)threadId, (float)nx);
 		int	v = (int)floor(((float)threadId)/((float)nx));
+
+		float sigmaFactor = calculateSigmaFactor(nx, ny, u,v,rmax);
+
 		int id;
 		for(int x=0; x<ss_x; x++)
 		{
@@ -1104,7 +1114,7 @@ namespace cuda_calc2{
 			d = sqrtf(sum);
 			
 
-			d = generateDepthValue(c,d,&devStates[threadId]);
+			d = generateDepthValue(c,d,sigmaFactor,&devStates[threadId]);
 		
 
 			p[0] = o[0]+d*di[0];
@@ -1128,6 +1138,403 @@ namespace cuda_calc2{
 				dz[threadId] = p[2];
 			}
 		}
+	}
+	
+
+	__global__ void calcDistanceMatrix(float* x, float* y, float* z, int nsample, int nx, float* dist)
+	{
+		
+		int threadIDX = blockIdx.x*blockDim.x+threadIdx.x;
+		int threadIDY = blockIdx.y*blockDim.y+threadIdx.y;
+		
+
+		int xid, yid, id1, id2;
+		float d;
+		
+		for(int xi=0; xi<nsample; xi++)
+		{
+			for(int yi=0; yi<nsample; yi++)
+			{
+				xid = threadIDX*nsample+xi;
+				yid = threadIDY*nsample+yi;
+
+				id1 = yid*nx+xid;						
+				if(xid < nx && yid < nx && !isnan(x[xid]) && !isnan(x[yid]))
+				{
+					d = powf(x[xid]-x[yid], 2.0f)+ powf(y[xid]-y[yid], 2.0f)+ powf(z[xid]-z[yid], 2.0f);
+					dist[id1] = d;					
+				}else
+				{
+					dist[id1] = nan("");					
+				}
+				
+			}
+		}
+	}
+
+
+	__global__ void calcCluster(int* ci, float* dist,  int nsample, int nx, int* nofClusters)
+	{
+		
+
+		__shared__ int maxclustersize[MAX_CLUSTER_BUFFER_SIZE];
+
+		int xid1, xid2, did;
+		float d;
+		int clusterid = -1;
+		
+		for(int xi1=0; xi1<nsample; xi1++)
+		{
+			xid1 = threadIdx.x*nsample+xi1;			
+			if(xid1 < nx/* && !isnan(dist[xid1])*/)
+			{
+				if(ci[xid1] <0)
+				{
+					clusterid++;
+					ci[xid1] = clusterid;
+					
+				}
+				//point does not belong to a cluster
+				//assign new cluster and check if other points in the area belong to the cluster
+				
+
+				//check the distance to other points
+				for(int xi2=0; xi2<nsample; xi2++)
+				{
+					xid2 = threadIdx.x*nsample+xi2;	
+					did = xid1*nx+xid2;	
+					if(xid2 < nx && ci[xid2] < 0 && !isnan(dist[did]) && dist[did] <= EUCLIDEAN_THRESHOLD)
+					{
+						ci[xid2] = clusterid;							
+					}
+				}
+				
+				// end of cluster			
+			}
+		}
+		maxclustersize[threadIdx.x] = clusterid;
+
+
+		int startIndex1, startIndex2;
+		int currentClusterSize = nsample;
+
+		for (int i = MAX_CLUSTER_BUFFER_SIZE / 2; i > 0; i >>= 1)
+		{
+			__syncthreads();
+			if(threadIdx.x < i)
+			{
+
+				int mergedCluster = 0;
+				//merging two clusters
+				startIndex1 = (threadIdx.x+0)*nsample;
+				startIndex2 = (threadIdx.x+i)*nsample;
+
+				//first setting the indices of the second part higher
+				
+				//for(int i1=0; i1<currentClusterSize; i1++)
+				//{
+				//	if(ci[startIndex2+i1] >= 0)
+				//	{
+				//		ci[startIndex2+i1] += indexOffset;
+				//	}
+				//}
+
+				//__syncthreads();
+
+				for(int i1=0;  maxclustersize[threadIdx.x] > 0 && i1<maxclustersize[threadIdx.x]; i1++)
+				{
+					bool canMergeCluster = false;
+					int  mergeIndice = -1;
+					for(int i2=0; maxclustersize[threadIdx.x+i] > 0 && i2<maxclustersize[threadIdx.x+i] && !canMergeCluster; i2++)
+					{
+
+						//finding all the points of the first cluster and compare them to all the points of the second cluster
+						//if at least one point is below the thresholds, both cluster can be merged
+						for(int ip1=0; ip1<currentClusterSize && !canMergeCluster; ip1++)
+						{
+							if(ci[startIndex1+ip1] == i1)
+							{
+								for(int ip2=0; ip2<currentClusterSize && !canMergeCluster; ip2++)
+								{
+									did = (startIndex1+ip1)*nx+startIndex2+ip2;	
+									if( ci[startIndex2+ip2] == i2 && !isnan(dist[did]) && dist[did] <= EUCLIDEAN_THRESHOLD)
+									{
+										canMergeCluster = true;		
+										mergeIndice = i2;
+									}
+								}
+
+							}
+						}
+
+
+					}
+											//if i can merge cluster, i set all corresponding indices in the second half
+					if(canMergeCluster){
+						mergedCluster++;
+						for(int ip2=0; ip2<currentClusterSize; ip2++)
+						{	
+							if(ci[startIndex2+ip2] == mergeIndice)
+							{
+								ci[startIndex2+ip2] = i1;
+							}
+						}
+					}
+					else{
+						//cannot merge-> setting the first half high
+						for(int ip2=0; ip2<currentClusterSize; ip2++)
+						{	
+							if(ci[startIndex1+ip2] == i1)
+							{
+								ci[startIndex1+ip2] += maxclustersize[threadIdx.x+i]+1;
+							}
+						}
+					}
+				}
+				maxclustersize[threadIdx.x] = maxclustersize[threadIdx.x] + maxclustersize[threadIdx.x + i] - mergedCluster+1;
+				//max_buffer[threadIdx.x] = fmaxf(max_buffer[threadIdx.x],  max_buffer[threadIdx.x+i]);
+				//max_buffer[threadIdx.x] = fmin(max_buffer[threadIdx.x],  max_buffer[threadIdx.x+i]);
+			}
+			
+			currentClusterSize *= 2;
+		}
+
+		__syncthreads();
+
+		if(threadIdx.x == 0)
+		{
+			nofClusters[0] = maxclustersize[0];
+		}
+
+
+	}
+
+	__global__ void calcNmembersOfCluster(int* ci, int n, int nsample, int* NmembersOfCluster, int* indiceMaxCluster)
+	{
+		__shared__ int maxclustersize[MAX_CLUSTER_BUFFER_SIZE*MAX_CLUSTER_N_SIZE];
+		//setting shared memory to zero 
+		for(int i=0; i<MAX_CLUSTER_N_SIZE; i++)
+		{
+			maxclustersize[threadIdx.x*MAX_CLUSTER_BUFFER_SIZE+i] = 0;
+		}
+
+		int xid1, clusteri;
+		for(int xi1=0; xi1<nsample; xi1++)
+		{
+			xid1 = threadIdx.x*nsample+xi1;
+			if(xid1<n)
+			{
+				clusteri = ci[xid1];
+				if(clusteri >= 0 && clusteri < MAX_CLUSTER_N_SIZE)
+				{
+					maxclustersize[threadIdx.x*MAX_CLUSTER_N_SIZE+clusteri]++;
+				}
+			}
+		}
+
+		//reduction
+		for (int i = MAX_CLUSTER_BUFFER_SIZE / 2; i > 0; i >>= 1)
+		{
+			__syncthreads();
+			if(threadIdx.x < i)
+			{
+				for(int j=0; j<MAX_CLUSTER_N_SIZE; j++)
+				{
+					maxclustersize[(threadIdx.x + 0)*MAX_CLUSTER_N_SIZE+j] += maxclustersize[(threadIdx.x + i)*MAX_CLUSTER_N_SIZE+j];
+				}
+			}
+		}
+
+		__syncthreads();
+		if(threadIdx.x ==0)
+		{
+			int maxClusterIndice = -1;
+			int maxN = 0;
+			for(int j=0; j<MAX_CLUSTER_N_SIZE; j++)
+			{
+				if(NmembersOfCluster[j] > maxN)
+				{
+					maxClusterIndice = j;
+					maxN = NmembersOfCluster[j];
+				}
+				NmembersOfCluster[j] = maxclustersize[j];
+			}
+			indiceMaxCluster[0] = maxClusterIndice;
+		}
+
+	}
+	
+	__device__ void initArray(bool* a, bool value, int nsample, int N)
+	{
+		int index;
+		for(int i=0; i<nsample; i++)
+		{
+			index = threadIdx.x*nsample+i;
+			if(index < N)
+			{
+				a[index] = value;
+			}
+		}
+		
+	}
+
+	__device__ void hasAllProcessedP(float* dx, bool* a, bool *b, int nsample, int N)
+	{
+		int index;
+		bool res = true;
+		for(int i=0; i<nsample; i++)
+		{
+			index = threadIdx.x*nsample+i;
+			if(index < N && !isnan(dx[index]))
+			{
+				res &= a[index];
+			}
+		}
+		b[threadIdx.x] = res;
+
+		for (int i = MAX_CLUSTER_BUFFER_SIZE / 2; i > 0; i >>= 1)
+		{
+			__syncthreads();
+			if(threadIdx.x < i)
+			{
+				b[threadIdx.x] &= b[threadIdx.x+i];
+			}
+		}
+	
+		__syncthreads();
+	}
+
+	__device__ void hasAllProcessedQ(float* dx, bool* a, bool* s, bool *b, int nsample, int N)
+	{
+		int index;
+		bool res = true;
+		for(int i=0; i<nsample; i++)
+		{
+			index = threadIdx.x*nsample+i;
+			if(index < N && !isnan(dx[index]) && s[index])
+			{
+				res &= a[index];
+			}
+		}
+		b[threadIdx.x] = res;
+
+		for (int i = MAX_CLUSTER_BUFFER_SIZE / 2; i > 0; i >>= 1)
+		{
+			__syncthreads();
+			if(threadIdx.x < i)
+			{
+				b[threadIdx.x] &= b[threadIdx.x+i];
+			}
+		}
+	
+		__syncthreads();
+	}
+
+	__device__ void process(float* dx, bool* isProcessed, bool* inQ, float* dm, int nsample, int N)
+	{
+		int index_p, index_dd;
+		for(int i_q=0; i_q<N; i_q++)
+		{
+			
+			if( isnan(dx[i_q]) || isProcessed[i_q] || !inQ[i_q])
+				continue;
+			
+			//check all points in P is there is a s
+			for(int i_p=0; i_p<nsample; i_p++)
+			{
+				index_p = threadIdx.x*N+i_p;
+				if(index_p >= N || isProcessed[index_p])
+					continue;
+
+				index_dd = i_q*N+index_p;
+				if(!isnan(dm[index_dd]) && dm[index_dd] < EUCLIDEAN_THRESHOLD)
+				{
+					inQ[index_p] = true;
+				}
+			}
+			
+			if(threadIdx.x == 0)
+			{
+				isProcessed[i_q] = true;
+			}
+			__syncthreads();
+		}
+
+	}
+
+	__device__ void setFirstNotProcessedIndice(float* dx, bool* isProcessed, bool* inQ, int N)
+	{
+		//only one thread is doing the work
+		if(threadIdx.x == 0)
+		{
+			for(int i=0;i<N;i++)
+			{
+				if(!isnan(dx[i]) && !isProcessed[i])
+				{
+					inQ[i] = true;
+					break;
+				}
+			}
+		}
+		__syncthreads();
+	}
+
+
+	__device__ int setIndices(int ci, int* cis, bool* inQ, int nsample, int N)
+	{
+		int index;
+		for(int i=0; i<nsample; i++)
+		{
+			index = threadIdx.x*nsample+i;
+			if(index < N && inQ[index])
+			{
+				cis[index] = ci;
+			}
+		}
+		__syncthreads();
+	}
+
+	__device__ int printNofIndices(int cc, bool* inQ, int N)
+	{
+		if(threadIdx.x == 0)
+		{
+			int n=0;
+			for(int i=0; i<N; i++)
+			{
+				if(inQ[i])
+					n++;
+			}
+			printf("cluster: %d\t size: %d\n", cc, n);
+		}
+		__syncthreads();
+	}
+
+	__global__ void cluster(bool* isProcessed, bool* inQ, float* dx, float*dm, int* cis, int nsample, int N)
+	{
+		//initialisation of arrays
+		__shared__ bool b_isProcessed[MAX_CLUSTER_BUFFER_SIZE];
+		b_isProcessed[threadIdx.x] = false;
+		initArray(isProcessed, false, nsample, N);
+		initArray(inQ, false, nsample, N);
+		int currentCluster = 0;
+
+		__syncthreads();
+		while(!b_isProcessed[0])
+		{
+			setFirstNotProcessedIndice(dx, isProcessed, inQ, N);
+			hasAllProcessedQ(dx, isProcessed, inQ, b_isProcessed, nsample, N);
+			while(!b_isProcessed[0])
+			{
+				process(dx, isProcessed, inQ, dm, nsample, N);
+				hasAllProcessedQ(dx, isProcessed, inQ, b_isProcessed, nsample, N);
+			}
+			setIndices(currentCluster, cis, inQ, nsample, N);
+			printNofIndices(currentCluster,inQ,N);
+			initArray(inQ, false, nsample, N);
+			hasAllProcessedP(dx, isProcessed, b_isProcessed, nsample, N);
+			currentCluster++;
+		}
+
 	}
 
 

@@ -9,6 +9,7 @@
 #include "mathcuda.h"
 #include "NearestNeighbour.h"
 #include "InversionSearch.h"
+#include "EC.h"
 
 
 #include <cstdio>
@@ -44,7 +45,7 @@
 
 //#include "global.h"
 #include "allKernelFct2.cuh"
-CF2::CF2():currentNumberOfCams(2)
+CF2::CF2():currentNumberOfCams(1)
 {
 
 	cudaError_t	cudaStatus = cudaDeviceReset();
@@ -52,6 +53,151 @@ CF2::CF2():currentNumberOfCams(2)
 		fprintf(stderr, "could not reset cuda device");
 
 	}
+
+
+
+	////calcDistanceMatrix(float* x, float* y, float* z, int n, int nsample, int nx, int ny, float* dist)
+	//float *x = new float[8];
+	//float *y = new float[8];
+	//float *z = new float[8];
+	//float *d = new float[64];
+	//int *ci = new int[8];
+	//int *cn = new int[MAX_CLUSTER_N_SIZE];
+	//int clusterSize = 0;
+	//int maxClusterIndice = 0;
+	//for(int i=0; i<4; i++)
+	//{
+	//	if(i==0 || i==1 /*|| i==2*/)
+	//	{
+	//		x[i] = (float)0;
+	//		y[i] = (float)0;
+	//		z[i] = (float)0;
+
+	//		x[4+i] = (float)0;
+	//		y[4+i] = (float)0;
+	//		z[4+i] = (float)0;
+	//	}else{
+	//		x[i] = (float)i*i;
+	//		y[i] = (float)i*i;
+	//		z[i] = (float)i*i;
+
+	//		x[4+i] = (float)i*i;
+	//		y[4+i] = (float)i*i;
+	//		z[4+i] = (float)i*i;
+	//	}
+
+
+
+	//	
+
+
+	//}
+	//memset(ci, -1, 8*sizeof(int));
+	//
+
+
+	//float *dx, *dy, *dz, *dd;
+	//int* dci, *dcs, *dcn, *dmci;
+	//CudaMem::cudaMemAllocReport((void**)&dx, 8*sizeof(float));
+	//CudaMem::cudaMemAllocReport((void**)&dy, 8*sizeof(float));
+	//CudaMem::cudaMemAllocReport((void**)&dz, 8*sizeof(float));
+	//CudaMem::cudaMemAllocReport((void**)&dd, 64*sizeof(float));
+	//CudaMem::cudaMemAllocReport((void**)&dci, 8*sizeof(int));
+	//CudaMem::cudaMemAllocReport((void**)&dcs, 1*sizeof(int));
+	//CudaMem::cudaMemAllocReport((void**)&dmci, 1*sizeof(int));
+	//CudaMem::cudaMemAllocReport((void**)&dcn, MAX_CLUSTER_N_SIZE*sizeof(int));
+
+
+	//CudaMem::cudaMemCpyReport(dx,x,8*sizeof(float), cudaMemcpyHostToDevice);
+	//CudaMem::cudaMemCpyReport(dy,y,8*sizeof(float), cudaMemcpyHostToDevice);
+	//CudaMem::cudaMemCpyReport(dz,z,8*sizeof(float), cudaMemcpyHostToDevice);
+	//CudaMem::cudaMemCpyReport(dci,ci,8*sizeof(int), cudaMemcpyHostToDevice);
+	//
+	//
+
+	//
+	//cuda_calc2::calcDistanceMatrix<<<dim3(4,4,1), dim3(1,1,1)>>>(dx, dy, dz, 2, 8, dd);
+	//cudaStatus = cudaGetLastError();
+	//if (cudaStatus != cudaSuccess) {		
+	//	IO::waitForEnter();
+	//}
+
+
+	//cudaStatus = cudaDeviceSynchronize();
+	//if (cudaStatus != cudaSuccess) {
+	//	IO::waitForEnter();
+	//}
+
+	////calcCluster(int* ci, float* dist,  int n, int nsample, int nx, int ny)
+
+	//cuda_calc2::calcCluster<<<1, MAX_CLUSTER_BUFFER_SIZE>>>(dci,dd,4, 8, dcs);
+	//cudaStatus = cudaGetLastError();
+	//if (cudaStatus != cudaSuccess) {		
+	//	IO::waitForEnter();
+	//}
+
+
+	//cudaStatus = cudaDeviceSynchronize();
+	//if (cudaStatus != cudaSuccess) {
+	//	IO::waitForEnter();
+	//}
+
+
+
+
+	//CudaMem::cudaMemCpyReport(d,dd,64*sizeof(float), cudaMemcpyDeviceToHost);
+	//CudaMem::cudaMemCpyReport(ci,dci,8*sizeof(int), cudaMemcpyDeviceToHost);
+	//CudaMem::cudaMemCpyReport(&clusterSize,dcs,1*sizeof(int), cudaMemcpyDeviceToHost);
+	//
+
+	//int i2;
+	//for(int xi=0; xi<8; xi++)
+	//{
+	//	printf("%.2f\t%.2f\t%.2f\n", x[xi], y[xi], z[xi]);
+	//}
+	//printf("\n");
+	//printf("\n");
+
+	//for(int yi=0; yi<8; yi++)
+	//{
+	//	for(int xi=0; xi<8; xi++)
+	//	{
+	//		i2 = 8*yi+xi;
+	//		printf("%.2f\t", d[i2]);
+	//	}
+	//	printf("\n");
+	//}
+	//printf("\n\n\n");
+	//
+	//printf("cluster size: %d\n\n", clusterSize);
+	//for(int xi=0; xi<8; xi++)
+	//{
+	//	printf("%d\t", ci[xi]);
+	//}
+	//printf("\n");
+
+	////calcNmembersOfCluster(int* ci, int n, int nsample, int* NmembersOfCluster)
+	//cuda_calc2::calcNmembersOfCluster<<<1, MAX_CLUSTER_BUFFER_SIZE>>>(dci, 8, 4, dcn, dmci);
+	//cudaStatus = cudaGetLastError();
+	//if (cudaStatus != cudaSuccess) {		
+	//	IO::waitForEnter();
+	//}
+
+
+	//cudaStatus = cudaDeviceSynchronize();
+	//if (cudaStatus != cudaSuccess) {
+	//	IO::waitForEnter();
+	//}
+
+	//CudaMem::cudaMemCpyReport(cn,dcn,MAX_CLUSTER_N_SIZE*sizeof(int), cudaMemcpyDeviceToHost);
+	//CudaMem::cudaMemCpyReport(&maxClusterIndice, dmci, 1*sizeof(int), cudaMemcpyDeviceToHost);
+	//for(int xi=0; xi<MAX_CLUSTER_N_SIZE; xi++)
+	//{
+	//	printf("%d\t", cn[xi]);
+	//}
+	//printf("max cluster indices %d\n", maxClusterIndice);
+	//
+
 
 	cudaFuncSetCacheConfig(cuda_calc2::raytraceVertices, cudaFuncCachePreferShared);
 	cudaFuncSetCacheConfig(cuda_calc2::calcMiddlePoint, cudaFuncCachePreferShared);
@@ -141,45 +287,45 @@ void CF2::run()
 	//camera specific allocation
 	initParallelOptiRuns();
 
-	////////finding first the probability density funtion of the angles to reduces the amount of raytracing angles
-	sC = new InversionSearch(&samplePoints, &sampleRotations, 1, MAX_ITE, nn->getNN());
-	((InversionSearch*)sC)->setInversionParamters(&samplePointsBuffer);
+	//////////finding first the probability density funtion of the angles to reduces the amount of raytracing angles
+	//sC = new InversionSearch(&samplePoints, &sampleRotations, 1, MAX_ITE, nn->getNN());
+	//((InversionSearch*)sC)->setInversionParamters(&samplePointsBuffer);
 
-	while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp, probResult.maxd, probResult.maxw) )
-	{
-		for(int i=0; i< samplePositions.nP; i++)
-		{				
+	//while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp, probResult.maxd, probResult.maxw) )
+	//{
+	//	for(int i=0; i< samplePositions.nP; i++)
+	//	{				
 
-			setCurrentTans(i);
-			transformVertexBuffer();
-			transformBoundingBoxBuffer();
-			transformSamplePointBuffer();
+	//		setCurrentTans(i);
+	//		transformVertexBuffer();
+	//		transformBoundingBoxBuffer();
+	//		transformSamplePointBuffer();
 
-			rayTrace();
-			calculateCentroid();
-			calculateProbOfHumanDetection();
-			calculateMaxProb();				
-		}
-		printf("angle initializing....\n");
-	}	
-	IO::saveInversionSearch(sC->prop, sC->dist, sC->weights, SEARCH_DOF*sampleRotations.nRotations, "inversionSearch.bin");
-	IO::waitForEnter();
+	//		rayTrace();
+	//		calculateCentroid();
+	//		calculateProbOfHumanDetection();
+	//		calculateMaxProb();				
+	//	}
+	//	printf("angle initializing....\n");
+	//}	
+	//IO::saveInversionSearch(sC->prop, sC->dist, sC->weights, SEARCH_DOF*sampleRotations.nRotations, "inversionSearch.bin");
+	//IO::waitForEnter();
 
-	int n;
-	IO::loadInversionSearch(sC->prop, sC->dist, sC->weights, &n, "inversionSearch.bin");
-	AngleGenerator aG(sC->prop, sampleRotations.nRotations, SEARCH_DOF);
-	delete sC;
+	//int n;
+	//IO::loadInversionSearch(sC->prop, sC->dist, sC->weights, &n, "inversionSearch.bin");
+	//AngleGenerator aG(sC->prop, sampleRotations.nRotations, SEARCH_DOF);
+	//delete sC;
 	freeParallelOptiRuns();
 	printf("starting optimisation...\n");
-	IO::waitForEnter();
+	//IO::waitForEnter();
 	
-	while(currentNumberOfCams < 5)
+	while(currentNumberOfCams < 2)
 	{
 	
 		do
 		{
-			//sC = new CompleteEnumeration(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, NULL);
-			sC = new SimulatedAnnealing(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, nn->getNN(), &aG);
+			sC = new CompleteEnumeration(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, NULL);
+			//sC = new SimulatedAnnealing(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, nn->getNN(), &aG);
 
 			initParallelOptiRuns();			
 			time_t start;			
@@ -197,14 +343,17 @@ void CF2::run()
 						transformSamplePointBuffer();
 
 						rayTrace();
+						//IO::saveDepthBufferToFile(&depthBuffer, "depthBuffer.bin");
+						calculateCluster();
 						calculateCentroid();
+						//printCentroid(&depthBuffer);
 						calculateProbOfHumanDetection();
 						calculateMaxProb();
 						//Progress::printProgress((double)i, (double)samplePositions.nP, start, "raytracing rp ");	
 					}
 					//IO::saveDepthBufferToFile(&depthBuffer, "depthBuffer.bin");
 					//IO::saveDepthBufferToFileSuperSamples(&depthBuffer, "depthBuffer.bin");
-					//Progress::printProgress((double)optiSession.pI[0], (double)samplePoints.n, start, "raytracing cp ");
+					Progress::printProgress((double)optiSession.pI[0], (double)samplePoints.n, start, "raytracing cp ");
 					//IO::waitForEnter();
 
 				}
@@ -215,8 +364,8 @@ void CF2::run()
 			//saveAllVertices();
 			setCurrentTans(0);
 			transformSamplePointBuffer();
-			//IO::saveOptimisationResults(&samplePointsBuffer, &samplePoints, &sampleRotations, sC->prop, sC->dist,sC->weights,  "completeEnumeration.bin");
-			sC->writeResultsToFile(cameraCombination.vector, currentNumberOfCams, &samplePointsBuffer);
+			IO::saveOptimisationResults(&samplePointsBuffer, &samplePoints, &sampleRotations, sC->prop, sC->dist,sC->weights,  "completeEnumeration.bin");
+			//sC->writeResultsToFile(cameraCombination.vector, currentNumberOfCams, &samplePointsBuffer);
 			delete sC;
 			freeParallelOptiRuns();
 
@@ -372,6 +521,7 @@ void CF2::initParallelOptiRuns()
 
 	optiSession.pI = new int[optiSession.n*currentNumberOfCams];
 	optiSession.aI = new int[optiSession.n*currentNumberOfCams];
+	optiSession.ecs = new EC*[optiSession.n];
 	
 
 
@@ -381,6 +531,8 @@ void CF2::initParallelOptiRuns()
 	//starting to initilize the rest of the model	
 	int nOfRays = 0;
 	int nOfSSRays = 0;
+	int raysPerLaunch = 0;
+	int raysSSPerLaunch = 0;
 	for(int ite=0; ite<optiSession.n; ite++)
 	{		
 		optiSession.launchs[ite].cams = new SAMPLE_CAMERA *[currentNumberOfCams];
@@ -389,17 +541,24 @@ void CF2::initParallelOptiRuns()
 		optiSession.launchs[ite].aI = new int*[currentNumberOfCams];
 		optiSession.launchs[ite].pI = new int*[currentNumberOfCams];
 		optiSession.launchs[ite].n = currentNumberOfCams;
+		raysPerLaunch = 0;
+		raysSSPerLaunch = 0;
+
 		for(int i=0; i<currentNumberOfCams; i++)
 		{			
 			optiSession.launchs[ite].cams[i] = &sampleCameraTypes.possibleCameraTypes[cameraCombination.vector[i]];
 			nOfRays += sampleCameraTypes.possibleCameraTypes[cameraCombination.vector[i]].nRays;
 			nOfSSRays += sampleCameraTypes.possibleCameraTypes[cameraCombination.vector[i]].ssnRays;
+
+			raysPerLaunch += optiSession.launchs[ite].cams[i]->nRays;
+			raysSSPerLaunch += optiSession.launchs[ite].cams[i]->ssnRays;
 		}
+
 	}
 
 
 	////init the rest of the launch
-	initDepthBuffer(&depthBuffer, nOfRays, nOfSSRays);	
+	initDepthBuffer(&depthBuffer,optiSession.n, raysPerLaunch, nOfRays, nOfSSRays);	
 	initCentroidBuffer(&centroid, optiSession.n);
 	initPropBuffer(&probResult ,sampleFitting.n, optiSession.n);	
 
@@ -413,12 +572,24 @@ void CF2::initParallelOptiRuns()
 
 	for(int ite=0; ite<optiSession.n; ite++)
 	{	
+
+		
 		//setting pointer for depth
 		optiSession.launchs[ite].depthBuffer.devStates = depthBuffer.devStates + nOfRays;
 
 		optiSession.launchs[ite].depthBuffer.d_dx = depthBuffer.d_dx + nOfRays;
 		optiSession.launchs[ite].depthBuffer.d_dy = depthBuffer.d_dy + nOfRays;
 		optiSession.launchs[ite].depthBuffer.d_dz = depthBuffer.d_dz + nOfRays;
+
+		optiSession.launchs[ite].depthBuffer.dx = depthBuffer.dx + nOfRays;
+		optiSession.launchs[ite].depthBuffer.dy = depthBuffer.dy + nOfRays;
+		optiSession.launchs[ite].depthBuffer.dz = depthBuffer.dz + nOfRays;
+
+		optiSession.launchs[ite].depthBuffer.hp = depthBuffer.hp + nOfRays;	
+
+		optiSession.launchs[ite].depthBuffer.cis = depthBuffer.cis + nOfRays;		
+		optiSession.launchs[ite].depthBuffer.d_cis = depthBuffer.d_cis + nOfRays;
+
 
 		optiSession.launchs[ite].depthBuffer.d_ss_dx = depthBuffer.d_ss_dx + nOfSSRays;
 		optiSession.launchs[ite].depthBuffer.d_ss_dy = depthBuffer.d_ss_dy + nOfSSRays;
@@ -450,8 +621,8 @@ void CF2::initParallelOptiRuns()
 
 		//init random states for rays
 		//
-		int raysPerLaunch = 0;
-		int raysSSPerLaunch = 0;
+		raysPerLaunch = 0;
+		raysSSPerLaunch = 0;
 		for(int i=0; i<currentNumberOfCams; i++)
 		{
 			optiSession.launchs[ite].depthBuffers[i].size = optiSession.launchs[ite].cams[i]->nRays;
@@ -480,12 +651,57 @@ void CF2::initParallelOptiRuns()
 		}
 		optiSession.launchs[ite].depthBuffer.size = raysPerLaunch;
 		optiSession.launchs[ite].depthBuffer.sssize = raysSSPerLaunch;
+
+
+		
+	
+
+		optiSession.ecs[ite] = new EC(optiSession.launchs[ite].depthBuffer.dx,
+								optiSession.launchs[ite].depthBuffer.dy,
+								optiSession.launchs[ite].depthBuffer.dz,
+								optiSession.launchs[ite].depthBuffer.cis,
+								optiSession.launchs[ite].depthBuffer.hp,
+								optiSession.launchs[ite].depthBuffer.size);
+
+
+
 		//setting pointer for launch configuration of multiple sensors
 		nofProps += sampleFitting.n;
 	}
 
-
+	//init launch configurations
+	int nblocks;
+	if (optiSession.launchs[0].depthBuffer.size % DIST_MATRIX_BLOCK_X_SIZE == 0)
+	{
+		nblocks = optiSession.launchs[0].depthBuffer.size/DIST_MATRIX_BLOCK_X_SIZE;
+	}else{
+		nblocks = (int)(optiSession.launchs[0].depthBuffer.size/DIST_MATRIX_BLOCK_X_SIZE)+1;
+	}
+	launchConfigDistanceMatrix.nthreads = DIST_MATRIX_BLOCK_X_SIZE;
+	//finding ggt until block size is 10 or less
+	int di = 200;
+	do{
+		if(nblocks % di == 0 && nblocks/di <= 10)
+		{
+			//possible configuration
+			launchConfigDistanceMatrix.nblocks = nblocks/di;
+			launchConfigDistanceMatrix.nsample = di;
+		}
+		di--;
+	}while(di > 0);
 	
+	int nsample;
+	if (optiSession.launchs[0].depthBuffer.size % MAX_CLUSTER_BUFFER_SIZE == 0)
+	{
+		nsample = optiSession.launchs[0].depthBuffer.size/MAX_CLUSTER_BUFFER_SIZE;
+	}else{
+		nsample = (int)(optiSession.launchs[0].depthBuffer.size/MAX_CLUSTER_BUFFER_SIZE)+1;
+	}
+
+	launchConfigMaxCluster.nblocks = 1;
+	launchConfigMaxCluster.nthreads = MAX_CLUSTER_BUFFER_SIZE;
+	launchConfigMaxCluster.nsample = nsample;
+
 
 	cudaMemGetInfo( &avail3, &total3 );
 	div = (double)avail3/(double)total3;
@@ -508,8 +724,10 @@ void CF2::freeParallelOptiRuns()
 		delete optiSession.launchs[ite].cudaStream;		
 		delete optiSession.launchs[ite].aI;
 		delete optiSession.launchs[ite].pI;
+		delete optiSession.ecs[ite];
 	}
 	delete optiSession.launchs;
+	
 	
 	
 
@@ -522,7 +740,7 @@ void CF2::freeParallelOptiRuns()
 
 	delete optiSession.pI;
 	delete optiSession.aI;
-	
+	delete optiSession.ecs;
 
 
 	cudaMemGetInfo( &avail3, &total3 );
@@ -744,7 +962,7 @@ void CF2::transformBoundingBoxBuffer()
 
 }
 
-void CF2::initDepthBuffer(DEPTH_BUFFER* depthBuffer, int size, int ss_size)
+void CF2::initDepthBuffer(DEPTH_BUFFER* depthBuffer,int nSessions, int raysPerLaunch, int size, int ss_size)
 {
 	depthBuffer->size = size;
 	depthBuffer->sssize = ss_size;
@@ -752,10 +970,21 @@ void CF2::initDepthBuffer(DEPTH_BUFFER* depthBuffer, int size, int ss_size)
 	depthBuffer->dx = new float[size];
 	depthBuffer->dy = new float[size];
 	depthBuffer->dz = new float[size];
+	
+	depthBuffer->hp = new bool[size];
+	depthBuffer->cis = new int[size];
+	
+
+	
 
 	CudaMem::cudaMemAllocReport((void**)&depthBuffer->d_dx, size*sizeof(float));
 	CudaMem::cudaMemAllocReport((void**)&depthBuffer->d_dy, size*sizeof(float));
 	CudaMem::cudaMemAllocReport((void**)&depthBuffer->d_dz, size*sizeof(float));
+	//square size of distance matrix
+	
+
+	CudaMem::cudaMemAllocReport((void**)&depthBuffer->d_cis, size*sizeof(int));
+	
 
 	CudaMem::cudaMemAllocReport((void**)&depthBuffer->d_ss_dx, ss_size*sizeof(float));
 	CudaMem::cudaMemAllocReport((void**)&depthBuffer->d_ss_dy, ss_size*sizeof(float));
@@ -770,11 +999,15 @@ void CF2::freeDepthBuffer(DEPTH_BUFFER* depthBuffer)
 	
 	delete depthBuffer->dx;
 	delete depthBuffer->dy;
-	delete depthBuffer->dz;
-
+	delete depthBuffer->dz;	
+	delete depthBuffer->hp;	
+	delete depthBuffer->cis;
+	
 	CudaMem::cudaFreeReport(depthBuffer->d_dx);
 	CudaMem::cudaFreeReport(depthBuffer->d_dy);
-	CudaMem::cudaFreeReport(depthBuffer->d_dz);
+	CudaMem::cudaFreeReport(depthBuffer->d_dz);		
+
+	CudaMem::cudaFreeReport(depthBuffer->d_cis);
 
 	CudaMem::cudaFreeReport(depthBuffer->d_ss_dx);
 	CudaMem::cudaFreeReport(depthBuffer->d_ss_dy);
@@ -827,8 +1060,8 @@ void CF2::rayTrace()
 	int indexPos = 50-1;
 	int indexRot = 10-1;
 
-	indexPos = 72;
-	indexRot = 197 -1;
+	indexPos = 10;
+	indexRot = 143 -1;
 
 	float* samplePosOffet;
 	float* sampleRotOffet;
@@ -940,6 +1173,7 @@ void CF2::rayTrace()
 															p_camera->nx,
 															p_camera->ny,
 															p_camera->minW,
+															p_camera->rmax,
 															boundingBoxBuffer.d_BB,
 															boundingBoxBuffer.d_D,
 															boundingBoxBuffer.nBB,
@@ -953,6 +1187,26 @@ void CF2::rayTrace()
 															p_rtl->depthBuffers[j].d_dx,
 															p_rtl->depthBuffers[j].d_dy,
 															p_rtl->depthBuffers[j].d_dz);
+
+
+			//cuda_calc2::raytraceVertices<<<p_camera->nBlocks,p_camera->nThreads, 0, *(p_rtl->cudaStream[j])>>>(
+			//												vertexBuffer.d_vx,
+			//												vertexBuffer.d_vy,
+			//												vertexBuffer.d_vz,																										
+			//												vertexBuffer.d_fx,
+			//												vertexBuffer.d_fy,
+			//												vertexBuffer.d_fz,													
+			//												vertexBuffer.nF,
+			//												p_camera->d[0],
+			//												p_camera->d[1],
+			//												samplePosOffet,
+			//												sampleRotOffet,
+			//												p_camera->d_x,
+			//												p_camera->d_y,
+			//												p_camera->d_z,
+			//												p_rtl->depthBuffers[j].d_dx,
+			//												p_rtl->depthBuffers[j].d_dy,
+			//												p_rtl->depthBuffers[j].d_dz);
 
 
 			cudaStatus = cudaGetLastError();
@@ -1074,30 +1328,31 @@ void CF2::calculateCentroid()
 	for(int i=0; i<optiSession.n; i++)
 	{
 		p_rtl = &optiSession.launchs[i];
-		for(int j=0; j<p_rtl->n; j++)
-		{
-			p_camera = p_rtl->cams[j];
-			
-				//calcMiddlePoint(float* Dx, float* Dy, float* Dz, int nP, float* a_x, float* a_y, float* a_z)			
-			cuda_calc2::calcMiddlePoint<<<1,AVG_BUFFER_SIZE, 0, *(p_rtl->cudaStream[j])>>>(
-															p_rtl->depthBuffer.d_dx,													
-															p_rtl->depthBuffer.d_dy,
-															p_rtl->depthBuffer.d_dz,
-															p_rtl->depthBuffer.size,
-															p_rtl->centroid.d_cx,
-															p_rtl->centroid.d_cy,
-															p_rtl->centroid.d_cz);
+
+	
+		
+		//calcMiddlePoint(float* Dx, float* Dy, float* Dz, int nP, float* a_x, float* a_y, float* a_z)			
+		cuda_calc2::calcMiddlePoint<<<1,AVG_BUFFER_SIZE, 0, *(p_rtl->cudaStream[0])>>>(
+														p_rtl->depthBuffer.d_dx,													
+														p_rtl->depthBuffer.d_dy,
+														p_rtl->depthBuffer.d_dz,
+														p_rtl->depthBuffer.d_cis,
+														p_rtl->depthBuffer.size,
+														optiSession.ecs[i]->getMaxIndex(),
+														p_rtl->centroid.d_cx,
+														p_rtl->centroid.d_cy,
+														p_rtl->centroid.d_cz);
 
 
 
 
 
-			cudaStatus = cudaGetLastError();
-			if (cudaStatus != cudaSuccess) {
-				fprintf(stderr, "calcMiddlePoint stream %d camera %d launch failed: %s\n", i,j,cudaGetErrorString(cudaStatus));
-				IO::waitForEnter();
-			}
+		cudaStatus = cudaGetLastError();
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "calcMiddlePoint stream %d launch failed: %s\n", i,cudaGetErrorString(cudaStatus));
+			IO::waitForEnter();
 		}
+		
 	}
 
 			
@@ -1107,6 +1362,154 @@ void CF2::calculateCentroid()
 		IO::waitForEnter();
 	}
 }
+
+void CF2::calculateCluster()
+{
+	cudaError_t cudaStatus;
+
+
+	RAYTRACING_LAUNCH* p_rtl;
+	//for(int i=0; i<optiSession.n; i++)
+	//{
+	//	p_rtl = &optiSession.launchs[i];
+	//	
+	//	dim3 blocks(launchConfigDistanceMatrix.nblocks,launchConfigDistanceMatrix.nblocks,1);
+	//	dim3 threads(launchConfigDistanceMatrix.nthreads,launchConfigDistanceMatrix.nthreads,1);
+	//	cuda_calc2::calcDistanceMatrix<<<blocks, threads,  0, *(p_rtl->cudaStream[0])>>>(p_rtl->depthBuffer.d_dx, 
+	//																					p_rtl->depthBuffer.d_dy,
+	//																					p_rtl->depthBuffer.d_dz, 
+	//																					launchConfigDistanceMatrix.nsample, 
+	//																					p_rtl->depthBuffer.size,
+	//																					p_rtl->depthBuffer.d_dm);
+	//	cudaStatus = cudaGetLastError();
+	//	if (cudaStatus != cudaSuccess) {	
+	//		fprintf(stderr, "calcDistanceMatrix stream %d launch failed: %s\n", i,cudaGetErrorString(cudaStatus));
+	//		IO::waitForEnter();
+	//	}
+	//	
+	//}
+	//		
+	//cudaStatus = cudaDeviceSynchronize();
+	//if (cudaStatus != cudaSuccess) {
+	//	fprintf(stderr, "cudaDeviceSynchronize returned error code %s after launching calcDistanceMatrix!\n", cudaGetErrorString(cudaStatus));
+	//	IO::waitForEnter();
+	//}
+
+
+	//copying distance matrix asynchronius
+	for(int i=0; i<optiSession.n; i++)
+	{
+		p_rtl = &optiSession.launchs[i];
+		
+		//CudaMem::cudaMemCpyAsyncReport(p_rtl->depthBuffer.dm, p_rtl->depthBuffer.d_dm,
+		//p_rtl->depthBuffer.size*p_rtl->depthBuffer.size*sizeof(float), cudaMemcpyDeviceToHost, *(p_rtl->cudaStream[0]));
+
+		CudaMem::cudaMemCpyAsyncReport(p_rtl->depthBuffer.dx, p_rtl->depthBuffer.d_dx,
+		p_rtl->depthBuffer.size*sizeof(float), cudaMemcpyDeviceToHost, *(p_rtl->cudaStream[0]));
+		CudaMem::cudaMemCpyAsyncReport(p_rtl->depthBuffer.dy, p_rtl->depthBuffer.d_dy,
+		p_rtl->depthBuffer.size*sizeof(float), cudaMemcpyDeviceToHost, *(p_rtl->cudaStream[0]));
+		CudaMem::cudaMemCpyAsyncReport(p_rtl->depthBuffer.dz, p_rtl->depthBuffer.d_dz,
+		p_rtl->depthBuffer.size*sizeof(float), cudaMemcpyDeviceToHost, *(p_rtl->cudaStream[0]));
+	}
+	cudaStatus = cudaDeviceSynchronize();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaDeviceSynchronize returned error code %s after launching cluster!\n", cudaGetErrorString(cudaStatus));
+		IO::waitForEnter();
+	}
+
+	#pragma omp parallel for
+	for(int i=0; i<optiSession.n; i++)
+	{
+		p_rtl = &optiSession.launchs[i];
+		optiSession.ecs[i]->cluster();
+		//printf("parallel sesssion %d\n", i);
+		CudaMem::cudaMemCpyReport(p_rtl->depthBuffer.d_cis, p_rtl->depthBuffer.cis, p_rtl->depthBuffer.size*sizeof(int), cudaMemcpyHostToDevice);
+	}
+
+	
+//	CudaMem::cudaMemsetReport(p_rtl->depthBuffer.d_cis, 0, p_rtl->depthBuffer.size*sizeof(int));
+		//cluster(bool* isProcessed, bool* inQ, float* dx, float*dm, int* cis, int nsample, int N)
+		//cuda_calc2::cluster<<<launchConfigMaxCluster.nblocks, launchConfigMaxCluster.nthreads,
+		//												0, *(p_rtl->cudaStream[0])>>>(p_rtl->depthBuffer.d_hp, 
+		//																				p_rtl->depthBuffer.d_iiq,
+		//																				p_rtl->depthBuffer.d_dx, 
+		//																				p_rtl->depthBuffer.d_dm,
+		//																				p_rtl->depthBuffer.d_cis,
+		//																				launchConfigMaxCluster.nsample, 
+		//																				p_rtl->depthBuffer.size);
+		//cudaStatus = cudaGetLastError();
+		//if (cudaStatus != cudaSuccess) {	
+		//	fprintf(stderr, "cluster stream %d launch failed: %s\n", i,cudaGetErrorString(cudaStatus));
+		//	IO::waitForEnter();
+		//}
+		
+	
+			
+
+
+
+	
+			
+
+
+
+
+
+
+
+
+	//for(int i=0; i<optiSession.n; i++)
+	//{
+	//	p_rtl = &optiSession.launchs[i];
+
+	//	//init indices 
+	//	CudaMem::cudaMemsetReport(p_rtl->depthBuffer.d_ci, -1, p_rtl->depthBuffer.size*sizeof(int));
+	//	cuda_calc2::calcCluster<<<launchConfigMaxCluster.nblocks, launchConfigMaxCluster.nthreads, 0, *(p_rtl->cudaStream[0])>>>(p_rtl->depthBuffer.d_ci,
+	//																															p_rtl->depthBuffer.d_dm,
+	//																															launchConfigMaxCluster.nsample,
+	//																															p_rtl->depthBuffer.size,
+	//																															p_rtl->depthBuffer.d_maxnc);
+	//	cudaStatus = cudaGetLastError();
+	//	if (cudaStatus != cudaSuccess) {	
+	//		fprintf(stderr, "calcCluster stream %d launch failed: %s\n", i,cudaGetErrorString(cudaStatus));
+	//		IO::waitForEnter();
+	//	}
+	//	
+	//}
+	//		
+	//cudaStatus = cudaDeviceSynchronize();
+	//if (cudaStatus != cudaSuccess) {
+	//	fprintf(stderr, "cudaDeviceSynchronize returned  %s after launching calcCluster!\n", cudaGetErrorString(cudaStatus));
+	//	IO::waitForEnter();
+	//}
+
+
+	//
+	//for(int i=0; i<optiSession.n; i++)
+	//{
+	//	p_rtl = &optiSession.launchs[i];	
+	//	cuda_calc2::calcNmembersOfCluster<<<launchConfigMaxCluster.nblocks, launchConfigMaxCluster.nthreads, 0, *(p_rtl->cudaStream[0])>>>(
+	//																															p_rtl->depthBuffer.d_ci,
+	//																															p_rtl->depthBuffer.size,
+	//																															launchConfigMaxCluster.nsample,
+	//																															p_rtl->depthBuffer.d_cm,
+	//																															p_rtl->depthBuffer.d_maxclusterindice);
+	//	cudaStatus = cudaGetLastError();
+	//	if (cudaStatus != cudaSuccess) {	
+	//		fprintf(stderr, "calcNmembersOfCluster stream %d launch failed: %s\n", i,cudaGetErrorString(cudaStatus));
+	//		IO::waitForEnter();
+	//	}
+	//	
+	//}
+	//		
+	//cudaStatus = cudaDeviceSynchronize();
+	//if (cudaStatus != cudaSuccess) {
+	//	fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching calcNmembersOfCluster!\n", cudaStatus);
+	//	IO::waitForEnter();
+	//}
+
+}
+
 
 void CF2::calculateProbOfHumanDetection()
 {
@@ -1301,6 +1704,7 @@ void CF2::calculateMaxProb()
 		CudaMem::cudaMemCpyReport(p_rtl->probResult.maxp, p_rtl->probResult.d_maxp, sizeof(float), cudaMemcpyDeviceToHost);
 		CudaMem::cudaMemCpyReport(p_rtl->probResult.maxd, p_rtl->probResult.d_maxd, sizeof(float), cudaMemcpyDeviceToHost);
 		CudaMem::cudaMemCpyReport(p_rtl->probResult.maxw, p_rtl->probResult.d_maxw, sizeof(int), cudaMemcpyDeviceToHost);
+
 	}
 	
 }

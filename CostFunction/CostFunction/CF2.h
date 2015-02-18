@@ -53,6 +53,12 @@ private:
 	//launch configuration for model fitting
 	LAUNCH_CONFIG		launchConfigModelFitting;
 
+	//launch configuration for distance matrix
+	LAUNCH_CONFIG		launchConfigDistanceMatrix;
+
+	//launch configuration for max cluster
+	LAUNCH_CONFIG		launchConfigMaxCluster;
+
 	//probability calculation
 	PROB_RESULT			probResult;
 
@@ -86,11 +92,12 @@ private:
 	void initBoundingBoxBuffer();
 	void initSamplePointsBuffer();
 
-	void initDepthBuffer(DEPTH_BUFFER* depthBuffer, int size, int ss_size);	
+	void initDepthBuffer(DEPTH_BUFFER* depthBuffer, int nSessions, int raysPerLaunch, int size, int ss_size);	
 	void initCentroidBuffer(CENTROID* centroid, int n);
 	void initPropBuffer(PROB_RESULT* probResult, int n, int session);
 	void clearPropBuffer(PROB_RESULT* probResult, int n);
 	void createCudaStream(cudaStream_t** streams, int n);
+	
 
 	void initRadomNumberGenerator(curandState *devStates, SAMPLE_CAMERA* sampleCamera );
 	void initRaytracingLaunch();
@@ -110,6 +117,7 @@ private:
 	
 	void rayTrace();
 	void calculateCentroid();
+	void calculateCluster();
 	void calculateProbOfHumanDetection();
 	void calculateMaxProb();
 

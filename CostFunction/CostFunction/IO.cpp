@@ -453,7 +453,7 @@ void IO::loadSamplePCL(struct SAMPLE_PCL* pcl, const char* name)
 	CudaMem::cudaMemCpyReport(pcl->d_h, pcl->h, pcl->n*NUMELEM_H*sizeof(float), cudaMemcpyHostToDevice);
 	CudaMem::cudaMemCpyReport(pcl->d_i, pcl->i, pcl->n*sizeof(int), cudaMemcpyHostToDevice);
 
-	//pcl->n = 100;
+	pcl->n = 25;
 
 
 }
@@ -849,7 +849,7 @@ void IO::loadSamplePositions(struct SAMPLE_POSITIONS* pos, const char* name)
 
 	inbin.close();
 
-	pos->nP = 2;
+	pos->nP = 1;
 	//normalizing priorities to one
 	float sum = 0.0;
 	for(int i=0; i<pos->nP; i++)
@@ -993,6 +993,10 @@ void IO::loadSampleCamera(struct POSSIBLE_CAMERA_TYPES* cams, const char* name)
 
 		CudaMem::cudaMemCpyReport(pCamera->d_c, pCamera->c, N_COEFFS*sizeof(float), cudaMemcpyHostToDevice);
 		CudaMem::cudaMemCpyReport(pCamera->d_d, pCamera->d, 2*sizeof(float), cudaMemcpyHostToDevice);
+
+		int rx = pCamera->nx/2;
+		int ry = pCamera->ny/2;
+		pCamera->rmax = rx*rx+ry*ry;
 
 	}
 	char c;

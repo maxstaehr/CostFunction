@@ -71,9 +71,25 @@ struct DEPTH_BUFFER{
 	float* dx;
 	float* dy;
 	float* dz;
+	bool* hp;
+
+	int* cis;
+
+	//int*   cm;
+	int    maxnc;
+	int	   maxclusterindice;
+
 	float* d_dx;
 	float* d_dy;
 	float* d_dz;
+
+	//eucledian cluster
+
+	int* d_cis;
+	//int*   d_ci;
+	//int*   d_cm;
+	//int*   d_maxnc;
+	//int*   d_maxclusterindice;
 
 	float* d_ss_dx;
 	float* d_ss_dy;
@@ -98,6 +114,7 @@ struct SAMPLE_FITTING{
 struct LAUNCH_CONFIG{
 	int nblocks;
 	int nthreads;
+	int nsample;
 };
 
 struct PROB_RESULT{
@@ -276,7 +293,7 @@ struct SAMPLE_CAMERA
 	int ss_x;
 	int ss_y;
 	int minW;
-
+	int rmax;
 
 	float* x;
 	float* y;
@@ -346,10 +363,13 @@ struct RAYTRACING_LAUNCH{
 	int**	pI;
 };
 
+class EC;
 struct OPTIMIZATION_SESSION
 {
 	int n;
 	struct RAYTRACING_LAUNCH* launchs;
+
+	EC**	ecs;
 
 	int*	aI;
 	int*	pI;

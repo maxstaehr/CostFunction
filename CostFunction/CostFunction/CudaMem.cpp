@@ -595,10 +595,10 @@ void CudaMem::cudaMemsetReport(void *devPtr, int value, size_t count)
 
 }
 
-void CudaMem::cudaMemCpyAsyncReport(void* dst, const void * 	src, size_t 	count, enum cudaMemcpyKind 	kind)
+void CudaMem::cudaMemCpyAsyncReport(void* dst, const void * 	src, size_t 	count, enum cudaMemcpyKind 	kind, cudaStream_t stream)
 {
 	cudaError_t cudaStatus;
-	cudaStatus = cudaMemcpy(dst, src, count, kind);
+	cudaStatus = cudaMemcpyAsync(dst, src, count, kind, stream);
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr,"error cudaMemCopy");
 	}

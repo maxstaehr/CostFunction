@@ -23,7 +23,7 @@ public:
 
 	static void cudaMemAllocReport(void ** 	devPtr,size_t 	size);
 	static void cudaMemsetReport(void *devPtr, int value, size_t count);
-	static void cudaMemCpyAsyncReport(void * 	dst, const void * 	src, size_t 	count, enum cudaMemcpyKind 	kind);
+	static void cudaMemCpyAsyncReport(void* dst, const void * 	src, size_t 	count, enum cudaMemcpyKind 	kind, cudaStream_t stream);
 	static void cudaMemsetAsyncReport(void *devPtr, int value, size_t count);
 	static void cudaMemCpyReport(void* dst, const void * 	src, size_t 	count, enum cudaMemcpyKind 	kind);
 	static void cudaMemCpyToSymbolReport(void* dst, const void * 	src, size_t 	count, enum cudaMemcpyKind 	kind);
