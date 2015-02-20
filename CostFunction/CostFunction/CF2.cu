@@ -288,44 +288,48 @@ void CF2::run()
 	initParallelOptiRuns();
 
 	//////////finding first the probability density funtion of the angles to reduces the amount of raytracing angles
-	//sC = new InversionSearch(&samplePoints, &sampleRotations, 1, MAX_ITE, nn->getNN());
-	//((InversionSearch*)sC)->setInversionParamters(&samplePointsBuffer);
+	sC = new InversionSearch(&samplePoints, &sampleRotations, 1, MAX_ITE, nn->getNN());
+	((InversionSearch*)sC)->setInversionParamters(&samplePointsBuffer);
 
-	//while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp, probResult.maxd, probResult.maxw) )
-	//{
-	//	for(int i=0; i< samplePositions.nP; i++)
-	//	{				
+	while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp, probResult.maxd, probResult.maxw) )
+	{	
+		zeroProb();
+		for(int i=0; i< samplePositions.nP; i++)
+		{				
 
-	//		setCurrentTans(i);
-	//		transformVertexBuffer();
-	//		transformBoundingBoxBuffer();
-	//		transformSamplePointBuffer();
+			setCurrentTans(i);
+			transformVertexBuffer();
+			transformBoundingBoxBuffer();
+			transformSamplePointBuffer();
 
-	//		rayTrace();
-	//		calculateCentroid();
-	//		calculateProbOfHumanDetection();
-	//		calculateMaxProb();				
-	//	}
-	//	printf("angle initializing....\n");
-	//}	
-	//IO::saveInversionSearch(sC->prop, sC->dist, sC->weights, SEARCH_DOF*sampleRotations.nRotations, "inversionSearch.bin");
-	//IO::waitForEnter();
+			rayTrace();
+			calculateCluster();
+			calculateCentroid();
+			calculateProbOfHumanDetection();
+			//checkIntermediateResults();
+			calculateMaxProb();	
 
-	//int n;
-	//IO::loadInversionSearch(sC->prop, sC->dist, sC->weights, &n, "inversionSearch.bin");
-	//AngleGenerator aG(sC->prop, sampleRotations.nRotations, SEARCH_DOF);
-	//delete sC;
+		}
+		printf("angle initializing....\n");
+	}	
+	IO::saveInversionSearch(sC->prop, sC->dist, sC->weights, SEARCH_DOF*sampleRotations.nRotations, "inversionSearch.bin");
+	IO::waitForEnter();
+
+	int n;
+	IO::loadInversionSearch(sC->prop, sC->dist, sC->weights, &n, "inversionSearch.bin");
+	AngleGenerator aG(sC->prop, sampleRotations.nRotations, SEARCH_DOF);
+	delete sC;
 	freeParallelOptiRuns();
 	printf("starting optimisation...\n");
-	//IO::waitForEnter();
+	IO::waitForEnter();
 	
-	while(currentNumberOfCams < 2)
+	while(currentNumberOfCams < 4)
 	{
 	
 		do
 		{
-			sC = new CompleteEnumeration(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, NULL);
-			//sC = new SimulatedAnnealing(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, nn->getNN(), &aG);
+			//sC = new CompleteEnumeration(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, NULL);
+			sC = new SimulatedAnnealing(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, nn->getNN(), &aG);
 
 			initParallelOptiRuns();			
 			time_t start;			
@@ -353,7 +357,7 @@ void CF2::run()
 					}
 					//IO::saveDepthBufferToFile(&depthBuffer, "depthBuffer.bin");
 					//IO::saveDepthBufferToFileSuperSamples(&depthBuffer, "depthBuffer.bin");
-					Progress::printProgress((double)optiSession.pI[0], (double)samplePoints.n, start, "raytracing cp ");
+					//Progress::printProgress((double)optiSession.pI[0], (double)samplePoints.n, start, "raytracing cp ");
 					//IO::waitForEnter();
 
 				}
@@ -362,10 +366,10 @@ void CF2::run()
 	
 			//saving results
 			//saveAllVertices();
-			setCurrentTans(0);
-			transformSamplePointBuffer();
-			IO::saveOptimisationResults(&samplePointsBuffer, &samplePoints, &sampleRotations, sC->prop, sC->dist,sC->weights,  "completeEnumeration.bin");
-			//sC->writeResultsToFile(cameraCombination.vector, currentNumberOfCams, &samplePointsBuffer);
+			//setCurrentTans(0);
+			//transformSamplePointBuffer();
+			//IO::saveOptimisationResults(&samplePointsBuffer, &samplePoints, &sampleRotations, sC->prop, sC->dist,sC->weights,  "completeEnumeration.bin");
+			sC->writeResultsToFile(cameraCombination.vector, currentNumberOfCams, &samplePointsBuffer);
 			delete sC;
 			freeParallelOptiRuns();
 
@@ -390,30 +394,34 @@ void CF2::checkIntermediateResults()
 
 
 	RAYTRACING_LAUNCH* p_rtl;
-	p_rtl = &optiSession.launchs[0];	
 
-	float* p = new float[p_rtl->probResult.n];
-	float* d = new float[p_rtl->probResult.n];
-	float maxp, mind;
-
-	CudaMem::cudaMemCpyReport(p, p_rtl->probResult.d_p, p_rtl->probResult.n*sizeof(float), cudaMemcpyDeviceToHost);
-	CudaMem::cudaMemCpyReport(d, p_rtl->probResult.d_d, p_rtl->probResult.n*sizeof(float), cudaMemcpyDeviceToHost);
-	CudaMem::cudaMemCpyReport(&maxp, p_rtl->probResult.d_maxp, sizeof(float), cudaMemcpyDeviceToHost);
-	CudaMem::cudaMemCpyReport(&mind, p_rtl->probResult.d_maxd, sizeof(float), cudaMemcpyDeviceToHost);
-
-	float maxp2 = 0.0f, mind2= FLT_MAX;
-	for(int i=0;i<p_rtl->probResult.n; i++)
+	for(int i=0; i<optiSession.n; i++)
 	{
-		maxp2 = std::max(maxp2,p[i]);
-		mind2 = std::min(mind2,d[i]);
+		p_rtl = &optiSession.launchs[i];	
+
+		float* p = new float[p_rtl->probResult.n];
+		float* d = new float[p_rtl->probResult.n];
+		float maxp, mind;
+
+		CudaMem::cudaMemCpyReport(p, p_rtl->probResult.d_p, p_rtl->probResult.n*sizeof(float), cudaMemcpyDeviceToHost);
+		CudaMem::cudaMemCpyReport(d, p_rtl->probResult.d_d, p_rtl->probResult.n*sizeof(float), cudaMemcpyDeviceToHost);
+		CudaMem::cudaMemCpyReport(&maxp, p_rtl->probResult.d_maxp, sizeof(float), cudaMemcpyDeviceToHost);
+		CudaMem::cudaMemCpyReport(&mind, p_rtl->probResult.d_maxd, sizeof(float), cudaMemcpyDeviceToHost);
+
+		float maxp2 = 0.0f, mind2= FLT_MAX;
+		for(int i=0;i<p_rtl->probResult.n; i++)
+		{
+			maxp2 = std::max(maxp2,p[i]);
+			mind2 = std::min(mind2,d[i]);
+		}
+		float eps=1e-5;
+		float diff_p = abs(maxp-maxp2);
+		float diff_d = abs(mind-mind2);
+		assert(diff_p < eps);
+		assert(diff_d < eps);
+		delete p;
+		delete d;
 	}
-	float eps=1e-5;
-	float diff_p = abs(maxp-maxp2);
-	float diff_d = abs(mind-mind2);
-	assert(diff_p < eps);
-    assert(diff_d < eps);
-	delete p;
-	delete d;
 }
 
 void CF2::initBoundingBoxBuffer()
@@ -1404,18 +1412,18 @@ void CF2::calculateCluster()
 		//CudaMem::cudaMemCpyAsyncReport(p_rtl->depthBuffer.dm, p_rtl->depthBuffer.d_dm,
 		//p_rtl->depthBuffer.size*p_rtl->depthBuffer.size*sizeof(float), cudaMemcpyDeviceToHost, *(p_rtl->cudaStream[0]));
 
-		CudaMem::cudaMemCpyAsyncReport(p_rtl->depthBuffer.dx, p_rtl->depthBuffer.d_dx,
-		p_rtl->depthBuffer.size*sizeof(float), cudaMemcpyDeviceToHost, *(p_rtl->cudaStream[0]));
-		CudaMem::cudaMemCpyAsyncReport(p_rtl->depthBuffer.dy, p_rtl->depthBuffer.d_dy,
-		p_rtl->depthBuffer.size*sizeof(float), cudaMemcpyDeviceToHost, *(p_rtl->cudaStream[0]));
-		CudaMem::cudaMemCpyAsyncReport(p_rtl->depthBuffer.dz, p_rtl->depthBuffer.d_dz,
-		p_rtl->depthBuffer.size*sizeof(float), cudaMemcpyDeviceToHost, *(p_rtl->cudaStream[0]));
+		CudaMem::cudaMemCpyReport(p_rtl->depthBuffer.dx, p_rtl->depthBuffer.d_dx,
+		p_rtl->depthBuffer.size*sizeof(float), cudaMemcpyDeviceToHost);
+		CudaMem::cudaMemCpyReport(p_rtl->depthBuffer.dy, p_rtl->depthBuffer.d_dy,
+		p_rtl->depthBuffer.size*sizeof(float), cudaMemcpyDeviceToHost);
+		CudaMem::cudaMemCpyReport(p_rtl->depthBuffer.dz, p_rtl->depthBuffer.d_dz,
+		p_rtl->depthBuffer.size*sizeof(float), cudaMemcpyDeviceToHost);
 	}
-	cudaStatus = cudaDeviceSynchronize();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaDeviceSynchronize returned error code %s after launching cluster!\n", cudaGetErrorString(cudaStatus));
-		IO::waitForEnter();
-	}
+	//cudaStatus = cudaDeviceSynchronize();
+	//if (cudaStatus != cudaSuccess) {
+	//	fprintf(stderr, "cudaDeviceSynchronize returned error code %s after launching cluster!\n", cudaGetErrorString(cudaStatus));
+	//	IO::waitForEnter();
+	//}
 
 	#pragma omp parallel for
 	for(int i=0; i<optiSession.n; i++)

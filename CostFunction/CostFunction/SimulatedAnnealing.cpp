@@ -223,6 +223,7 @@ int SimulatedAnnealing::createPCLIndexInRange(int i1)
 		yd = robot->y[i1] - robot->y[i2];
 		zd = robot->z[i1] - robot->z[i2];
 		di = sqrt(pow(xd,2)+pow(yd,2)+pow(zd,2));
+		
 	}while(di > neighbourRadius || di < 0.1);
 	return i2;
 }

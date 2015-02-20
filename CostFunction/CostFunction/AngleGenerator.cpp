@@ -5,7 +5,7 @@
 #include <assert.h>
 #include <math.h>
 #include <time.h>
-
+#include "IO.h"
 
 AngleGenerator::AngleGenerator()
 {
@@ -42,7 +42,7 @@ AngleGenerator::AngleGenerator(float* prop, int nAngle, int DOF)
 	for(int r=0; r<nAngle; r++)
 	{
 		sum += w[r];
-		if(w[r] > 0)
+		if(w[r] > 0.0f)
 		{
 			nOfLimits++;
 		}
@@ -64,8 +64,12 @@ AngleGenerator::AngleGenerator(float* prop, int nAngle, int DOF)
 		}
 
 	}
-	
-	assert(nOfLimits > 0 && abs(limits[nOfLimits-1] - 1.0f) < 1.e-4);
+	printf("Generated %d angles\n", nOfLimits);
+	if(nOfLimits == 0 || abs(limits[nOfLimits-1] - 1.0f) > 1.e-4)
+	{
+		printf("no valid rotations in angle generation found!\n");
+		IO::waitForEnter();
+	}
 	delete w;
 }
 
