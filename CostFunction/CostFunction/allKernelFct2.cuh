@@ -996,9 +996,11 @@ namespace cuda_calc2{
 			}
 		}
 
-		__syncthreads();
+		__syncthreads();		
 		if(threadIdx.x == 0)
 		{
+			
+			//printf("res on cuda %.10f\n", res);
 			maxp[0] += pr[0] * max_buffer[0];
 			//maxp[0] = max_buffer[0];
 		}

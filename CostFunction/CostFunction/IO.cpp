@@ -849,7 +849,7 @@ void IO::loadSamplePositions(struct SAMPLE_POSITIONS* pos, const char* name)
 
 	inbin.close();
 
-	pos->nP = 2;
+	//pos->nP = 2;
 	//normalizing priorities to one
 	float sum = 0.0;
 	for(int i=0; i<pos->nP; i++)

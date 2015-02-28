@@ -237,13 +237,14 @@ CF2::CF2():currentNumberOfCams(1)
 	transformSamplePointBuffer();
 
 	
-
+#ifndef NDEBUG
 	IO::saveVerticeBufferToFile(&vertexBufferRobot, "vertexRobot.bin");
 	IO::saveVerticeBufferToFile(&vertexBufferHuman, "vertexHuman.bin");
 	IO::saveVerticeBufferToFile(&vertexBufferEnvironment, "vertexEnvironment.bin");
 	IO::saveVerticeBufferToFile(&vertexBuffer, "vertexScene.bin");
 	IO::saveBoundingBoxBufferToFile(&boundingBoxBuffer, "boundingBox.bin");
 	IO::saveBoundingBoxBuffer(&boundingBoxBuffer, "boundingBoxBuffer.bin");
+#endif
 
 	nn = new NearestNeighbour(&samplePoints, &sampleRotations);
 
@@ -286,7 +287,7 @@ void CF2::run()
 
 	//camera specific allocation
 	initParallelOptiRuns();
-
+	IO::waitForEnter();
 	//////////finding first the probability density funtion of the angles to reduces the amount of raytracing angles
 	sC = new InversionSearch(&samplePoints, &sampleRotations, 1, MAX_ITE, nn->getNN());
 	((InversionSearch*)sC)->setInversionParamters(&samplePointsBuffer);
@@ -304,16 +305,19 @@ void CF2::run()
 
 			rayTrace();
 			calculateCluster();
+			//printCentroid(&depthBuffer);
+
 			calculateCentroid();
 			calculateProbOfHumanDetection();
-			//checkIntermediateResults();
 			calculateMaxProb();	
+			//checkIntermediateResults();
+		
 
 		}
 		printf("angle initializing....\n");
 	}	
 	IO::saveInversionSearch(sC->prop, sC->dist, sC->weights, SEARCH_DOF*sampleRotations.nRotations, "inversionSearch.bin");
-	IO::waitForEnter();
+	//IO::waitForEnter();
 
 	int n;
 	IO::loadInversionSearch(sC->prop, sC->dist, sC->weights, &n, "inversionSearch.bin");
@@ -321,7 +325,7 @@ void CF2::run()
 	delete sC;
 	freeParallelOptiRuns();
 	printf("starting optimisation...\n");
-	IO::waitForEnter();
+	//IO::waitForEnter();
 	
 	while(currentNumberOfCams < 4)
 	{
@@ -386,6 +390,7 @@ void CF2::run()
 		currentNumberOfCams++;
 		initCameraCombination();
 	}
+	IO::waitForEnter();
 
 }
 
@@ -395,9 +400,9 @@ void CF2::checkIntermediateResults()
 
 	RAYTRACING_LAUNCH* p_rtl;
 
-	for(int i=0; i<optiSession.n; i++)
+	for(int j=0; j<optiSession.n; j++)
 	{
-		p_rtl = &optiSession.launchs[i];	
+		p_rtl = &optiSession.launchs[j];	
 
 		float* p = new float[p_rtl->probResult.n];
 		float* d = new float[p_rtl->probResult.n];
@@ -412,13 +417,20 @@ void CF2::checkIntermediateResults()
 		for(int i=0;i<p_rtl->probResult.n; i++)
 		{
 			maxp2 = std::max(maxp2,p[i]);
-			mind2 = std::min(mind2,d[i]);
+			//mind2 = std::min(mind2,d[i]);
 		}
 		float eps=1e-5;
 		float diff_p = abs(maxp-maxp2);
-		float diff_d = abs(mind-mind2);
-		assert(diff_p < eps);
-		assert(diff_d < eps);
+		//float diff_d = abs(mind-mind2);
+		printf("j=%d: maxp cuda %.10f\tmaxp host %.10f\n", j, maxp, maxp2);
+//#ifndef NDEBUG
+//		if(diff_p >= eps)
+//		{
+//			printf("diff p: %.10f\t iteration: %d\n", diff_p, j);
+//		}
+//#endif
+		//assert(diff_p < eps);
+		//assert(diff_d < eps);
 		delete p;
 		delete d;
 	}
@@ -1068,8 +1080,8 @@ void CF2::rayTrace()
 	int indexPos = 50-1;
 	int indexRot = 10-1;
 
-	indexPos = 10;
-	indexRot = 143 -1;
+	indexPos = 33;
+	indexRot = 30;
 
 	float* samplePosOffet;
 	float* sampleRotOffet;
