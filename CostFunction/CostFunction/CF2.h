@@ -19,9 +19,9 @@ public:
 	CF2();
 
 private:
-	ROBOT_PCL				robot;
-	HUMAN_PCL				human;
-	ENVIRONMENT_PCL			environment;
+	PCL						robot;
+	PCL						human;
+	PCL						environment;
 	SAMPLE_POSITIONS		samplePositions;
 	SAMPLE_PCL				samplePoints;
 	SAMPLE_ROTATIONS		sampleRotations;
@@ -37,6 +37,7 @@ private:
 	BB_BUFFER			boundingBoxBuffer;
 	BB_BUFFER			boundingBoxBufferRobot;
 	BB_BUFFER			boundingBoxBufferEnvironment;
+	BB_BUFFER			boundingBoxBufferHuman;
 
 	//depth buffer
 	DEPTH_BUFFER		depthBuffer;
@@ -71,6 +72,9 @@ private:
 	CAM_COMBINATION		cameraCombination;
 	int					currentNumberOfCams;
 
+	
+	int					humanBB;
+
 	OPTIMIZATION_SESSION optiSession;
 
 	cudaStream_t*	cudaStream;
@@ -92,7 +96,7 @@ private:
 	void initBoundingBoxBuffer();
 	void initSamplePointsBuffer();
 
-	void initDepthBuffer(DEPTH_BUFFER* depthBuffer, int nSessions, int raysPerLaunch, int size, int ss_size);	
+	void initDepthBuffer(DEPTH_BUFFER* depthBuffer, int nSessions, int nCam, int size, int ss_size);	
 	void initCentroidBuffer(CENTROID* centroid, int n);
 	void initPropBuffer(PROB_RESULT* probResult, int n, int session);
 	void clearPropBuffer(PROB_RESULT* probResult, int n);
@@ -136,6 +140,7 @@ private:
 
 public:
 	void run();
+	void run_completeEnumeration();
 	
 	
 };

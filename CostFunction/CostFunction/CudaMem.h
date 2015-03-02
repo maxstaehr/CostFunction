@@ -29,8 +29,7 @@ public:
 	static void cudaMemCpyToSymbolReport(void* dst, const void * 	src, size_t 	count, enum cudaMemcpyKind 	kind);
 	static void cudaFreeReport(void* dst);
 
-	static void allocPCLN(struct PCL* pcl);
-	static void deletePCL(struct PCL* pcl);
+
 
 	static void allocDHTransformations(struct DH_transformations* s, int n);
 	static void deleteDHTransformations(struct DH_transformations* s);
@@ -43,12 +42,8 @@ public:
 	static void allocHumanPositions(struct HUMAN_POSITION* humanPositions);
 	static void deleteHumanPositions(struct HUMAN_POSITION* humanPositions);
 
-	static void copyPCLDeviceToDevice(const struct PCL* const in, const struct  PCL* out);
-	static void copyDHParameterToDevice(struct DH_parameter* dh);
+	
 
-	static void cpyPCL(struct PCL* dst, const struct PCL* src);
-	static void copyPCLDeviceToHost(struct PCL* pcl);
-	static void copyPCLHostToDevice(struct PCL* pcl);
 	static void allocGrid(struct OCCUPANCY_GRIDS* grid,
 			float xmin, float xmax, float ymin, float ymax, float zmin, float zmax,
 			unsigned int nx, unsigned int ny, unsigned int nz);

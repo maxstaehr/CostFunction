@@ -38,31 +38,7 @@ struct SOLUTION{
 
 
 
-struct PCL
-{
-	float* x;
-	float* y;
-	float* z;
-	float* v_x;
-	float* v_y;
-	float* v_z;
-	float* h;
-	int *i;
-	int *index;
 
-	float* d_x;
-	float* d_y;
-	float* d_z;
-	float* d_v_x;
-	float* d_v_y;
-	float* d_v_z;
-	float* d_h;
-	int *d_i;
-	int *d_index;
-
-	std::set<int> indices;
-	unsigned int n;
-};
 
 struct DEPTH_BUFFER{
 	int size;
@@ -71,6 +47,7 @@ struct DEPTH_BUFFER{
 	float* dx;
 	float* dy;
 	float* dz;
+	bool* bb_hit;
 	bool* hp;
 
 	int* cis;
@@ -82,6 +59,7 @@ struct DEPTH_BUFFER{
 	float* d_dx;
 	float* d_dy;
 	float* d_dz;
+	bool* d_bb_hit;
 
 	//eucledian cluster
 
@@ -143,7 +121,7 @@ struct PROB_RESULT{
 
 
 
-struct ROBOT_PCL
+struct PCL
 {
 	int nV;
 	int nF;
@@ -156,8 +134,8 @@ struct ROBOT_PCL
 
 	int*	fx;
 	int*	fy;
-	int*	fz;
-	int*	fi;
+	int*	fz;	
+	int*	f_bbi;
 
 	float*	bb_H;
 	float*	bb_D;
@@ -171,67 +149,14 @@ struct ROBOT_PCL
 	int*	d_fx;
 	int*	d_fy;
 	int*	d_fz;
-	int*	d_fi;
+	int*	d_f_bbi;
 
 	float*	d_bb_H;
 	float*	d_bb_D;
 	int*	d_bbi;
-};
-
-struct ENVIRONMENT_PCL
-{
-	int nV;
-	int nF;
-	int nBB;
-
-	float*	x;
-	float*	y;
-	float*	z;
-	int*	fx;
-	int*	fy;
-	int*	fz;
-	float*	bb_H;
-	float*	bb_D;
-	
-
-	float*	d_x;
-	float*	d_y;
-	float*	d_z;
-	int*	d_fx;
-	int*	d_fy;
-	int*	d_fz;
-	float*	d_bb_H;
-	float*	d_bb_D;
 	
 };
 
-struct HUMAN_PCL
-{
-	int nV;
-	int nF;
-	
-	float*	x;
-	float*	y;
-	float*	z;
-	
-
-	int*	fx;
-	int*	fy;
-	int*	fz;
-	
-
-
-	float*	d_x;
-	float*	d_y;
-	float*	d_z;
-	
-
-	int*	d_fx;
-	int*	d_fy;
-	int*	d_fz;
-	
-
-};
 
 struct SAMPLE_PCL
 {
@@ -617,10 +542,13 @@ struct H_transformations{
 	  float* d_vx;
 	  float* d_vy;
 	  float* d_vz;
+	  
 
 	  int* d_fx;
 	  int* d_fy;
 	  int* d_fz;
+	  int* d_f_bbi;
+	  
 
   };
 
@@ -628,6 +556,7 @@ struct H_transformations{
 	  int nBB;
 	  float* d_BB;
 	  float* d_D;
+	  unsigned char* d_isHit;
   };
 
   struct SAMPLE_POINTS_BUFFER{

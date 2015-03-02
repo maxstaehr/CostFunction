@@ -210,9 +210,9 @@ CF2::CF2():currentNumberOfCams(1)
 
 
 	
-	IO::loadRobotPCL(&robot,"robot.bin");
-	IO::loadHumanPCL(&human,"human.bin");
-	IO::loadEnvironmentPCL(&environment, "environment.bin");
+	IO::loadPCL(&robot,"robot_short.bin");
+	IO::loadPCL(&human,"human.bin");
+	IO::loadPCL(&environment, "environment.bin");
 
 	IO::loadSamplePositions(&samplePositions, "samplePositions.bin");
 	IO::loadSamplePCL(&samplePoints, "samplePoints.bin");
@@ -304,6 +304,7 @@ void CF2::run()
 			transformSamplePointBuffer();
 
 			rayTrace();
+			IO::saveDepthBufferToFile(&depthBuffer, "depthBuffer.bin");
 			calculateCluster();
 			//printCentroid(&depthBuffer);
 
@@ -394,6 +395,62 @@ void CF2::run()
 
 }
 
+void CF2::run_completeEnumeration()
+{
+		//outer loop for combination of multiple cameras
+	initCameraCombination();
+	sC = new CompleteEnumeration(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, NULL);		
+	initParallelOptiRuns();		
+	printf("starting optimisation...\n");
+	IO::waitForEnter();
+	time_t start;			
+	time(&start);
+
+	while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp, probResult.maxd, probResult.maxw) )
+	{
+		zeroProb();
+		for(int i=0; i< samplePositions.nP; i++)
+		{				
+			setCurrentTans(i);
+			transformVertexBuffer();
+			transformBoundingBoxBuffer();
+			transformSamplePointBuffer();
+
+			rayTrace();
+			//IO::saveDepthBufferToFile(&depthBuffer, "depthBuffer.bin");
+			calculateCluster();
+			calculateCentroid();
+			//printCentroid(&depthBuffer);
+			calculateProbOfHumanDetection();
+			calculateMaxProb();
+			//Progress::printProgress((double)i, (double)samplePositions.nP, start, "raytracing rp ");	
+		}
+		//IO::saveDepthBufferToFile(&depthBuffer, "depthBuffer.bin");
+		//IO::saveDepthBufferToFileSuperSamples(&depthBuffer, "depthBuffer.bin");
+		Progress::printProgress((double)optiSession.pI[0], (double)samplePoints.n, start, "raytracing cp ");
+		//IO::waitForEnter();
+
+	}
+	
+
+	
+	//saving results	
+	setCurrentTans(0);
+	transformSamplePointBuffer();
+	IO::saveOptimisationResults(&samplePointsBuffer, &samplePoints, &sampleRotations, sC->prop, sC->dist,sC->weights,  "completeEnumeration.bin");
+	sC->writeResultsToFile(cameraCombination.vector, currentNumberOfCams, &samplePointsBuffer);
+	delete sC;
+	freeParallelOptiRuns();
+
+	printf("finished current camera combination\n");
+
+	//IO::waitForEnter();
+			
+	iterateCameraCombination();
+
+	IO::waitForEnter();
+}
+
 void CF2::checkIntermediateResults()
 {
 
@@ -438,11 +495,13 @@ void CF2::checkIntermediateResults()
 
 void CF2::initBoundingBoxBuffer()
 {
-	boundingBoxBuffer.nBB = robot.nBB+environment.nBB;
+	boundingBoxBuffer.nBB = robot.nBB+environment.nBB+human.nBB;
+	humanBB = robot.nBB+environment.nBB;
 
 	//allocating memory
 	CudaMem::cudaMemAllocReport((void**)&boundingBoxBuffer.d_BB, boundingBoxBuffer.nBB*NUMELEM_H*sizeof(float));
 	CudaMem::cudaMemAllocReport((void**)&boundingBoxBuffer.d_D, boundingBoxBuffer.nBB*3*sizeof(float));
+	
 
 	//setting bounding box buffer
 	boundingBoxBufferRobot.nBB = robot.nBB;
@@ -453,12 +512,19 @@ void CF2::initBoundingBoxBuffer()
 	boundingBoxBufferEnvironment.d_BB = boundingBoxBuffer.d_BB+boundingBoxBufferRobot.nBB*NUMELEM_H;
 	boundingBoxBufferEnvironment.d_D = boundingBoxBuffer.d_D+boundingBoxBufferRobot.nBB*3;
 
+	boundingBoxBufferHuman.nBB = human.nBB;
+	boundingBoxBufferHuman.d_BB = boundingBoxBuffer.d_BB+ (boundingBoxBufferRobot.nBB +boundingBoxBufferEnvironment.nBB) * NUMELEM_H;
+	boundingBoxBufferHuman.d_D = boundingBoxBuffer.d_D+ (boundingBoxBufferRobot.nBB +boundingBoxBufferEnvironment.nBB) * 3;
+
+
 	//CudaMem::cudaMemCpyReport(boundingBoxBufferRobot.d_BB, robot.d_bb_H, boundingBoxBufferRobot.nBB*NUMELEM_H*sizeof(float), cudaMemcpyHostToDevice);
 	CudaMem::cudaMemCpyReport(boundingBoxBufferRobot.d_D, robot.d_bb_D, boundingBoxBufferRobot.nBB*3*sizeof(float), cudaMemcpyDeviceToDevice);
 
 	//CudaMem::cudaMemCpyReport(boundingBoxBufferEnvironment.d_BB, environment.d_bb_H, boundingBoxBufferEnvironment.nBB*NUMELEM_H*sizeof(float), cudaMemcpyHostToDevice);
 	CudaMem::cudaMemCpyReport(boundingBoxBufferEnvironment.d_D, environment.d_bb_D, boundingBoxBufferEnvironment.nBB*3*sizeof(float), cudaMemcpyDeviceToDevice);
 
+		//CudaMem::cudaMemCpyReport(boundingBoxBufferEnvironment.d_BB, environment.d_bb_H, boundingBoxBufferEnvironment.nBB*NUMELEM_H*sizeof(float), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(boundingBoxBufferHuman.d_D, human.d_bb_D, boundingBoxBufferHuman.nBB*3*sizeof(float), cudaMemcpyDeviceToDevice);
 
 }
 
@@ -578,7 +644,7 @@ void CF2::initParallelOptiRuns()
 
 
 	////init the rest of the launch
-	initDepthBuffer(&depthBuffer,optiSession.n, raysPerLaunch, nOfRays, nOfSSRays);	
+	initDepthBuffer(&depthBuffer,optiSession.n, currentNumberOfCams, nOfRays, nOfSSRays);	
 	initCentroidBuffer(&centroid, optiSession.n);
 	initPropBuffer(&probResult ,sampleFitting.n, optiSession.n);	
 
@@ -651,6 +717,9 @@ void CF2::initParallelOptiRuns()
 			optiSession.launchs[ite].depthBuffers[i].d_dx = depthBuffer.d_dx + nOfRays;
 			optiSession.launchs[ite].depthBuffers[i].d_dy = depthBuffer.d_dy + nOfRays;
 			optiSession.launchs[ite].depthBuffers[i].d_dz = depthBuffer.d_dz + nOfRays;
+
+			optiSession.launchs[ite].depthBuffers[i].d_bb_hit = depthBuffer.d_bb_hit+(currentNumberOfCams*ite+i)*boundingBoxBuffer.nBB;
+			optiSession.launchs[ite].depthBuffers[i].bb_hit = depthBuffer.bb_hit+(currentNumberOfCams*ite+i)*boundingBoxBuffer.nBB;
 
 			optiSession.launchs[ite].depthBuffers[i].d_ss_dx = depthBuffer.d_ss_dx + nOfSSRays;
 			optiSession.launchs[ite].depthBuffers[i].d_ss_dy = depthBuffer.d_ss_dy + nOfSSRays;
@@ -786,11 +855,13 @@ void CF2::initVertexBuffer()
 	CudaMem::cudaMemAllocReport((void**)&vertexBuffer.d_fx, faceSize*sizeof(int));
 	CudaMem::cudaMemAllocReport((void**)&vertexBuffer.d_fy, faceSize*sizeof(int));
 	CudaMem::cudaMemAllocReport((void**)&vertexBuffer.d_fz, faceSize*sizeof(int));
+	CudaMem::cudaMemAllocReport((void**)&vertexBuffer.d_f_bbi, faceSize*sizeof(int));
 
 	//setting up face buffer for complete mesh
 	int* fb_x = new int[faceSize];
 	int* fb_y = new int[faceSize];
 	int* fb_z = new int[faceSize];
+	int* fb_bbi = new int[faceSize];
 	
 	//setting vertexBufferPointer
 	vertexBufferRobot.d_vx = vertexBuffer.d_vx;
@@ -800,6 +871,7 @@ void CF2::initVertexBuffer()
 	vertexBufferRobot.d_fx = vertexBuffer.d_fx;
 	vertexBufferRobot.d_fy = vertexBuffer.d_fy;
 	vertexBufferRobot.d_fz = vertexBuffer.d_fz;
+	vertexBufferRobot.d_f_bbi = vertexBuffer.d_f_bbi;
 
 	vertexBufferRobot.nF = robot.nF;
 	vertexBufferRobot.nV = robot.nV;
@@ -811,6 +883,7 @@ void CF2::initVertexBuffer()
 	vertexBufferHuman.d_fx = vertexBuffer.d_fx+robot.nF;
 	vertexBufferHuman.d_fy = vertexBuffer.d_fy+robot.nF;
 	vertexBufferHuman.d_fz = vertexBuffer.d_fz+robot.nF;
+	vertexBufferHuman.d_f_bbi = vertexBuffer.d_f_bbi+robot.nF;
 
 	vertexBufferHuman.nF = human.nF;
 	vertexBufferHuman.nV = human.nV;
@@ -822,6 +895,7 @@ void CF2::initVertexBuffer()
 	vertexBufferEnvironment.d_fx = vertexBuffer.d_fx+robot.nF+human.nF;
 	vertexBufferEnvironment.d_fy = vertexBuffer.d_fy+robot.nF+human.nF;
 	vertexBufferEnvironment.d_fz = vertexBuffer.d_fz+robot.nF+human.nF;
+	vertexBufferEnvironment.d_f_bbi = vertexBuffer.d_f_bbi+robot.nF+human.nF;
 
 	vertexBufferEnvironment.nF = environment.nF;
 	vertexBufferEnvironment.nV = environment.nV;
@@ -829,12 +903,15 @@ void CF2::initVertexBuffer()
 	memcpy(fb_x, robot.fx, robot.nF*sizeof(int));
 	memcpy(fb_y, robot.fy, robot.nF*sizeof(int));
 	memcpy(fb_z, robot.fz, robot.nF*sizeof(int));
+	memcpy(fb_bbi, robot.f_bbi, robot.nF*sizeof(int));
 
 	for(int i=0; i<human.nF; i++)
 	{
 		fb_x[i+robot.nF] = human.fx[i]+robot.nV;
 		fb_y[i+robot.nF] = human.fy[i]+robot.nV;
 		fb_z[i+robot.nF] = human.fz[i]+robot.nV;
+
+		fb_bbi[i+robot.nF] = human.f_bbi[i]+robot.nBB;
 	}
 
 	for(int i=0; i<environment.nF; i++)
@@ -842,11 +919,18 @@ void CF2::initVertexBuffer()
 		fb_x[i+robot.nF+human.nF] = environment.fx[i]+robot.nV+human.nV;
 		fb_y[i+robot.nF+human.nF] = environment.fy[i]+robot.nV+human.nV;
 		fb_z[i+robot.nF+human.nF] = environment.fz[i]+robot.nV+human.nV;
+		fb_bbi[i+robot.nF+human.nF] = environment.f_bbi[i]+robot.nBB+human.nBB;
 	}
 
 	CudaMem::cudaMemCpyReport(vertexBuffer.d_fx, fb_x, faceSize*sizeof(int), cudaMemcpyHostToDevice);
 	CudaMem::cudaMemCpyReport(vertexBuffer.d_fy, fb_y, faceSize*sizeof(int), cudaMemcpyHostToDevice);
 	CudaMem::cudaMemCpyReport(vertexBuffer.d_fz, fb_z, faceSize*sizeof(int), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(vertexBuffer.d_f_bbi, fb_bbi, faceSize*sizeof(int), cudaMemcpyHostToDevice);
+
+	delete fb_x;
+	delete fb_y;
+	delete fb_z;
+	delete fb_bbi;
 }
 
 void CF2::transformVertexBuffer()
@@ -940,6 +1024,26 @@ void CF2::setCurrentTans(int i)
 void CF2::transformBoundingBoxBuffer()
 {
 	cudaError_t cudaStatus;		
+	cuda_calc2::transformBoundingBoxEnvironment<<<human.nBB,1>>>(
+													currentTrans.d_h,													
+													human.d_bb_H,
+													boundingBoxBufferHuman.d_BB);
+
+					
+
+	cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "transformVertexHuman launch failed: %s\n", cudaGetErrorString(cudaStatus));
+		IO::waitForEnter();
+	}
+
+	cudaStatus = cudaDeviceSynchronize();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching transformVertexHuman!\n", cudaStatus);
+		IO::waitForEnter();
+	}
+
+
 	cuda_calc2::transformBoundingBoxRobot<<<robot.nBB,1>>>(
 													currentTrans.d_r,													
 													robot.d_bbi,
@@ -980,9 +1084,12 @@ void CF2::transformBoundingBoxBuffer()
 		IO::waitForEnter();
 	}
 
+
+
+
 }
 
-void CF2::initDepthBuffer(DEPTH_BUFFER* depthBuffer,int nSessions, int raysPerLaunch, int size, int ss_size)
+void CF2::initDepthBuffer(DEPTH_BUFFER* depthBuffer,int nSessions, int nCams, int size, int ss_size)
 {
 	depthBuffer->size = size;
 	depthBuffer->sssize = ss_size;
@@ -993,13 +1100,15 @@ void CF2::initDepthBuffer(DEPTH_BUFFER* depthBuffer,int nSessions, int raysPerLa
 	
 	depthBuffer->hp = new bool[size];
 	depthBuffer->cis = new int[size];
-	
+	depthBuffer->bb_hit = new bool[nSessions*nCams*boundingBoxBuffer.nBB];
 
 	
 
 	CudaMem::cudaMemAllocReport((void**)&depthBuffer->d_dx, size*sizeof(float));
 	CudaMem::cudaMemAllocReport((void**)&depthBuffer->d_dy, size*sizeof(float));
 	CudaMem::cudaMemAllocReport((void**)&depthBuffer->d_dz, size*sizeof(float));
+	
+	CudaMem::cudaMemAllocReport((void**)&depthBuffer->d_bb_hit, nSessions*nCams*boundingBoxBuffer.nBB*sizeof(bool));
 	//square size of distance matrix
 	
 
@@ -1022,6 +1131,7 @@ void CF2::freeDepthBuffer(DEPTH_BUFFER* depthBuffer)
 	delete depthBuffer->dz;	
 	delete depthBuffer->hp;	
 	delete depthBuffer->cis;
+	delete depthBuffer->bb_hit;
 	
 	CudaMem::cudaFreeReport(depthBuffer->d_dx);
 	CudaMem::cudaFreeReport(depthBuffer->d_dy);
@@ -1032,6 +1142,7 @@ void CF2::freeDepthBuffer(DEPTH_BUFFER* depthBuffer)
 	CudaMem::cudaFreeReport(depthBuffer->d_ss_dx);
 	CudaMem::cudaFreeReport(depthBuffer->d_ss_dy);
 	CudaMem::cudaFreeReport(depthBuffer->d_ss_dz);
+	CudaMem::cudaFreeReport(depthBuffer->d_bb_hit);
 
 	CudaMem::cudaFreeReport(depthBuffer->devStates);
 
@@ -1080,8 +1191,8 @@ void CF2::rayTrace()
 	int indexPos = 50-1;
 	int indexRot = 10-1;
 
-	indexPos = 33;
-	indexRot = 30;
+	indexPos = 16;
+	indexRot = 196;
 
 	float* samplePosOffet;
 	float* sampleRotOffet;
@@ -1097,6 +1208,60 @@ void CF2::rayTrace()
 
 	RAYTRACING_LAUNCH* p_rtl;
 	SAMPLE_CAMERA* p_camera;
+
+
+	for(int i=0; i<optiSession.n; i++)
+	{
+		p_rtl = &optiSession.launchs[i];
+		for(int j=0; j<p_rtl->n; j++)
+		{
+
+
+			indexPos = *(p_rtl->pI[j]);
+			indexRot = *(p_rtl->aI[j]);
+			
+			samplePosOffet = samplePointsBuffer.d_H	+indexPos*NUMELEM_H;
+			sampleRotOffet = sampleRotations.d_R	+indexRot*NUMELEM_H;
+
+			p_camera = p_rtl->cams[j];		
+			//raytraceBox(float* camPos_H, float* camRot_H, float* camRayX, float* camRayY, float* camRayZ, int nRays,
+			//			   float* bb_H, float* bb_D, int nBB, bool* bb_intersect)
+
+			
+			
+			cuda_calc2::raytraceBox<<<1,MAX_RAYTRACE_BOX, 0, *(p_rtl->cudaStream[j])>>>(
+															samplePosOffet,
+															sampleRotOffet,
+															p_camera->d_x,
+															p_camera->d_y,
+															p_camera->d_z,
+															p_camera->nRays,
+															boundingBoxBuffer.d_BB,
+															boundingBoxBuffer.d_D,
+															boundingBoxBuffer.nBB,
+															p_rtl->depthBuffers[j].d_bb_hit
+														);
+
+
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "raytraceBox stream %d camera %d launch failed: %s\n", i,j,cudaGetErrorString(cudaStatus));
+				IO::waitForEnter();
+			}
+		}
+	}
+
+	cudaStatus = cudaDeviceSynchronize();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaDeviceSynchronize returned error code after launching raytraceBox: %s\n", cudaGetErrorString(cudaStatus));
+		fprintf(stderr, "position: %d\t rotation: %d\n", indexPos, indexRot);
+		IO::waitForEnter();
+
+	}
+
+	CudaMem::cudaMemCpyReport(depthBuffer.bb_hit, depthBuffer.d_bb_hit, optiSession.n*currentNumberOfCams*boundingBoxBuffer.nBB*sizeof(bool), cudaMemcpyDeviceToHost);
+	//printf("human bonding box hit: %s", depthBuffer.bb_hit[humanBB]?"true":"false");
+
 	for(int i=0; i<optiSession.n; i++)
 	{
 		p_rtl = &optiSession.launchs[i];
@@ -1106,6 +1271,8 @@ void CF2::rayTrace()
 			//indexPos = optiSession.pI[
 
 
+			//if(!p_rtl->depthBuffers[j].bb_hit[humanBB])
+			//	continue;
 
 			//
 
@@ -1114,6 +1281,8 @@ void CF2::rayTrace()
 			//printf("%d\t%d\n", indexPos, indexRot);
 			samplePosOffet = samplePointsBuffer.d_H	+indexPos*NUMELEM_H;
 			sampleRotOffet = sampleRotations.d_R	+indexRot*NUMELEM_H;
+
+			
 
 			p_camera = p_rtl->cams[j];		
 			cuda_calc2::raytraceVertices<<<p_camera->ssnBlocks,p_camera->ssnThreads, 0, *(p_rtl->cudaStream[j])>>>(
@@ -1133,7 +1302,11 @@ void CF2::rayTrace()
 															p_camera->d_ss_z,
 															p_rtl->depthBuffers[j].d_ss_dx,
 															p_rtl->depthBuffers[j].d_ss_dy,
-															p_rtl->depthBuffers[j].d_ss_dz);
+															p_rtl->depthBuffers[j].d_ss_dz,
+															vertexBuffer.d_f_bbi,
+															p_rtl->depthBuffers[j].d_bb_hit,
+															boundingBoxBuffer.nBB,
+															humanBB);
 
 
 			cudaStatus = cudaGetLastError();
@@ -1175,6 +1348,9 @@ void CF2::rayTrace()
 
 			//
 
+			//if(!p_rtl->depthBuffers[j].bb_hit[humanBB])
+			//	continue;
+
 			indexPos = *(p_rtl->pI[j]);
 			indexRot = *(p_rtl->aI[j]);
 
@@ -1206,7 +1382,8 @@ void CF2::rayTrace()
 															p_rtl->depthBuffers[j].devStates,
 															p_rtl->depthBuffers[j].d_dx,
 															p_rtl->depthBuffers[j].d_dy,
-															p_rtl->depthBuffers[j].d_dz);
+															p_rtl->depthBuffers[j].d_dz,
+															humanBB);
 
 
 			//cuda_calc2::raytraceVertices<<<p_camera->nBlocks,p_camera->nThreads, 0, *(p_rtl->cudaStream[j])>>>(

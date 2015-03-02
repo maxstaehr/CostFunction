@@ -426,6 +426,20 @@ namespace cuda_calc2{
 		return x>0 && y>0 && z>0 && x<dim[0] && y<dim[1] && z<dim[2];
 	}
 
+	__device__ void transformPoint(float* h, float* p, float* pret)
+	{
+		pret[0] = h[0]*p[0]+h[1]*p[1]+h[2]*p[2]+h[3];
+		pret[1] = h[4]*p[0]+h[5]*p[1]+h[6]*p[2]+h[7];
+		pret[2] = h[8]*p[0]+h[9]*p[1]+h[10]*p[2]+h[11];		
+	}
+
+	__device__ void rotatePoint16(float* h, float* p, float* pret)
+	{
+		pret[0] = h[0]*p[0]+h[1]*p[1]+h[2]*p[2];
+		pret[1] = h[4]*p[0]+h[5]*p[1]+h[6]*p[2];
+		pret[2] = h[8]*p[0]+h[9]*p[1]+h[10]*p[2];		
+	}
+
 	__global__ void setup_kernel(curandState *state)
 	{
 		int id = threadIdx.x + blockIdx.x * 64;
@@ -453,12 +467,16 @@ namespace cuda_calc2{
 														float dist_min, float dist_max,  
 														float* camPos_H, float* camRot_H,
 														float* camRayX, float* camRayY, float* camRayZ,
-														float* Dx, float* Dy, float* Dz)
+														float* Dx, float* Dy, float* Dz,
+														int* fbbi, bool* bbHitGlobal, int nBB,
+														int humanBB)
 	{
 		//defining vertex buffer
 		__shared__ float v1[VERTEX_BUFFER_SIZE*3];
 		__shared__ float v2[VERTEX_BUFFER_SIZE*3];
 		__shared__ float v3[VERTEX_BUFFER_SIZE*3];
+		__shared__ bool isVerticeValid[VERTEX_BUFFER_SIZE];
+		__shared__ bool bbHit[MAX_BB_HIT_BUFFER];
 
 		int blockSize = blockDim.x * blockDim.y * blockDim.z;
 		int threadIDinBlock = threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x;
@@ -471,7 +489,20 @@ namespace cuda_calc2{
 		float dr;
 		int hit;
 
+		//copying the global bbhit information into the shared buffer
+		if(threadId < nBB)
+		{
+			bbHit[threadId] = bbHitGlobal[threadId];
+		}
+		__syncthreads();
 
+		if(!bbHit[humanBB])
+		{
+			Dx[threadId] = nanf("");
+			Dy[threadId] = nanf("");
+			Dz[threadId] = nanf("");
+			return;
+		}
 
 		//calculating current origin
 		float o[3];
@@ -487,7 +518,7 @@ namespace cuda_calc2{
 
 
 		//loading vertex data into local buffer
-		int t,f;
+		int t,f, fix, fiy, fiz;
 		int numOfVerticesCopied = 0;
 		int numberOfValidVertices;
 		//keep loading vertices until all faces have been raytraced
@@ -508,24 +539,36 @@ namespace cuda_calc2{
 				//check if enough space in vertex buffer and enough remaing faces
 				if(t < numberOfValidVertices)
 				{
+
+
 					//copying corresponding vertices
 					//dirty hack because the facesnumeration comes from
 					//matlab which start 1 as first indice
 					//therefore we have to substract each face indice by 1
-					f = fx[numOfVerticesCopied + t]-1;
-					v1[3*t+0] = xi[f];
-					v1[3*t+1] = yi[f];
-					v1[3*t+2] = zi[f];
+					fix = fx[numOfVerticesCopied + t]-1;
+					fiy = fy[numOfVerticesCopied + t]-1;
+					fiz = fz[numOfVerticesCopied + t]-1;
 
-					f = fy[numOfVerticesCopied + t]-1;
-					v2[3*t+0] = xi[f];
-					v2[3*t+1] = yi[f];
-					v2[3*t+2] = zi[f];
+					//check first if the face is valid
+					//do not copy the rest
+					//isVerticeValid = bbHit
+					isVerticeValid[t] = bbHit[fbbi[fix]] && bbHit[fbbi[fiy]] && bbHit[fbbi[fiz]];
+					if(!isVerticeValid[t])
+						continue;
 
-					f = fz[numOfVerticesCopied + t]-1;
-					v3[3*t+0] = xi[f];
-					v3[3*t+1] = yi[f];
-					v3[3*t+2] = zi[f];
+					v1[3*t+0] = xi[fix];
+					v1[3*t+1] = yi[fix];
+					v1[3*t+2] = zi[fix];
+
+					
+					v2[3*t+0] = xi[fiy];
+					v2[3*t+1] = yi[fiy];
+					v2[3*t+2] = zi[fiy];
+
+					
+					v3[3*t+0] = xi[fiz];
+					v3[3*t+1] = yi[fiz];
+					v3[3*t+2] = zi[fiz];
 
 				}
 			}
@@ -536,7 +579,8 @@ namespace cuda_calc2{
 			//raytrace and check minum distance
 			for(int i=0; i<numberOfValidVertices; i++)
 			{
-				
+
+				//check if face is valid								
 				v1_d = v1+3*i;
 				v2_d = v2+3*i;
 				v3_d = v3+3*i;
@@ -589,6 +633,137 @@ namespace cuda_calc2{
 		//float mg = sqrtf(t1+t2+t3);
 		//float t = powf((1/mg)-1, 2.0);
 		//return sqrtf(v0_2+v0_2+v0_2*t);
+
+	__device__ bool intersectBox(float* origin, float* direction, float* vmin, float* vmax)
+	{
+
+	float tmin, tmax, tymin, tymax, tzmin, tzmax;
+	bool flag;
+    if (direction[0] >= 0) 
+	{
+    	tmin = (vmin[0] - origin[0]) / direction[0];
+    	tmax = (vmax[0] - origin[0]) / direction[0];
+	}
+    else
+	{
+    	tmin = (vmax[0] - origin[0]) / direction[0];
+    	tmax = (vmin[0] - origin[0]) / direction[0];
+	}
+  
+    if (direction[1] >= 0) 
+	{
+        tymin = (vmin[1] - origin[1]) / direction[1];
+        tymax = (vmax[1] - origin[1]) / direction[1];
+	}
+    else
+	{
+    	tymin = (vmax[1] - origin[1]) / direction[1];
+    	tymax = (vmin[1] - origin[1]) / direction[1];
+	}
+    
+
+    if ( (tmin > tymax) || (tymin > tmax) )
+	{
+    	return false;
+	}
+       
+    if (tymin > tmin)
+	{
+        tmin = tymin;
+	}
+    
+    
+	if (tymax < tmax)
+	{
+        tmax = tymax;
+	}
+    
+    
+	if (direction[2] >= 0)
+	{
+       tzmin = (vmin[2] - origin[2]) / direction[2];
+       tzmax = (vmax[2] - origin[2]) / direction[2];
+	}
+    else
+	{
+       tzmin = (vmax[2] - origin[2]) / direction[2];
+       tzmax = (vmin[2] - origin[2]) / direction[2];
+	}
+
+
+    if ((tmin > tzmax) || (tzmin > tmax))
+	{
+       return false;
+	}
+    
+	   return true;
+	}
+	__global__ void raytraceBox(float* camPos_H, float* camRot_H, float* camRayX, float* camRayY, float* camRayZ, int nRays,
+						   float* bb_H, float* bb_D, int nBB, bool* bb_intersect)
+	{
+		__shared__ bool hhb [MAX_RAYTRACE_BOX];
+
+		float o[3];
+		float di[3];
+		float o_t[3];
+		float di_t[3];
+		float dim_0[3];
+		float* pH;
+		dim_0[0] = 0.0f;
+		dim_0[1] = 0.0f;
+		dim_0[2] = 0.0f;
+		int index = 0;
+
+		//calculating number of rays to test per thread
+		int nRaysPerThread = (nRays/blockDim.x)+1;
+		for(int bbi=0; bbi<nBB; bbi++)
+		{
+			//setting buffer to false
+			hhb[threadIdx.x] = false;
+			__syncthreads();
+		
+
+			//starting to raytrace each single 
+			bool iB = false;
+			for(int ray=0; ray<nRaysPerThread; ray++)
+			{
+				index = threadIdx.x * nRaysPerThread+ray;
+				if(index >= nRays)
+					break;
+				
+				pH = bb_H+bbi*NUMELEM_H;
+
+				calculateOrginAndDirection(camPos_H, camRot_H, camRayX[index], camRayY[index], camRayZ[index], o, di);
+				transformPoint(pH, o, o_t);
+				rotatePoint16(pH, di, di_t);
+				iB |= intersectBox(o_t, di_t,dim_0, bb_D+bbi*3);
+
+				//we just want to know if intersecting, not the number of intersections
+				if(iB)
+					break;
+
+			}
+			hhb[threadIdx.x] = iB;
+			
+
+
+			for (int i = MAX_RAYTRACE_BOX / 2; i > 0; i >>= 1)
+			{
+				__syncthreads();
+				if(threadIdx.x < i)
+				{	
+					hhb[threadIdx.x] |= hhb[threadIdx.x+i];
+				}
+			}
+
+			if(threadIdx.x == 0)			
+				bb_intersect[bbi] = hhb[0];
+			
+			__syncthreads();
+		}
+
+		__syncthreads();
+	}
 
 	__device__ float distanceToEllipse(float* v)
 	{
@@ -1023,7 +1198,8 @@ namespace cuda_calc2{
 										float* camPos_H, float* camRot_H,
 										float* camRayX, float* camRayY, float* camRayZ,
 										float* c, curandState_t* devStates,
-										float* dx, float* dy, float* dz)
+										float* dx, float* dy, float* dz,
+										int humanID)
 	{
 		float o[3];
 		float di[3];
@@ -1126,6 +1302,8 @@ namespace cuda_calc2{
 			bool isInBox = false;
 			for(int i=0; i<nBB; i++)
 			{
+				if(i==humanID)
+					continue;
 				isInBox |= isInBB(bb_H+i*16, bb_D+i*3, vec);
 			}
 			

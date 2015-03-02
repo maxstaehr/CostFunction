@@ -25,82 +25,12 @@ CudaMem::~CudaMem() {
 
 
 
-void CudaMem::cpyPCL(struct PCL* dst, const struct PCL* src)
-{
-	memcpy(dst->x, src->x, src->n*sizeof(float));
-	memcpy(dst->y, src->y, src->n*sizeof(float));
-	memcpy(dst->z, src->z, src->n*sizeof(float));
-	memcpy(dst->i, src->i, src->n*sizeof(int));
-
-}
-
-void CudaMem::allocPCLN(struct PCL* pcl)
-{
-	pcl->x = new float[pcl->n];
-	pcl->y = new float[pcl->n];
-	pcl->z = new float[pcl->n];
-	pcl->v_x = new float[pcl->n];
-	pcl->v_y = new float[pcl->n];
-	pcl->v_z = new float[pcl->n];
-	pcl->h = new float[16];
-	pcl->i = new int[pcl->n];
 
 
 
-	memset(pcl->x, 0, pcl->n*sizeof(float));
-	memset(pcl->y, 0, pcl->n*sizeof(float));
-	memset(pcl->z, 0, pcl->n*sizeof(float));
-
-	memset(pcl->v_x, 0, pcl->n*sizeof(float));
-	memset(pcl->v_y, 0, pcl->n*sizeof(float));
-	memset(pcl->v_z, 0, pcl->n*sizeof(float));
-
-	memset(pcl->i, 0, pcl->n*sizeof(int));
-	float eye[] = EYE;
-	memcpy(pcl->h, eye, 16*sizeof(float));
-
-
-	cudaMemAllocReport((void**)&pcl->d_x, pcl->n * sizeof(float));
-	cudaMemAllocReport((void**)&pcl->d_y, pcl->n * sizeof(float));
-	cudaMemAllocReport((void**)&pcl->d_z, pcl->n * sizeof(float));
-
-	cudaMemAllocReport((void**)&pcl->d_v_x, pcl->n * sizeof(float));
-	cudaMemAllocReport((void**)&pcl->d_v_y, pcl->n * sizeof(float));
-	cudaMemAllocReport((void**)&pcl->d_v_z, pcl->n * sizeof(float));
-
-	cudaMemAllocReport((void**)&pcl->d_h, 16 * sizeof(float));
-	cudaMemAllocReport((void**)&pcl->d_i, pcl->n * sizeof(int));
-	cudaMemAllocReport((void**)&pcl->d_index, pcl->n * sizeof(int));
-
-}
-
-
-void CudaMem::deletePCL(struct PCL* pcl)
-{
-	delete [] pcl->x;
-	delete [] pcl->y;
-	delete [] pcl->z;
-	delete [] pcl->v_x;
-	delete [] pcl->v_y;
-	delete [] pcl->v_z;
-	delete [] pcl->h;
-	delete [] pcl->i;
 
 
 
-	cudaFree(pcl->d_x);
-	cudaFree(pcl->d_y);
-	cudaFree(pcl->d_z);
-
-	cudaFree(pcl->d_v_x);
-	cudaFree(pcl->d_v_y);
-	cudaFree(pcl->d_v_z);
-
-	cudaFree(pcl->d_h);
-	cudaFree(pcl->d_i);
-	cudaFree(pcl->d_index);
-
-}
 
 void CudaMem::cudaMemAllocReport(void ** 	devPtr,size_t 	size)
 {
@@ -135,144 +65,10 @@ void CudaMem::deleteHumanPositions(struct HUMAN_POSITION* humanPoses)
 	cudaFree(humanPoses->d_positions);
 }
 
-void CudaMem::copyPCLHostToDevice(struct PCL* pcl)
-{
-	cudaError_t cudaStatus;
-	cudaStatus = cudaMemcpy(pcl->d_x,pcl->x, pcl->n*sizeof(float), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-	cudaStatus = cudaMemcpy(pcl->d_y,pcl->y, pcl->n*sizeof(float), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-	cudaStatus = cudaMemcpy(pcl->d_z,pcl->z, pcl->n*sizeof(float), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-	cudaStatus = cudaMemcpy(pcl->d_v_x,pcl->v_x, pcl->n*sizeof(float), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-	cudaStatus = cudaMemcpy(pcl->d_v_y,pcl->v_y, pcl->n*sizeof(float), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-	cudaStatus = cudaMemcpy(pcl->d_v_z,pcl->v_z, pcl->n*sizeof(float), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-	cudaStatus = cudaMemcpy(pcl->d_h,pcl->h, 16*sizeof(float), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-	cudaStatus = cudaMemcpy(pcl->d_i,pcl->i, pcl->n*sizeof(int), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-
-}
 
 
-void CudaMem::copyPCLDeviceToDevice(const struct PCL* const in, const struct  PCL* out)
-{
-	cudaError_t cudaStatus;
-	cudaStatus = cudaMemcpy(out->d_x,in->d_x, in->n*sizeof(float), cudaMemcpyDeviceToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
 
-	}
-	cudaStatus = cudaMemcpy(out->d_y,in->d_y, in->n*sizeof(float), cudaMemcpyDeviceToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
 
-	}
-	cudaStatus = cudaMemcpy(out->d_z,in->d_z, in->n*sizeof(float), cudaMemcpyDeviceToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-	cudaStatus = cudaMemcpy(out->d_v_x,in->d_v_x, in->n*sizeof(float), cudaMemcpyDeviceToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-	cudaStatus = cudaMemcpy(out->d_v_y,in->d_v_y, in->n*sizeof(float), cudaMemcpyDeviceToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-	cudaStatus = cudaMemcpy(out->d_v_z,in->d_v_z, in->n*sizeof(float), cudaMemcpyDeviceToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-	cudaStatus = cudaMemcpy(out->d_h,in->d_h, 16*sizeof(float), cudaMemcpyDeviceToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-	cudaStatus = cudaMemcpy(out->d_i,in->d_i, in->n*sizeof(int), cudaMemcpyDeviceToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-
-}
-
-void CudaMem::copyPCLDeviceToHost(struct PCL* pcl)
-{
-	cudaError_t cudaStatus;
-	cudaStatus = cudaMemcpy(pcl->x,pcl->d_x, pcl->n*sizeof(float), cudaMemcpyDeviceToHost);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-	cudaStatus = cudaMemcpy(pcl->y,pcl->d_y, pcl->n*sizeof(float), cudaMemcpyDeviceToHost);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-	cudaStatus = cudaMemcpy(pcl->z,pcl->d_z, pcl->n*sizeof(float), cudaMemcpyDeviceToHost);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-	cudaStatus = cudaMemcpy(pcl->v_x,pcl->d_v_x, pcl->n*sizeof(float), cudaMemcpyDeviceToHost);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-	cudaStatus = cudaMemcpy(pcl->v_y,pcl->d_v_y, pcl->n*sizeof(float), cudaMemcpyDeviceToHost);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-	cudaStatus = cudaMemcpy(pcl->v_z,pcl->d_v_z, pcl->n*sizeof(float), cudaMemcpyDeviceToHost);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-	cudaStatus = cudaMemcpy(pcl->h,pcl->d_h, 16*sizeof(float), cudaMemcpyDeviceToHost);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-	cudaStatus = cudaMemcpy(pcl->i,pcl->d_i, pcl->n*sizeof(int), cudaMemcpyDeviceToHost);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-
-}
 
 void CudaMem::allocGrid(struct OCCUPANCY_GRIDS* grid, float xmin, float xmax, float ymin, float ymax, float zmin, float zmax,
 	unsigned int nx, unsigned int ny, unsigned int nz)
@@ -513,52 +309,6 @@ void CudaMem::copyGridDeviceToHost(struct OCCUPANCY_GRIDS* grid)
 
 }
 
-void CudaMem::copyDHParameterToDevice(struct DH_parameter* dh)
-{
-
-	cudaError_t cudaStatus;
-	cudaStatus = cudaMemcpy(dh->d_T, dh->T, NUMELEM_H * (N_ELEMENT_T) * sizeof(float), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-
-	cudaStatus = cudaMemcpy(dh->d_v_x, dh->v_x, NUMELEM_H * (N_ELEMENT_T) * sizeof(float), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-
-	cudaStatus = cudaMemcpy(dh->d_v_y, dh->v_y, NUMELEM_H * (N_ELEMENT_T) * sizeof(float), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-
-	cudaStatus = cudaMemcpy(dh->d_v_z, dh->v_z, NUMELEM_H * (N_ELEMENT_T) * sizeof(float), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-
-	cudaStatus = cudaMemcpy(dh->d_w_x, dh->w_x, NUMELEM_H * (N_ELEMENT_T) * sizeof(float), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-
-	cudaStatus = cudaMemcpy(dh->d_w_y, dh->w_y, NUMELEM_H * (N_ELEMENT_T) * sizeof(float), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-
-	cudaStatus = cudaMemcpy(dh->d_w_z, dh->w_z, NUMELEM_H * (N_ELEMENT_T) * sizeof(float), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudamemcpy error");
-
-	}
-}
 
 
 

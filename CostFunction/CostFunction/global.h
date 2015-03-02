@@ -7,7 +7,7 @@
 //#define N_OF_A_SQ (N_OF_A*N_OF_A)
 #define WS_BORDER (1.0)
 
-#define CAM_ITE 2
+#define CAM_ITE 32
 #define PAR_KERNEL_LAUNCHS 1
 #define DIST_PIXEL (0.0025f)
 
@@ -32,7 +32,7 @@
 #define IS_VALID_POS_N 80938
 #define MAX_NUM_CAMS 20
 
-#define VERTEX_BUFFER_SIZE (1364)
+#define VERTEX_BUFFER_SIZE (1300)
 
 #define AVG_BUFFER_SIZE (512)
 #define DIST_MATRIX_BLOCK_X_SIZE (16)
@@ -69,6 +69,8 @@
 #define WS_ID_SIZE (WS_NX*WS_NY*WS_NZ)
 #define MAX_PCL_SIZE 2622
 #define SHARED_MEM_WS_INT 4096
+#define MAX_RAYTRACE_BOX 512
+#define MAX_BB_HIT_BUFFER 30
 
 #define human_rx (0.1582f)
 #define human_ry (0.2488f)
