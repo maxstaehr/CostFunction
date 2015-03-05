@@ -20,7 +20,7 @@
 double const SimulatedAnnealing::e( 2.7182818284590452353602874713526624977572 );
 
 
-SimulatedAnnealing::SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, int nI, int* nn_indices, AngleGenerator* ag):SearchClass(sp, sr, nC, nI, nn_indices, ag),ite(0),neighbourRadius(1.2), neighbourAngle(2.4), firstEvaluation(true), NofIteration(600), maxIteration(nC*NofIteration), firstIteration(true), min_threshold(1.0e-1)
+SimulatedAnnealing::SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, int nI, int* nn_indices, AngleGenerator* ag):SearchClass(sp, sr, nC, nI, nn_indices, ag),ite(0),neighbourRadius(1.2), neighbourAngle(2.4), firstEvaluation(true), NofIteration(800), maxIteration(nC*NofIteration), firstIteration(true), min_threshold(1.0e-1)
 {
 	assert(nI>0 && nI%2==0);
 	NofE = (int)nI/2;
