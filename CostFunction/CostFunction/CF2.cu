@@ -290,41 +290,44 @@ void CF2::run()
 	IO::waitForEnter();
 	//////////finding first the probability density funtion of the angles to reduces the amount of raytracing angles
 	sC = new InversionSearch(&samplePoints, &sampleRotations, 1, MAX_ITE, nn->getNN());
-	((InversionSearch*)sC)->setInversionParamters(&samplePointsBuffer);
 
-	while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp, probResult.maxd, probResult.maxw) )
-	{	
-		zeroProb();
-		for(int i=0; i< samplePositions.nP; i++)
-		{				
+	//((InversionSearch*)sC)->setInversionParamters(&samplePointsBuffer);
+	//while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp, probResult.maxd, probResult.maxw) )
+	//{	
+	//	zeroProb();
+	//	for(int i=0; i< samplePositions.nP; i++)
+	//	{				
 
-			setCurrentTans(i);
-			transformVertexBuffer();
-			transformBoundingBoxBuffer();
-			transformSamplePointBuffer();
+	//		setCurrentTans(i);
+	//		transformVertexBuffer();
+	//		transformBoundingBoxBuffer();
+	//		transformSamplePointBuffer();
 
-			rayTrace();
-			IO::saveDepthBufferToFile(&depthBuffer, "depthBuffer.bin");
-			calculateCluster();
-			//printCentroid(&depthBuffer);
+	//		rayTrace();
+	//		//IO::saveDepthBufferToFile(&depthBuffer, "depthBuffer.bin");
+	//		calculateCluster();
+	//		//printCentroid(&depthBuffer);
 
-			calculateCentroid();
-			calculateProbOfHumanDetection();
-			calculateMaxProb();	
-			//checkIntermediateResults();
-		
+	//		calculateCentroid();
+	//		calculateProbOfHumanDetection();
+	//		calculateMaxProb();	
+	//		//checkIntermediateResults();
+	//	
 
-		}
-		printf("angle initializing....\n");
-	}	
-	IO::saveInversionSearch(sC->prop, sC->dist, sC->weights, SEARCH_DOF*sampleRotations.nRotations, "inversionSearch.bin");
-	//IO::waitForEnter();
+	//	}
+	//	printf("angle initializing....\n");
+	//}	
+	//IO::saveInversionSearch(sC->prop, sC->dist, sC->weights, SEARCH_DOF*sampleRotations.nRotations, "inversionSearch.bin");
+	////IO::waitForEnter();
 
-	int n;
-	IO::loadInversionSearch(sC->prop, sC->dist, sC->weights, &n, "inversionSearch.bin");
+	//int n;
+	//IO::loadInversionSearch(sC->prop, sC->dist, sC->weights, &n, "inversionSearch.bin");
 	AngleGenerator aG(sC->prop, sampleRotations.nRotations, SEARCH_DOF);
 	delete sC;
+
 	freeParallelOptiRuns();
+	currentNumberOfCams = 3;
+	initCameraCombination();
 	printf("starting optimisation...\n");
 	//IO::waitForEnter();
 	
@@ -1761,6 +1764,9 @@ void CF2::initPropBuffer(PROB_RESULT* probResult, int n, int session)
 
 	probResult->p = new float[n*session];
 	probResult->maxp = new float[session];
+
+	memset(probResult->p, 0, n*session*sizeof(float));
+	memset(probResult->maxp, 0, session*sizeof(float));
 
 	CudaMem::cudaMemAllocReport((void**)&probResult->d_p, n*session*sizeof(float));
 	CudaMem::cudaMemAllocReport((void**)&probResult->d_maxp, session*sizeof(float));

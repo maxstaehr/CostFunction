@@ -68,8 +68,8 @@ int main(int argc, char** argv)
 
 	//CostFunctionClass::testUpdateCameraParameters();
 	CF2 cf;
-	//cf.run();
-	cf.run_completeEnumeration();
+	cf.run();
+	//cf.run_completeEnumeration();
 	
 	
 

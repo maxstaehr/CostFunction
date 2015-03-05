@@ -20,7 +20,7 @@
 double const SimulatedAnnealing::e( 2.7182818284590452353602874713526624977572 );
 
 
-SimulatedAnnealing::SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, int nI, int* nn_indices, AngleGenerator* ag):SearchClass(sp, sr, nC, nI, nn_indices, ag),ite(0),neighbourRadius(1.2), neighbourAngle(2.4), firstEvaluation(true), NofIteration(300), maxIteration(nC*NofIteration), firstIteration(true), min_threshold(1.0e-1)
+SimulatedAnnealing::SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, int nI, int* nn_indices, AngleGenerator* ag):SearchClass(sp, sr, nC, nI, nn_indices, ag),ite(0),neighbourRadius(1.2), neighbourAngle(2.4), firstEvaluation(true), NofIteration(600), maxIteration(nC*NofIteration), firstIteration(true), min_threshold(1.0e-1)
 {
 	assert(nI>0 && nI%2==0);
 	NofE = (int)nI/2;
@@ -138,7 +138,11 @@ SimulatedAnnealing::SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int
 //}
 
 void SimulatedAnnealing::setCoolingPlan(float* costs)
-{
+{	
+	time_t end;
+	time(&end);
+	loopTime = difftime(end, start);
+
 	float maxTemperature(FLT_MIN);
 	for(unsigned int i=0; i<2*NofE; i++)
 	{
@@ -155,9 +159,7 @@ void SimulatedAnnealing::setCoolingPlan(float* costs)
 	float expo = 1.0f/((float)nOfCams*maxIteration);
 	alpha = pow(basis, expo);
 	assert(alpha < 1.0f);
-	time_t end;
-	time(&end);
-	loopTime = difftime(end, start);
+
 	maxTime = maxIteration*loopTime;
 }
 
@@ -200,14 +202,28 @@ SimulatedAnnealing::~SimulatedAnnealing(void)
 }
 
 void SimulatedAnnealing::initializeFirstRun(int* pclIndex, int* angleIndex)
-{
-	printf("init first run...\n");
-	for(unsigned int i=0; i<MAX_ITE*nC; i++)
+{	
+	
+	
+	for(unsigned int i=0; i<NofE; i++)
 	{
-		pclIndex[i] =  rand() % Npcl; //72
-		angleIndex[i] =  aG->generateRandomAngle(); //rand() % Nangle; //196
-		//printf("init angle %d to %d\n", i, angleIndex[i]);
-		assert(pclIndex[i] >= 0 && pclIndex[i] < Npcl && angleIndex[i] >= 0 && angleIndex[i]<Nangle);
+		for(unsigned int cam=0; cam<nC; cam++)
+		{
+			int pa_index_m = i*2*nC+0*nC+cam;
+			int pa_index_p = i*2*nC+1*nC+cam;
+
+
+
+			int p_index =  rand() % Npcl;
+			int a_index =	aG->generateRandomAngle();
+			pclIndex[pa_index_m] = p_index;
+			angleIndex[pa_index_m] = a_index; 
+			pclIndex[pa_index_p] = p_index;
+			angleIndex[pa_index_p] = a_index;
+
+			//assert(pclIndex[i] >= 0 && pclIndex[i] < Npcl && angleIndex[i] >= 0 && angleIndex[i]<Nangle);
+
+		}
 	}
 	time(&start);
 }
@@ -253,16 +269,21 @@ int SimulatedAnnealing::createAngleIndexInRange(int a_i)
 void SimulatedAnnealing::chooseRandomConfiguration(int* pclIndex, int* angleIndex, int index)
 {
 
-	int offset;
-	for(int i=0; i<nOfCams; i++)
+	int offset_m,offset_p;
+	for(int cam=0; cam<nOfCams; cam++)
 	{
-		offset = index*2*nC+0*nC+i;
-		pclIndex[offset] = createPCLIndexInRange(pclIndex_t1[offset]);
-		angleIndex[offset] = createAngleIndexInRange(angleIndex_t1[offset]);
+		offset_m = index*2*nC+0*nC+cam;
+		offset_p = index*2*nC+1*nC+cam;
 
-		offset = index*2*nC+1*nC+i;
-		pclIndex[offset] = createPCLIndexInRange(pclIndex_t1[offset]);
-		angleIndex[offset] = createAngleIndexInRange(angleIndex_t1[offset]);
+		int p_index = createPCLIndexInRange(pclIndex_t1[offset_m]);
+		int a_index = createAngleIndexInRange(angleIndex[offset_m]);
+
+		pclIndex[offset_m] = p_index;
+		angleIndex[offset_m] = a_index; 
+
+		pclIndex[offset_p] = p_index;
+		angleIndex[offset_p] = a_index;
+
 	}
 
 
@@ -394,15 +415,26 @@ double SimulatedAnnealing::iterateSingle(const int* const nn_indices, int* pclIn
 
 	if(cm < cp)
 	{	//change to minus
+		//copying the complete solution to minus
 		localMinE = cm;
+
 		p_i = pclIndex[pa_index_m];
 		a_i = angleIndex[pa_index_m];
+
+		memcpy(angleIndex+i*2*nC+1*nC, angleIndex+i*2*nC+0*nC, nC*sizeof(int));
+		memcpy(pclIndex+i*2*nC+1*nC, pclIndex+i*2*nC+0*nC, nC*sizeof(int));
 		p_o_m = 0;
 	}else
 	{	//change to plus
+		//copying the complete solution to plus
 		localMinE = cp;
+
 		p_i = pclIndex[pa_index_p];
 		a_i = angleIndex[pa_index_p];	
+
+		memcpy(angleIndex+i*2*nC+0*nC, angleIndex+i*2*nC+1*nC, nC*sizeof(int));
+		memcpy(pclIndex+i*2*nC+0*nC, pclIndex+i*2*nC+1*nC, nC*sizeof(int));
+
 		p_o_m = 1;
 	}
 
@@ -666,14 +698,17 @@ bool SimulatedAnnealing::iterate(int* pclIndex, int* angleIndex, float* costs, f
 		initializeFirstRun(pclIndex, angleIndex);
 		firstIteration = false;
 		return true;
+	}else
+	{
+		if(firstEvaluation)
+		{
+			firstEvaluation = false;
+			setCoolingPlan(costs);
+		}
 	}
 
 	
-	if(firstEvaluation)
-	{
-		firstEvaluation = false;
-		setCoolingPlan(costs);
-	}
+
 
 	//iterating through all possible configuration
 	int rp, ra;
@@ -772,7 +807,8 @@ bool SimulatedAnnealing::iterate(int* pclIndex, int* angleIndex, float* costs, f
 	//	return false;
 	//}
 
-	if(T >min_threshold)
+	//if(T >min_threshold)
+	if(ite<maxIteration)
 	{
 		T *= alpha;
 		return true;

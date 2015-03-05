@@ -756,8 +756,11 @@ namespace cuda_calc2{
 				}
 			}
 
-			if(threadIdx.x == 0)			
+			if(threadIdx.x == 0)
+			{
+				//bb_intersect[bbi] = true;
 				bb_intersect[bbi] = hhb[0];
+			}
 			
 			__syncthreads();
 		}

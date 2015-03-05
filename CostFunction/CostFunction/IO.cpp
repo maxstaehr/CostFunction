@@ -318,7 +318,7 @@ void IO::loadSamplePositions(struct SAMPLE_POSITIONS* pos, const char* name)
 
 	inbin.close();
 
-	pos->nP = 2;
+	//pos->nP = 2;
 	//normalizing priorities to one
 	float sum = 0.0;
 	for(int i=0; i<pos->nP; i++)
@@ -329,8 +329,8 @@ void IO::loadSamplePositions(struct SAMPLE_POSITIONS* pos, const char* name)
 
 	for(int i=0; i<pos->nP; i++)
 	{
-		//pos->pr[i] /= sum;
-		pos->pr[i] = 1.0f/pos->nP;
+		pos->pr[i] /= sum;
+		//pos->pr[i] = 1.0f/pos->nP;
 	}
 
 	sum = 0.0;
@@ -349,7 +349,7 @@ void IO::loadSamplePositions(struct SAMPLE_POSITIONS* pos, const char* name)
 
 	for(int i=0; i<pos->nP;i++)
 	{
-		printf("%d\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n", i,	pos->qr[i*N_ELEMENT_T*NUMELEM_H+3], pos->qr[i*N_ELEMENT_T*NUMELEM_H+7],
+		printf("%d\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.8f\n", i,	pos->qr[i*N_ELEMENT_T*NUMELEM_H+3], pos->qr[i*N_ELEMENT_T*NUMELEM_H+7],
 																pos->qe[i*N_ELEMENT_HU*NUMELEM_H+3], pos->qe[i*N_ELEMENT_HU*NUMELEM_H+7],
 																pos->qh[i*N_ELEMENT_EV*NUMELEM_H+3], pos->qh[i*N_ELEMENT_EV*NUMELEM_H+7],
 																 pos->pr[i]);

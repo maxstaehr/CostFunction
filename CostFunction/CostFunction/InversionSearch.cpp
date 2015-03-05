@@ -59,6 +59,10 @@ InversionSearch::InversionSearch(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, i
 	this->prop = new float[SEARCH_DOF*sr->nRotations];
 	this->dist = new float[SEARCH_DOF*sr->nRotations];
 	this->weights = new int[SEARCH_DOF*sr->nRotations];
+	for(int i=0; i<SEARCH_DOF*sr->nRotations; i++)
+	{
+		this->prop[i] = 1.0f;
+	}
 
 	printf("staring inversion search %d pos %d rot %d samples", sp->n, sr->nRotations, sp->n*sr->nRotations);
 
