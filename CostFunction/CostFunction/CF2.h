@@ -32,12 +32,15 @@ private:
 	VERTEX_BUFFER		vertexBufferRobot;
 	VERTEX_BUFFER		vertexBufferHuman;
 	VERTEX_BUFFER		vertexBufferEnvironment;
+	VERTEX_BUFFER		vertexBufferCamera;
+	
 
 	//bounding box buffer
 	BB_BUFFER			boundingBoxBuffer;
 	BB_BUFFER			boundingBoxBufferRobot;
 	BB_BUFFER			boundingBoxBufferEnvironment;
 	BB_BUFFER			boundingBoxBufferHuman;
+	
 
 	//depth buffer
 	DEPTH_BUFFER		depthBuffer;
@@ -59,6 +62,9 @@ private:
 
 	//launch configuration for max cluster
 	LAUNCH_CONFIG		launchConfigMaxCluster;
+
+	//launch config rayTrace Cameras
+	LAUNCH_CONFIG		launchConfigCameras;
 
 	//probability calculation
 	PROB_RESULT			probResult;
@@ -88,17 +94,29 @@ private:
 	float* debug_distance_buffer;
 	float* debug_propability_buffer;
 
+	RESULT_SOLUTION		resultingSolution;
+
 
 
 
 	//init functions
 	void initVertexBuffer();
 	void initBoundingBoxBuffer();
+	void freeVertexBuffer();
+	void freeBoundingBoxBuffer();
+
+
 	void initSamplePointsBuffer();
 
 	void initDepthBuffer(DEPTH_BUFFER* depthBuffer, int nSessions, int nCam, int size, int ss_size);	
 	void initCentroidBuffer(CENTROID* centroid, int n);
 	void initPropBuffer(PROB_RESULT* probResult, int n, int session);
+
+	void initCameraVertexBuffer(VERTEX_BUFFER* vertexBuffer, int sessions);
+	void freeCameraVertexBuffer(VERTEX_BUFFER* vertexBuffer);
+
+
+
 	void clearPropBuffer(PROB_RESULT* probResult, int n);
 	void createCudaStream(cudaStream_t** streams, int n);
 	
@@ -117,9 +135,11 @@ private:
 	void transformVertexBuffer();
 	void transformBoundingBoxBuffer();
 	void transformSamplePointBuffer();
+	void transformCameras();
 	void setCurrentTans(int i);
 	
 	void rayTrace();
+	void rayTraceCameras();
 	void calculateCentroid();
 	void calculateCluster();
 	void calculateProbOfHumanDetection();
@@ -141,6 +161,7 @@ private:
 public:
 	void run();
 	void run_completeEnumeration();
+	void run_evaluation();
 	
 	
 };

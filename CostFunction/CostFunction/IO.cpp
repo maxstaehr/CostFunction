@@ -274,7 +274,103 @@ void IO::loadPCL(struct PCL* pcl, const char* name)
 
 }
 
+void IO::loadPCL(struct PCL* pcl, std::ifstream* inbin)
+{
 
+	if(!inbin->is_open()) std::cerr << "error";
+	
+	inbin->read((char*)&pcl->nV, sizeof(int));
+	if (!inbin) std::cerr << "error";
+
+	inbin->read((char*)&pcl->nF, sizeof(int));
+	if (!inbin) std::cerr << "error";
+
+	inbin->read((char*)&pcl->nBB, sizeof(int));
+	if (!inbin) std::cerr << "error";
+
+
+	pcl->x = new float[pcl->nV];
+	pcl->y = new float[pcl->nV];
+	pcl->z = new float[pcl->nV];
+	pcl->vi = new int[pcl->nV];
+
+	pcl->fx = new int[pcl->nF];
+	pcl->fy = new int[pcl->nF];
+	pcl->fz = new int[pcl->nF];
+	pcl->f_bbi = new int[pcl->nF];
+
+	pcl->bb_H = new float[pcl->nBB*16];
+	pcl->bb_D = new float[pcl->nBB*3];
+	pcl->bbi = new int[pcl->nBB];
+
+	CudaMem::cudaMemAllocReport((void**)&pcl->d_x, pcl->nV*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&pcl->d_y, pcl->nV*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&pcl->d_z, pcl->nV*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&pcl->d_vi, pcl->nV*sizeof(int));
+
+	CudaMem::cudaMemAllocReport((void**)&pcl->d_fx, pcl->nF*sizeof(int));
+	CudaMem::cudaMemAllocReport((void**)&pcl->d_fy, pcl->nF*sizeof(int));
+	CudaMem::cudaMemAllocReport((void**)&pcl->d_fz, pcl->nF*sizeof(int));
+	CudaMem::cudaMemAllocReport((void**)&pcl->d_f_bbi, pcl->nF*sizeof(int));
+
+	CudaMem::cudaMemAllocReport((void**)&pcl->d_bb_H, pcl->nBB*16*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&pcl->d_bb_D, pcl->nBB*3*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&pcl->d_bbi, pcl->nBB*sizeof(int));
+
+
+	inbin->read((char*)pcl->x, pcl->nV*sizeof(float));
+	if (!inbin) std::cerr << "error";
+
+	inbin->read((char*)pcl->y, pcl->nV*sizeof(float));
+	if (!inbin) std::cerr << "error";
+
+	inbin->read((char*)pcl->z, pcl->nV*sizeof(float));
+	if (!inbin) std::cerr << "error";
+
+	inbin->read((char*)pcl->vi, pcl->nV*sizeof(int));
+	if (!inbin) std::cerr << "error";
+
+	inbin->read((char*)pcl->fx, pcl->nF*sizeof(int));
+	if (!inbin) std::cerr << "error";
+
+	inbin->read((char*)pcl->fy, pcl->nF*sizeof(int));
+	if (!inbin) std::cerr << "error";
+
+	inbin->read((char*)pcl->fz, pcl->nF*sizeof(int));
+	if (!inbin) std::cerr << "error";
+
+	//here the bullshit comes
+	//reading normals and middlepoints, we don't need
+	inbin->ignore(pcl->nF*6*sizeof(float));
+	if (!inbin) std::cerr << "error";
+
+	inbin->read((char*)pcl->f_bbi, pcl->nF*sizeof(int));
+	if (!inbin) std::cerr << "error";
+
+	inbin->read((char*)pcl->bb_H, pcl->nBB*16*sizeof(float));
+	if (!inbin) std::cerr << "error";
+
+	inbin->read((char*)pcl->bb_D, pcl->nBB*3*sizeof(float));
+	if (!inbin) std::cerr << "error";
+
+	inbin->read((char*)pcl->bbi, pcl->nBB*sizeof(int));
+	if (!inbin) std::cerr << "error";
+	
+
+	CudaMem::cudaMemCpyReport(pcl->d_x, pcl->x, pcl->nV * sizeof(float), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(pcl->d_y, pcl->y, pcl->nV * sizeof(float), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(pcl->d_z, pcl->z, pcl->nV * sizeof(float), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(pcl->d_vi, pcl->vi, pcl->nV * sizeof(int), cudaMemcpyHostToDevice);
+
+	CudaMem::cudaMemCpyReport(pcl->d_fx, pcl->fx, pcl->nF * sizeof(int), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(pcl->d_fy, pcl->fy, pcl->nF * sizeof(int), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(pcl->d_fz, pcl->fz, pcl->nF * sizeof(int), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(pcl->d_f_bbi, pcl->f_bbi, pcl->nF * sizeof(int), cudaMemcpyHostToDevice);
+
+	CudaMem::cudaMemCpyReport(pcl->d_bb_H, pcl->bb_H, pcl->nBB*16*sizeof(float), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(pcl->d_bb_D, pcl->bb_D, pcl->nBB*3*sizeof(float), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(pcl->d_bbi, pcl->bbi, pcl->nBB*sizeof(int), cudaMemcpyHostToDevice);
+}
 
 void IO::loadSamplePositions(struct SAMPLE_POSITIONS* pos, const char* name)
 {
@@ -475,6 +571,9 @@ void IO::loadSampleCamera(struct POSSIBLE_CAMERA_TYPES* cams, const char* name)
 		int ry = pCamera->ny/2;
 		pCamera->rmax = rx*rx+ry*ry;
 
+		
+		IO::loadPCL(&(pCamera->pcl), &inbin);
+
 	}
 	char c;
 	inbin.get(c);
@@ -485,6 +584,36 @@ void IO::loadSampleCamera(struct POSSIBLE_CAMERA_TYPES* cams, const char* name)
 
 }
 
+void IO::loadResultingSolution(struct RESULT_SOLUTION* solu, const char* name)
+{
+	ifstream inbin;
+	inbin.open(name, ifstream::binary);
+	if(!inbin.is_open()) std::cerr << "error";
+	
+	inbin.read((char*)&solu->nC, sizeof(int));
+	if (!inbin) std::cerr << "error";
+
+	solu->cameraTypes = new int[solu->nC];
+	solu->pclIndex = new int[solu->nC];
+	solu->angleIndex = new int[solu->nC];
+
+	inbin.read((char*)solu->cameraTypes, solu->nC*sizeof(int));
+	if (!inbin) std::cerr << "error";
+
+	inbin.read((char*)solu->pclIndex, solu->nC*sizeof(int));
+	if (!inbin) std::cerr << "error";
+
+	inbin.read((char*)solu->pclIndex, solu->nC*sizeof(int));
+	if (!inbin) std::cerr << "error";
+
+	char c;
+	inbin.get(c);
+
+	if(!inbin.eof()) std::cerr << "error";
+	inbin.close();
+
+
+}
 void IO::saveBoundingBoxBuffer(struct BB_BUFFER* bbBuffer, const char* name)
 {
 

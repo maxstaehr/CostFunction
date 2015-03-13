@@ -40,7 +40,8 @@ public:
 	void addResult(void);
 	void addSingleResult(int i);
 	void writeAllResultToFile(std::string pre);
-	int createPCLIndexInRange(int i1);
+	int createPCLIndexInRange(int* pcl, int offset_m, int offset_p_in, int index);
+	bool isPCLIndexValid(int* pcl, int offset_m_in, int offset_p_in, int i, int index);
 	int createAngleIndexInRange(int angle);
 	double iterateSingle(const int* const nn_indices, int* pclIndex, int* angleIndex, float* costs, int i);
 	void setCoolingPlan(float *costs);
@@ -48,6 +49,8 @@ public:
 	bool iterate(int* pI, int* aI, float* prob, float* d, int* weights);
 	void writeResultsToFile(unsigned long long* vec, int nOfCams, struct SAMPLE_POINTS_BUFFER* samplePoints);
 	void printMinPositionToFile(std::string pre, struct SAMPLE_POINTS_BUFFER* samplePoints);
+	void printDistanceMatrix();
+	bool isCompleteConfigurationValid(int* pclIndex);
 
 private:
 	int NofE;
@@ -70,6 +73,8 @@ private:
 
 	int* pclIndex_t1;
 	int* angleIndex_t1;
+	float* minEnergy_t1;
+
 
 	float* minEnergy;
 	bool* noChange;

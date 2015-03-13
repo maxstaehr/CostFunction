@@ -246,6 +246,9 @@ struct SAMPLE_CAMERA
 
 	int* d_angleIndex;
 	int* d_positionIndex;
+
+	PCL pcl;
+
 };
 
 struct CAM_COMBINATION{
@@ -271,16 +274,47 @@ struct CENTROID{
 	float* d_cz;
 
 };
+
+  struct VERTEX_BUFFER{
+	  int nF;
+	  int nV;
+
+	  float* d_vx;
+	  float* d_vy;
+	  float* d_vz;
+	  
+
+	  int* d_fx;
+	  int* d_fy;
+	  int* d_fz;
+	  int* d_f_bbi;
+	  
+
+  };
+
+struct RESULT_SOLUTION{
+	int nC;
+	int* cameraTypes;
+	int* pclIndex;
+	int* angleIndex;
+};
+
+struct BB_BUFFER;
 struct RAYTRACING_LAUNCH{
 	int						n;	
+	int						cameraFaces;
 	SAMPLE_CAMERA**	cams;
 	cudaStream_t**	cudaStream;
 	
 	
 	DEPTH_BUFFER*	depthBuffers;
+	BB_BUFFER*		boundingBoxBuffers;
+	VERTEX_BUFFER*  vertexBuffers;
 
 	//for all camera within one launch
 	DEPTH_BUFFER	depthBuffer;
+	VERTEX_BUFFER	vertexBuffer;
+	
 	CENTROID		centroid;
 	PROB_RESULT		probResult;
 
@@ -535,22 +569,7 @@ struct H_transformations{
 
 
 
-  struct VERTEX_BUFFER{
-	  int nF;
-	  int nV;
 
-	  float* d_vx;
-	  float* d_vy;
-	  float* d_vz;
-	  
-
-	  int* d_fx;
-	  int* d_fy;
-	  int* d_fz;
-	  int* d_f_bbi;
-	  
-
-  };
 
   struct BB_BUFFER{
 	  int nBB;

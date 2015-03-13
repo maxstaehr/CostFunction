@@ -8,7 +8,8 @@
 namespace cuda_calc2{
 
 	//#define EPSILON 0.000001
-	#define EPSILON 0.00000001
+	//#define EPSILON 0.00000001
+	#define EPSILON 0.00001
 	//#define EPSILON (0.5f)
 
 
@@ -231,6 +232,39 @@ namespace cuda_calc2{
 		xo[idx] = h[0]*x + h[1]*y + h[2]*z + h[3];
 		yo[idx] = h[4]*x + h[5]*y + h[6]*z + h[7];
 		zo[idx] = h[8]*x + h[9]*y + h[10]*z + h[11];
+
+	}
+
+
+	__global__ void transformVertexCamera(float* xi, float* yi, float* zi, int nV, float* camPos_H, float* camRot_H, float* xo, float* yo, float* zo)
+	{
+		int idx, id;
+		float x, y, z;
+
+		float hr[16];
+
+		idx =  blockIdx.y  * gridDim.x  * blockDim.z * blockDim.y * blockDim.x
+			+ blockIdx.x  * blockDim.z * blockDim.y * blockDim.x
+			+ threadIdx.z * blockDim.y * blockDim.x
+			+ threadIdx.y * blockDim.x
+			+ threadIdx.x;
+
+		
+		//first calculate the resulting transformation
+		//and inverse bb transformation
+
+		mm16_device(camPos_H, camRot_H, hr);			
+				
+		if (idx < nV)
+		{
+			x = xi[idx];
+			y = yi[idx];
+			z = zi[idx];
+
+			xo[idx] = hr[0]*x + hr[1]*y + hr[2]*z + hr[3];
+			yo[idx] = hr[4]*x + hr[5]*y + hr[6]*z + hr[7];
+			zo[idx] = hr[8]*x + hr[9]*y + hr[10]*z + hr[11];
+		}
 
 	}
 
@@ -460,6 +494,142 @@ namespace cuda_calc2{
 		}
 		sigma *= sigmaFactor;
 		return z+sigma*rand;
+	}
+
+	__global__ void raytraceVerticesCamera(				float* xi, float* yi, float* zi,
+														int* fx, int* fy, int* fz, int nF,														
+														float* camPos_H, float* camRot_H,
+														float* camRayX, float* camRayY, float* camRayZ,
+														float* Dx, float* Dy, float* Dz)
+	{
+		//defining vertex buffer
+		__shared__ float v1[VERTEX_BUFFER_SIZE*3];
+		__shared__ float v2[VERTEX_BUFFER_SIZE*3];
+		__shared__ float v3[VERTEX_BUFFER_SIZE*3];
+		
+		
+
+		int blockSize = blockDim.x * blockDim.y * blockDim.z;
+		int threadIDinBlock = threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x;
+		int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
+		int threadId = blockId * (blockDim.x * blockDim.y * blockDim.z)
+			  + (threadIdx.z * (blockDim.x * blockDim.y))
+			  + (threadIdx.y * blockDim.x)
+			  + threadIdx.x;
+		
+
+		float dr;
+		int hit = 0;
+		bool validRay = !isnan(Dx[threadId]);
+
+		
+
+
+		//calculating current origin
+		float o[3];
+		float di[3];
+		float* v1_d;
+		float* v2_d;
+		float* v3_d;
+		calculateOrginAndDirection(camPos_H, camRot_H, camRayX[threadId], camRayY[threadId], camRayZ[threadId], o, di);
+		
+		
+
+		//determining number of vertices to be copied by each thread into buffer
+		int nItePerThread = (int)((VERTEX_BUFFER_SIZE/blockSize)+1);
+
+
+		//loading vertex data into local buffer
+		int t,f, fix, fiy, fiz;
+		int numOfVerticesCopied = 0;
+		int numberOfValidVertices;
+		//keep loading vertices until all faces have been raytraced
+		while(numOfVerticesCopied < nF)
+		{
+			if(nF - numOfVerticesCopied >= VERTEX_BUFFER_SIZE)
+			{
+				numberOfValidVertices = VERTEX_BUFFER_SIZE;
+			}else{
+				numberOfValidVertices = nF - numOfVerticesCopied;
+			}
+			
+			//calcNumberOfValidPoints(nF, int bufferSize, int numOfVerticesCopied)
+
+			for(int i=0; i<nItePerThread; i++)
+			{
+				t = threadIDinBlock*nItePerThread+i;
+				//check if enough space in vertex buffer and enough remaing faces
+				if(t < numberOfValidVertices)
+				{
+
+
+					//copying corresponding vertices
+					//dirty hack because the facesnumeration comes from
+					//matlab which start 1 as first indice
+					//therefore we have to substract each face indice by 1
+					fix = fx[numOfVerticesCopied + t]-1;
+					fiy = fy[numOfVerticesCopied + t]-1;
+					fiz = fz[numOfVerticesCopied + t]-1;
+
+
+					v1[3*t+0] = xi[fix];
+					v1[3*t+1] = yi[fix];
+					v1[3*t+2] = zi[fix];
+
+					
+					v2[3*t+0] = xi[fiy];
+					v2[3*t+1] = yi[fiy];
+					v2[3*t+2] = zi[fiy];
+
+					
+					v3[3*t+0] = xi[fiz];
+					v3[3*t+1] = yi[fiz];
+					v3[3*t+2] = zi[fiz];
+
+				}
+			}
+			numOfVerticesCopied += numberOfValidVertices;
+			__syncthreads();
+
+
+			//we just need to do raytracing if it is a valid ray
+			if(validRay)
+			{
+				//raytrace and check minum distance
+				for(int i=0; i<numberOfValidVertices; i++)
+				{
+
+					//check if face is valid								
+					v1_d = v1+3*i;
+					v2_d = v2+3*i;
+					v3_d = v3+3*i;
+					hit =  triangle_intersection(	
+											v1_d,  // Triangle vertices
+											v2_d,
+											v3_d,
+											o,  //Ray origin
+											di,  //Ray direction
+											&dr);
+					// we are just interested in a single hit
+					if(hit > 0){						
+						break;
+					}
+				
+				}
+			}
+			__syncthreads();
+
+		}
+
+		if(hit > 0)
+		{
+			//setting to error value
+			Dx[threadId] = nanf("");
+			Dy[threadId] = nanf("");
+			Dz[threadId] = nanf("");
+		}
+
+
 	}
 
 	__global__ void raytraceVertices(					float* xi, float* yi, float* zi,

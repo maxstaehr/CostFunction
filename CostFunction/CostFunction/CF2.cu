@@ -303,7 +303,7 @@ void CF2::run()
 	//		transformBoundingBoxBuffer();
 	//		transformSamplePointBuffer();
 
-	//		rayTrace();
+	//		rayTrace();			
 	//		//IO::saveDepthBufferToFile(&depthBuffer, "depthBuffer.bin");
 	//		calculateCluster();
 	//		//printCentroid(&depthBuffer);
@@ -326,12 +326,12 @@ void CF2::run()
 	delete sC;
 
 	freeParallelOptiRuns();
-	currentNumberOfCams = 3;
+	currentNumberOfCams = 4;
 	initCameraCombination();
 	printf("starting optimisation...\n");
 	//IO::waitForEnter();
 	
-	while(currentNumberOfCams < 4)
+	while(currentNumberOfCams < 5)
 	{
 	
 		do
@@ -395,6 +395,46 @@ void CF2::run()
 		initCameraCombination();
 	}
 	IO::waitForEnter();
+
+}
+
+void CF2::run_evaluation()
+{
+	IO::loadResultingSolution(&resultingSolution, "resultingSolution.bin");
+
+	//setting current number of cameras
+	currentNumberOfCams = resultingSolution.nC;
+	initCameraCombination();
+	for(int i=0; i<currentNumberOfCams; i++)
+	{
+		cameraCombination.vector[i] = (unsigned long long)resultingSolution.cameraTypes[i];
+	}
+	//having camera types set
+	//setting camera configuration
+	initParallelOptiRuns();
+	memcpy(optiSession.pI, resultingSolution.pclIndex, currentNumberOfCams*sizeof(int));
+	memcpy(optiSession.aI, resultingSolution.angleIndex, currentNumberOfCams*sizeof(int));
+
+	zeroProb();
+	for(int i=0; i< samplePositions.nP; i++)
+	{				
+		setCurrentTans(i);
+		transformVertexBuffer();
+		transformBoundingBoxBuffer();
+		transformSamplePointBuffer();
+
+		rayTrace();
+		//IO::saveDepthBufferToFile(&depthBuffer, "depthBuffer.bin");
+		calculateCluster();
+		calculateCentroid();
+		//printCentroid(&depthBuffer);
+		calculateProbOfHumanDetection();
+		calculateMaxProb();
+		//Progress::printProgress((double)i, (double)samplePositions.nP, start, "raytracing rp ");	
+	}
+	printf("resulting prop: %.10f\n", probResult.maxp[0]);
+	IO::waitForEnter();
+
 
 }
 
@@ -498,14 +538,14 @@ void CF2::checkIntermediateResults()
 
 void CF2::initBoundingBoxBuffer()
 {
-	boundingBoxBuffer.nBB = robot.nBB+environment.nBB+human.nBB;
+	
+	boundingBoxBuffer.nBB = robot.nBB+environment.nBB+human.nBB ;
 	humanBB = robot.nBB+environment.nBB;
 
 	//allocating memory
 	CudaMem::cudaMemAllocReport((void**)&boundingBoxBuffer.d_BB, boundingBoxBuffer.nBB*NUMELEM_H*sizeof(float));
 	CudaMem::cudaMemAllocReport((void**)&boundingBoxBuffer.d_D, boundingBoxBuffer.nBB*3*sizeof(float));
 	
-
 	//setting bounding box buffer
 	boundingBoxBufferRobot.nBB = robot.nBB;
 	boundingBoxBufferRobot.d_BB = boundingBoxBuffer.d_BB;
@@ -520,6 +560,7 @@ void CF2::initBoundingBoxBuffer()
 	boundingBoxBufferHuman.d_D = boundingBoxBuffer.d_D+ (boundingBoxBufferRobot.nBB +boundingBoxBufferEnvironment.nBB) * 3;
 
 
+
 	//CudaMem::cudaMemCpyReport(boundingBoxBufferRobot.d_BB, robot.d_bb_H, boundingBoxBufferRobot.nBB*NUMELEM_H*sizeof(float), cudaMemcpyHostToDevice);
 	CudaMem::cudaMemCpyReport(boundingBoxBufferRobot.d_D, robot.d_bb_D, boundingBoxBufferRobot.nBB*3*sizeof(float), cudaMemcpyDeviceToDevice);
 
@@ -529,6 +570,17 @@ void CF2::initBoundingBoxBuffer()
 		//CudaMem::cudaMemCpyReport(boundingBoxBufferEnvironment.d_BB, environment.d_bb_H, boundingBoxBufferEnvironment.nBB*NUMELEM_H*sizeof(float), cudaMemcpyHostToDevice);
 	CudaMem::cudaMemCpyReport(boundingBoxBufferHuman.d_D, human.d_bb_D, boundingBoxBufferHuman.nBB*3*sizeof(float), cudaMemcpyDeviceToDevice);
 
+
+
+}
+
+void CF2::freeBoundingBoxBuffer()
+{
+	CudaMem::cudaFreeReport(boundingBoxBuffer.d_BB);
+	CudaMem::cudaFreeReport(boundingBoxBuffer.d_D);
+
+	boundingBoxBuffer.d_BB = NULL;
+	boundingBoxBuffer.d_D = NULL;
 }
 
 void CF2::createCudaStream(cudaStream_t** streams, int n)
@@ -622,16 +674,23 @@ void CF2::initParallelOptiRuns()
 	int nOfSSRays = 0;
 	int raysPerLaunch = 0;
 	int raysSSPerLaunch = 0;
+	int cameraVerticesPerLaunch = 0;
+	int cameraFacesPerLaunch = 0;
 	for(int ite=0; ite<optiSession.n; ite++)
 	{		
 		optiSession.launchs[ite].cams = new SAMPLE_CAMERA *[currentNumberOfCams];
 		optiSession.launchs[ite].depthBuffers = new DEPTH_BUFFER[currentNumberOfCams];
+		optiSession.launchs[ite].boundingBoxBuffers = new BB_BUFFER[currentNumberOfCams];
+		optiSession.launchs[ite].vertexBuffers = new VERTEX_BUFFER[currentNumberOfCams];
 		optiSession.launchs[ite].cudaStream = new cudaStream_t*[currentNumberOfCams];	
 		optiSession.launchs[ite].aI = new int*[currentNumberOfCams];
 		optiSession.launchs[ite].pI = new int*[currentNumberOfCams];
 		optiSession.launchs[ite].n = currentNumberOfCams;
+
 		raysPerLaunch = 0;
 		raysSSPerLaunch = 0;
+		cameraVerticesPerLaunch = 0;
+		cameraFacesPerLaunch = 0;
 
 		for(int i=0; i<currentNumberOfCams; i++)
 		{			
@@ -641,6 +700,9 @@ void CF2::initParallelOptiRuns()
 
 			raysPerLaunch += optiSession.launchs[ite].cams[i]->nRays;
 			raysSSPerLaunch += optiSession.launchs[ite].cams[i]->ssnRays;
+
+			cameraVerticesPerLaunch += optiSession.launchs[ite].cams[i]->pcl.nV;
+			cameraFacesPerLaunch += optiSession.launchs[ite].cams[i]->pcl.nF;
 		}
 
 	}
@@ -648,6 +710,7 @@ void CF2::initParallelOptiRuns()
 
 	////init the rest of the launch
 	initDepthBuffer(&depthBuffer,optiSession.n, currentNumberOfCams, nOfRays, nOfSSRays);	
+	initCameraVertexBuffer(&vertexBufferCamera, optiSession.n);
 	initCentroidBuffer(&centroid, optiSession.n);
 	initPropBuffer(&probResult ,sampleFitting.n, optiSession.n);	
 
@@ -658,7 +721,9 @@ void CF2::initParallelOptiRuns()
 	nOfRays = 0;
 	nOfSSRays = 0;
 	int nofProps = 0;
-
+	
+	int nOfVertices = 0;
+	int nOfFaces = 0;
 	for(int ite=0; ite<optiSession.n; ite++)
 	{	
 
@@ -684,6 +749,15 @@ void CF2::initParallelOptiRuns()
 		optiSession.launchs[ite].depthBuffer.d_ss_dy = depthBuffer.d_ss_dy + nOfSSRays;
 		optiSession.launchs[ite].depthBuffer.d_ss_dz = depthBuffer.d_ss_dz + nOfSSRays;
 
+		optiSession.launchs[ite].vertexBuffer.d_vx = vertexBufferCamera.d_vx + nOfVertices;
+		optiSession.launchs[ite].vertexBuffer.d_vy = vertexBufferCamera.d_vy + nOfVertices;
+		optiSession.launchs[ite].vertexBuffer.d_vz = vertexBufferCamera.d_vz + nOfVertices;
+
+		optiSession.launchs[ite].vertexBuffer.d_fx = vertexBufferCamera.d_fx;
+		optiSession.launchs[ite].vertexBuffer.d_fy = vertexBufferCamera.d_fy;
+		optiSession.launchs[ite].vertexBuffer.d_fz = vertexBufferCamera.d_fz;			
+		optiSession.launchs[ite].vertexBuffer.d_f_bbi = vertexBufferCamera.d_f_bbi;
+
 		optiSession.launchs[ite].centroid.d_cx = centroid.d_cx + ite;
 		optiSession.launchs[ite].centroid.d_cy = centroid.d_cy + ite;
 		optiSession.launchs[ite].centroid.d_cz = centroid.d_cz + ite;
@@ -707,11 +781,14 @@ void CF2::initParallelOptiRuns()
 		optiSession.launchs[ite].probResult.maxw = probResult.maxw+ite;
 
 		optiSession.launchs[ite].probResult.n = sampleFitting.n;
+		optiSession.launchs[ite].cameraFaces = cameraFacesPerLaunch;
 
 		//init random states for rays
 		//
 		raysPerLaunch = 0;
 		raysSSPerLaunch = 0;
+		cameraVerticesPerLaunch = 0;
+		cameraFacesPerLaunch = 0;
 		for(int i=0; i<currentNumberOfCams; i++)
 		{
 			optiSession.launchs[ite].depthBuffers[i].size = optiSession.launchs[ite].cams[i]->nRays;
@@ -728,6 +805,15 @@ void CF2::initParallelOptiRuns()
 			optiSession.launchs[ite].depthBuffers[i].d_ss_dy = depthBuffer.d_ss_dy + nOfSSRays;
 			optiSession.launchs[ite].depthBuffers[i].d_ss_dz = depthBuffer.d_ss_dz + nOfSSRays;
 
+			optiSession.launchs[ite].vertexBuffers[i].d_vx = vertexBufferCamera.d_vx + nOfVertices;
+			optiSession.launchs[ite].vertexBuffers[i].d_vy = vertexBufferCamera.d_vy + nOfVertices;
+			optiSession.launchs[ite].vertexBuffers[i].d_vz = vertexBufferCamera.d_vz + nOfVertices;
+
+			optiSession.launchs[ite].vertexBuffers[i].d_fx = vertexBufferCamera.d_fx + cameraFacesPerLaunch;
+			optiSession.launchs[ite].vertexBuffers[i].d_fy = vertexBufferCamera.d_fy + cameraFacesPerLaunch;
+			optiSession.launchs[ite].vertexBuffers[i].d_fz = vertexBufferCamera.d_fz + cameraFacesPerLaunch;			
+			optiSession.launchs[ite].vertexBuffers[i].d_f_bbi = vertexBufferCamera.d_f_bbi + cameraFacesPerLaunch;
+
 			optiSession.launchs[ite].aI[i] = optiSession.aI+ite*currentNumberOfCams+i;
 			optiSession.launchs[ite].pI[i] = optiSession.pI+ite*currentNumberOfCams+i;
 
@@ -740,11 +826,16 @@ void CF2::initParallelOptiRuns()
 
 			raysPerLaunch += optiSession.launchs[ite].cams[i]->nRays;
 			raysSSPerLaunch += optiSession.launchs[ite].cams[i]->ssnRays;
+
+			nOfVertices += optiSession.launchs[ite].cams[i]->pcl.nV;
+			cameraVerticesPerLaunch += optiSession.launchs[ite].cams[i]->pcl.nV;
+			cameraFacesPerLaunch += optiSession.launchs[ite].cams[i]->pcl.nF;
 		}
 		optiSession.launchs[ite].depthBuffer.size = raysPerLaunch;
 		optiSession.launchs[ite].depthBuffer.sssize = raysSSPerLaunch;
 
-
+		optiSession.launchs[ite].vertexBuffer.nF = cameraFacesPerLaunch;
+		optiSession.launchs[ite].vertexBuffer.nV = cameraVerticesPerLaunch;
 		
 	
 
@@ -795,11 +886,94 @@ void CF2::initParallelOptiRuns()
 	launchConfigMaxCluster.nsample = nsample;
 
 
+	
+	launchConfigCameras.nblocks = 1;
+	launchConfigCameras.nthreads = 512;
+
+
+
+
+
+
 	cudaMemGetInfo( &avail3, &total3 );
 	div = (double)avail3/(double)total3;
 	usage =  (1.0-div)*100.0;		
 	printf("total memory usage is: %.2f\n",usage);
 
+}
+
+void CF2::initCameraVertexBuffer(VERTEX_BUFFER* vertexBuffer, int sessions)
+{
+	//calculating camera vertex and face size
+	int vertexSize = 0;
+	int faceSize = 0;
+	for(int i=0; i<currentNumberOfCams; i++)
+	{
+		vertexSize += sampleCameraTypes.possibleCameraTypes[cameraCombination.vector[i]].pcl.nV;
+		faceSize += sampleCameraTypes.possibleCameraTypes[cameraCombination.vector[i]].pcl.nF;
+	}
+
+	CudaMem::cudaMemAllocReport((void**)&vertexBuffer->d_vx, sessions*vertexSize*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&vertexBuffer->d_vy, sessions*vertexSize*sizeof(float));
+	CudaMem::cudaMemAllocReport((void**)&vertexBuffer->d_vz, sessions*vertexSize*sizeof(float));
+
+	//we need just one face buffer, because there are equal for all sessions
+	CudaMem::cudaMemAllocReport((void**)&vertexBuffer->d_fx, faceSize*sizeof(int));
+	CudaMem::cudaMemAllocReport((void**)&vertexBuffer->d_fy, faceSize*sizeof(int));
+	CudaMem::cudaMemAllocReport((void**)&vertexBuffer->d_fz, faceSize*sizeof(int));
+	CudaMem::cudaMemAllocReport((void**)&vertexBuffer->d_f_bbi, faceSize*sizeof(int));
+
+	//setting up face buffer for complete mesh
+	int* fb_x = new int[faceSize];
+	int* fb_y = new int[faceSize];
+	int* fb_z = new int[faceSize];
+	int* fb_bbi = new int[faceSize];
+
+	//filling face buffer
+	int faceOffset = 0;
+	int bbOffset = 0;
+	PCL* pcl;
+	int ite = 0;
+	for(int i=0; i<currentNumberOfCams; i++)
+	{
+		pcl = &sampleCameraTypes.possibleCameraTypes[cameraCombination.vector[i]].pcl;
+		for(int j=0; j<pcl->nF; j++)
+		{						
+			fb_x[ite] = pcl->fx[j]+faceOffset;
+			fb_y[ite] = pcl->fy[j]+faceOffset;
+			fb_z[ite] = pcl->fz[j]+faceOffset;
+			fb_bbi[ite] = pcl->f_bbi[j]+bbOffset;
+			ite++;
+		}
+		faceOffset += pcl->nV;
+		bbOffset += pcl->nBB;
+	}
+
+	//copying it into each launch buffer
+	CudaMem::cudaMemCpyReport(vertexBuffer->d_fx, fb_x, faceSize*sizeof(int), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(vertexBuffer->d_fy, fb_y, faceSize*sizeof(int), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(vertexBuffer->d_fz, fb_z, faceSize*sizeof(int), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(vertexBuffer->d_f_bbi, fb_bbi, faceSize*sizeof(int), cudaMemcpyHostToDevice);
+
+
+	delete fb_x;
+	delete fb_y;
+	delete fb_z;
+	delete fb_bbi;
+
+}
+
+void CF2::freeCameraVertexBuffer(VERTEX_BUFFER* vertexBuffer)
+{
+	CudaMem::cudaFreeReport(vertexBuffer->d_vx);
+	CudaMem::cudaFreeReport(vertexBuffer->d_vy);
+	CudaMem::cudaFreeReport(vertexBuffer->d_vz);
+
+	//we need just one face buffer, because there are equal for all sessions
+	CudaMem::cudaFreeReport(vertexBuffer->d_fx);
+	CudaMem::cudaFreeReport(vertexBuffer->d_fy);
+	CudaMem::cudaFreeReport(vertexBuffer->d_fz);
+	CudaMem::cudaFreeReport(vertexBuffer->d_f_bbi);
 }
 
 void CF2::freeParallelOptiRuns()
@@ -827,6 +1001,7 @@ void CF2::freeParallelOptiRuns()
 	freeDepthBuffer(&depthBuffer);	
 	freeCentroidBuffer(&centroid);
 	freePropBuffer(&probResult);	
+	freeCameraVertexBuffer(&vertexBufferCamera);
 	freeCudaStream(cudaStream, currentNumberOfCams*numberOfSessions);
 
 
@@ -845,6 +1020,9 @@ void CF2::freeParallelOptiRuns()
 
 void CF2::initVertexBuffer()
 {
+
+	
+
 	//calculating vertexBufferSize
 	int vertexSize = robot.nV + human.nV + environment.nV;
 	int faceSize = robot.nF + human.nF + environment.nF;
@@ -891,6 +1069,7 @@ void CF2::initVertexBuffer()
 	vertexBufferHuman.nF = human.nF;
 	vertexBufferHuman.nV = human.nV;
 
+	//environment
 	vertexBufferEnvironment.d_vx = vertexBuffer.d_vx+robot.nV+human.nV;
 	vertexBufferEnvironment.d_vy = vertexBuffer.d_vy+robot.nV+human.nV;
 	vertexBufferEnvironment.d_vz = vertexBuffer.d_vz+robot.nV+human.nV;
@@ -902,6 +1081,9 @@ void CF2::initVertexBuffer()
 
 	vertexBufferEnvironment.nF = environment.nF;
 	vertexBufferEnvironment.nV = environment.nV;
+
+
+
 
 	memcpy(fb_x, robot.fx, robot.nF*sizeof(int));
 	memcpy(fb_y, robot.fy, robot.nF*sizeof(int));
@@ -925,6 +1107,10 @@ void CF2::initVertexBuffer()
 		fb_bbi[i+robot.nF+human.nF] = environment.f_bbi[i]+robot.nBB+human.nBB;
 	}
 
+
+
+
+
 	CudaMem::cudaMemCpyReport(vertexBuffer.d_fx, fb_x, faceSize*sizeof(int), cudaMemcpyHostToDevice);
 	CudaMem::cudaMemCpyReport(vertexBuffer.d_fy, fb_y, faceSize*sizeof(int), cudaMemcpyHostToDevice);
 	CudaMem::cudaMemCpyReport(vertexBuffer.d_fz, fb_z, faceSize*sizeof(int), cudaMemcpyHostToDevice);
@@ -935,6 +1121,28 @@ void CF2::initVertexBuffer()
 	delete fb_z;
 	delete fb_bbi;
 }
+
+void CF2::freeVertexBuffer()
+{
+	CudaMem::cudaFreeReport(vertexBuffer.d_vx);
+	CudaMem::cudaFreeReport(vertexBuffer.d_vy);
+	CudaMem::cudaFreeReport(vertexBuffer.d_vz);
+
+	CudaMem::cudaFreeReport(vertexBuffer.d_fx);
+	CudaMem::cudaFreeReport(vertexBuffer.d_fy);
+	CudaMem::cudaFreeReport(vertexBuffer.d_fz);
+	CudaMem::cudaFreeReport(vertexBuffer.d_f_bbi);
+
+	vertexBuffer.d_vx = NULL;
+	vertexBuffer.d_vy = NULL;
+	vertexBuffer.d_vz = NULL;
+
+	vertexBuffer.d_fx = NULL;
+	vertexBuffer.d_fy = NULL;
+	vertexBuffer.d_fz = NULL;
+	vertexBuffer.d_f_bbi = NULL;
+}
+
 
 void CF2::transformVertexBuffer()
 {
@@ -1092,6 +1300,19 @@ void CF2::transformBoundingBoxBuffer()
 
 }
 
+void CF2::transformCameras()
+{
+
+
+	//transformVertexCamera(float* xi, float* yi, float* zi, float* bb, float* camPos_H, float* camRot_H, float* xo, float* yo, float* zo, float* bb_r)
+	for(int i=0; i<currentNumberOfCams; i++)
+	{
+	}
+
+
+	
+}
+
 void CF2::initDepthBuffer(DEPTH_BUFFER* depthBuffer,int nSessions, int nCams, int size, int ss_size)
 {
 	depthBuffer->size = size;
@@ -1177,6 +1398,136 @@ void CF2::initRadomNumberGenerator(curandState *devStates, SAMPLE_CAMERA* sample
 
 void CF2::initRaytracingLaunch()
 {
+
+}
+
+void CF2::rayTraceCameras()
+{
+
+
+	int indexPos = 0;
+	int indexRot = 0;
+
+
+	float* samplePosOffet;
+	float* sampleRotOffet;
+
+
+	cudaError_t cudaStatus;
+	//starting all parallel kernels and wait for finishing
+
+	RAYTRACING_LAUNCH* p_rtl;
+	SAMPLE_CAMERA* p_camera;
+
+	//transformVertexCamera(float* xi, float* yi, float* zi, int nV, float* camPos_H, float* camRot_H, float* xo, float* yo, float* zo)
+	for(int i=0; i<optiSession.n; i++)
+	{
+		p_rtl = &optiSession.launchs[i];
+		for(int j=0; j<p_rtl->n; j++)
+		{
+
+
+			indexPos = *(p_rtl->pI[j]);
+			indexRot = *(p_rtl->aI[j]);
+			
+			samplePosOffet = samplePointsBuffer.d_H	+indexPos*NUMELEM_H;
+			sampleRotOffet = sampleRotations.d_R	+indexRot*NUMELEM_H;
+
+			
+
+			
+			p_camera = p_rtl->cams[j];	
+			cuda_calc2::transformVertexCamera<<<launchConfigCameras.nblocks,launchConfigCameras.nthreads, 0, *(p_rtl->cudaStream[j])>>>(
+															p_camera->pcl.d_x,
+															p_camera->pcl.d_y,
+															p_camera->pcl.d_z,
+															p_camera->pcl.nV,
+															samplePosOffet,
+															sampleRotOffet,
+															p_rtl->vertexBuffers[j].d_vx,
+															p_rtl->vertexBuffers[j].d_vy,
+															p_rtl->vertexBuffers[j].d_vz
+														);
+
+
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "transformVertexCamera stream %d camera %d launch failed: %s\n", i,j,cudaGetErrorString(cudaStatus));
+				IO::waitForEnter();
+			}
+		}
+	}
+
+	cudaStatus = cudaDeviceSynchronize();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaDeviceSynchronize returned error code after launching transformVertexCamera: %s\n", cudaGetErrorString(cudaStatus));
+		fprintf(stderr, "position: %d\t rotation: %d\n", indexPos, indexRot);
+		IO::waitForEnter();
+
+	}
+
+	//raytraceVerticesCamera(				float* xi, float* yi, float* zi,
+	//														int* fx, int* fy, int* fz, int nF,														
+	//														float* camPos_H, float* camRot_H,
+	//														float* camRayX, float* camRayY, float* camRayZ,
+	//														float* Dx, float* Dy, float* Dz)
+
+
+	for(int i=0; i<optiSession.n; i++)
+	{
+		p_rtl = &optiSession.launchs[i];
+		for(int j=0; j<p_rtl->n; j++)
+		{
+
+
+			indexPos = *(p_rtl->pI[j]);
+			indexRot = *(p_rtl->aI[j]);
+			
+			samplePosOffet = samplePointsBuffer.d_H	+indexPos*NUMELEM_H;
+			sampleRotOffet = sampleRotations.d_R	+indexRot*NUMELEM_H;
+
+			
+
+
+			p_camera = p_rtl->cams[j];		
+			cuda_calc2::raytraceVerticesCamera<<<p_camera->ssnBlocks,p_camera->ssnThreads, 0, *(p_rtl->cudaStream[j])>>>(
+															p_rtl->vertexBuffer.d_vx,
+															p_rtl->vertexBuffer.d_vy,
+															p_rtl->vertexBuffer.d_vz,																										
+															p_rtl->vertexBuffer.d_fx,
+															p_rtl->vertexBuffer.d_fy,
+															p_rtl->vertexBuffer.d_fz,													
+															p_rtl->vertexBuffer.nF,
+															samplePosOffet,
+															sampleRotOffet,
+															p_camera->d_ss_x,
+															p_camera->d_ss_y,
+															p_camera->d_ss_z,
+															p_rtl->depthBuffers[j].d_ss_dx,
+															p_rtl->depthBuffers[j].d_ss_dy,
+															p_rtl->depthBuffers[j].d_ss_dz);
+
+
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "raytraceVerticesCamera stream %d camera %d launch failed: %s\n", i,j,cudaGetErrorString(cudaStatus));
+				IO::waitForEnter();
+			}
+		}
+	}
+
+	cudaStatus = cudaDeviceSynchronize();
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaDeviceSynchronize returned error code after launching raytraceVerticesCamera: %s\n", cudaGetErrorString(cudaStatus));
+		fprintf(stderr, "position: %d\t rotation: %d\n", indexPos, indexRot);
+		IO::waitForEnter();
+
+	}
+
+
+
+
+
 
 }
 
@@ -1328,6 +1679,7 @@ void CF2::rayTrace()
 
 	}
 
+	rayTraceCameras();
 
 	for(int i=0; i<optiSession.n; i++)
 	{

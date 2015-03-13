@@ -12,6 +12,7 @@
 #include <vector>
 
 
+
 class IO {
 public:
 	IO();
@@ -22,6 +23,7 @@ public:
 	static void loadSamplePCL(struct SAMPLE_PCL* pcl, const char* name);
 	static void loadSampleRotations(struct SAMPLE_ROTATIONS* rot, const char* name);
 	static void loadPCL(struct PCL* pcl, const char* name);
+	static void loadPCL(struct PCL* pcl, std::ifstream* inbin);
 	static void loadSamplePositions(struct SAMPLE_POSITIONS* pso, const char* name);
 	static void loadSampleCamera(struct POSSIBLE_CAMERA_TYPES* cams, const char* name);
 	static void saveDepthBufferToFile(struct DEPTH_BUFFER* depth, const char* name);
@@ -39,6 +41,7 @@ public:
 	static void plotIntermediateResults(struct PROB_RESULT* probResult ,struct CENTROID* centroid);
 	static void saveInversionSearch(float* p, float* d, int* w, int n, const char* name);
 	static void loadInversionSearch(float* p, float* d, int* w, int* n, const char* name);
+	static void loadResultingSolution(struct RESULT_SOLUTION* solu, const char* name);
 	
 
 
