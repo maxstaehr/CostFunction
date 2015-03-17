@@ -7,7 +7,12 @@
 //#define N_OF_A_SQ (N_OF_A*N_OF_A)
 #define WS_BORDER (1.0)
 
-#define CAM_ITE 2
+#ifdef EVALUATE
+	#define CAM_ITE 2
+#else
+	#define CAM_ITE 2
+#endif
+
 #define PAR_KERNEL_LAUNCHS 1
 #define DIST_PIXEL (0.0025f)
 

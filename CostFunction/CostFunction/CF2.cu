@@ -331,20 +331,24 @@ void CF2::run()
 	printf("starting optimisation...\n");
 	//IO::waitForEnter();
 	
-	while(currentNumberOfCams < 5)
+
+	while(currentNumberOfCams <5)
 	{
 	
+		int ite =0;
 		do
 		{
 			//sC = new CompleteEnumeration(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, NULL);
 			sC = new SimulatedAnnealing(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, nn->getNN(), &aG);
+			
 
 			initParallelOptiRuns();			
 			time_t start;			
 			time(&start);
+
 			//if (currentNumberOfCams == 2)
 			//{
-				while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp, probResult.maxd, probResult.maxw) )
+				while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp, probResult.maxd, probResult.maxw))
 				{
 					zeroProb();
 					for(int i=0; i< samplePositions.nP; i++)
@@ -361,22 +365,24 @@ void CF2::run()
 						//printCentroid(&depthBuffer);
 						calculateProbOfHumanDetection();
 						calculateMaxProb();
+						ite++;
 						//Progress::printProgress((double)i, (double)samplePositions.nP, start, "raytracing rp ");	
 					}
 					//IO::saveDepthBufferToFile(&depthBuffer, "depthBuffer.bin");
 					//IO::saveDepthBufferToFileSuperSamples(&depthBuffer, "depthBuffer.bin");
 					//Progress::printProgress((double)optiSession.pI[0], (double)samplePoints.n, start, "raytracing cp ");
 					//IO::waitForEnter();
-
+				
 				}
 			//}
 
 	
 			//saving results
 			//saveAllVertices();
-			//setCurrentTans(0);
+			//
 			//transformSamplePointBuffer();
 			//IO::saveOptimisationResults(&samplePointsBuffer, &samplePoints, &sampleRotations, sC->prop, sC->dist,sC->weights,  "completeEnumeration.bin");
+			setCurrentTans(0);
 			sC->writeResultsToFile(cameraCombination.vector, currentNumberOfCams, &samplePointsBuffer);
 			delete sC;
 			freeParallelOptiRuns();
@@ -414,6 +420,8 @@ void CF2::run_evaluation()
 	initParallelOptiRuns();
 	memcpy(optiSession.pI, resultingSolution.pclIndex, currentNumberOfCams*sizeof(int));
 	memcpy(optiSession.aI, resultingSolution.angleIndex, currentNumberOfCams*sizeof(int));
+	memcpy(optiSession.pI+currentNumberOfCams, resultingSolution.pclIndex, currentNumberOfCams*sizeof(int));
+	memcpy(optiSession.aI+currentNumberOfCams, resultingSolution.angleIndex, currentNumberOfCams*sizeof(int));
 
 	zeroProb();
 	for(int i=0; i< samplePositions.nP; i++)
@@ -432,7 +440,9 @@ void CF2::run_evaluation()
 		calculateMaxProb();
 		//Progress::printProgress((double)i, (double)samplePositions.nP, start, "raytracing rp ");	
 	}
-	printf("resulting prop: %.10f\n", probResult.maxp[0]);
+	//checkIntermediateResults();
+	float result = 1.0f - probResult.maxp[0];
+	printf("resulting prop: %.10f\n", result);
 	IO::waitForEnter();
 
 
@@ -485,11 +495,7 @@ void CF2::run_completeEnumeration()
 	delete sC;
 	freeParallelOptiRuns();
 
-	printf("finished current camera combination\n");
-
-	//IO::waitForEnter();
-			
-	iterateCameraCombination();
+	printf("finished complete enumeration\n");
 
 	IO::waitForEnter();
 }
@@ -588,9 +594,11 @@ void CF2::createCudaStream(cudaStream_t** streams, int n)
 		cudaError_t cudaStatus;
 
 		*streams = new cudaStream_t[n];
+		cudaStream_t* pStream = *streams;
 		for(int i=0;i<n;i++)
 		{
-			cudaStatus = cudaStreamCreate (&(*streams)[i]);
+			
+			cudaStatus = cudaStreamCreate (&(pStream[i]));
 			if(cudaStatus != cudaSuccess)
 			{
 				fprintf(stderr, "stream creation failed: %s\n", cudaGetErrorString(cudaStatus));
@@ -1437,7 +1445,7 @@ void CF2::rayTraceCameras()
 
 			
 			p_camera = p_rtl->cams[j];	
-			cuda_calc2::transformVertexCamera<<<launchConfigCameras.nblocks,launchConfigCameras.nthreads, 0, *(p_rtl->cudaStream[j])>>>(
+			cuda_calc2::transformVertexCamera<<<launchConfigCameras.nblocks,launchConfigCameras.nthreads/*, 0, *(p_rtl->cudaStream[j])*/>>>(
 															p_camera->pcl.d_x,
 															p_camera->pcl.d_y,
 															p_camera->pcl.d_z,
@@ -1454,6 +1462,14 @@ void CF2::rayTraceCameras()
 			if (cudaStatus != cudaSuccess) {
 				fprintf(stderr, "transformVertexCamera stream %d camera %d launch failed: %s\n", i,j,cudaGetErrorString(cudaStatus));
 				IO::waitForEnter();
+			}
+
+			cudaStatus = cudaDeviceSynchronize();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "cudaDeviceSynchronize returned error code after launching transformVertexCamera: %s\n", cudaGetErrorString(cudaStatus));
+				fprintf(stderr, "position: %d\t rotation: %d\n", indexPos, indexRot);
+				IO::waitForEnter();
+
 			}
 		}
 	}
@@ -1490,7 +1506,7 @@ void CF2::rayTraceCameras()
 
 
 			p_camera = p_rtl->cams[j];		
-			cuda_calc2::raytraceVerticesCamera<<<p_camera->ssnBlocks,p_camera->ssnThreads, 0, *(p_rtl->cudaStream[j])>>>(
+			cuda_calc2::raytraceVerticesCamera<<<p_camera->ssnBlocks,p_camera->ssnThreads/*, 0, *(p_rtl->cudaStream[j])*/>>>(
 															p_rtl->vertexBuffer.d_vx,
 															p_rtl->vertexBuffer.d_vy,
 															p_rtl->vertexBuffer.d_vz,																										
@@ -1513,6 +1529,15 @@ void CF2::rayTraceCameras()
 				fprintf(stderr, "raytraceVerticesCamera stream %d camera %d launch failed: %s\n", i,j,cudaGetErrorString(cudaStatus));
 				IO::waitForEnter();
 			}
+
+			cudaStatus = cudaDeviceSynchronize();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "cudaDeviceSynchronize returned error code after launching raytraceVerticesCamera: %s\n", cudaGetErrorString(cudaStatus));
+				fprintf(stderr, "position: %d\t rotation: %d\n", indexPos, indexRot);
+				IO::waitForEnter();
+
+			}
+
 		}
 	}
 
@@ -1533,30 +1558,16 @@ void CF2::rayTraceCameras()
 
 void CF2::rayTrace()
 {
-	//raytraceAndCalcDistanceToModel(	float* xi, float* yi, float* zi,
-	//													int* fx, int* fy, int* fz, int nF,
-	//													float* bb_H, float* bb_D, int nBB, 
-	//													float* D)
-	//float* camPos_H, float* camRot_H, int cami
-	//float*	d_bb_H;
-	//float*	d_bb_D;
-	//int*	d_bbi;
 
-	int indexPos = 50-1;
-	int indexRot = 10-1;
 
-	indexPos = 16;
-	indexRot = 196;
+	int indexPos;
+	int indexRot;
+
+
 
 	float* samplePosOffet;
 	float* sampleRotOffet;
 
-		//__global__ void raytraceVertices(					float* xi, float* yi, float* zi,
-		//												int* fx, int* fy, int* fz, int nF,
-		//												float* bb_H, float* bb_D, int nBB, 
-		//												float* camPos_H, float* camRot_H,
-		//												float* camRayX, float* camRayY, float* camRayZ,
-		//												float* Dx, float* Dy, float* Dz
 	cudaError_t cudaStatus;
 	//starting all parallel kernels and wait for finishing
 
@@ -1573,17 +1584,15 @@ void CF2::rayTrace()
 
 			indexPos = *(p_rtl->pI[j]);
 			indexRot = *(p_rtl->aI[j]);
+
+			//printf("%i\t%i\t%i\t%i\n", i, j, indexPos, indexRot); 
 			
 			samplePosOffet = samplePointsBuffer.d_H	+indexPos*NUMELEM_H;
 			sampleRotOffet = sampleRotations.d_R	+indexRot*NUMELEM_H;
 
 			p_camera = p_rtl->cams[j];		
-			//raytraceBox(float* camPos_H, float* camRot_H, float* camRayX, float* camRayY, float* camRayZ, int nRays,
-			//			   float* bb_H, float* bb_D, int nBB, bool* bb_intersect)
-
 			
-			
-			cuda_calc2::raytraceBox<<<1,MAX_RAYTRACE_BOX, 0, *(p_rtl->cudaStream[j])>>>(
+			cuda_calc2::raytraceBox<<<1,MAX_RAYTRACE_BOX/*, 0, *(p_rtl->cudaStream[j])*/>>>(
 															samplePosOffet,
 															sampleRotOffet,
 															p_camera->d_x,
@@ -1602,6 +1611,14 @@ void CF2::rayTrace()
 				fprintf(stderr, "raytraceBox stream %d camera %d launch failed: %s\n", i,j,cudaGetErrorString(cudaStatus));
 				IO::waitForEnter();
 			}
+
+			cudaStatus = cudaDeviceSynchronize();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "cudaDeviceSynchronize returned error code after launching raytraceBox: %s\n", cudaGetErrorString(cudaStatus));
+				fprintf(stderr, "position: %d\t rotation: %d\n", indexPos, indexRot);
+				IO::waitForEnter();
+
+			}
 		}
 	}
 
@@ -1613,33 +1630,36 @@ void CF2::rayTrace()
 
 	}
 
-	CudaMem::cudaMemCpyReport(depthBuffer.bb_hit, depthBuffer.d_bb_hit, optiSession.n*currentNumberOfCams*boundingBoxBuffer.nBB*sizeof(bool), cudaMemcpyDeviceToHost);
-	//printf("human bonding box hit: %s", depthBuffer.bb_hit[humanBB]?"true":"false");
+
+
+
+	//checking bounding box input
+	//bool* p1 = optiSession.launchs[0].depthBuffers[0].bb_hit;
+	//bool* p2 = optiSession.launchs[1].depthBuffers[0].bb_hit;
+	//CudaMem::cudaMemCpyReport(p1, optiSession.launchs[0].depthBuffers[0].d_bb_hit, boundingBoxBuffer.nBB*sizeof(bool), cudaMemcpyDeviceToHost);
+	//CudaMem::cudaMemCpyReport(p2, optiSession.launchs[1].depthBuffers[0].d_bb_hit, boundingBoxBuffer.nBB*sizeof(bool), cudaMemcpyDeviceToHost);
+
+
+	//for(int i=0; i<optiSession.launchs[0].cams[0]->ssnRays; i++)
+	//{
+	//	if
+	//}
+
 
 	for(int i=0; i<optiSession.n; i++)
 	{
 		p_rtl = &optiSession.launchs[i];
 		for(int j=0; j<p_rtl->n; j++)
 		{
-			//setting position and orientation offset
-			//indexPos = optiSession.pI[
-
-
-			//if(!p_rtl->depthBuffers[j].bb_hit[humanBB])
-			//	continue;
-
-			//
-
 			indexPos = *(p_rtl->pI[j]);
 			indexRot = *(p_rtl->aI[j]);
-			//printf("%d\t%d\n", indexPos, indexRot);
+
 			samplePosOffet = samplePointsBuffer.d_H	+indexPos*NUMELEM_H;
 			sampleRotOffet = sampleRotations.d_R	+indexRot*NUMELEM_H;
 
-			
-
 			p_camera = p_rtl->cams[j];		
-			cuda_calc2::raytraceVertices<<<p_camera->ssnBlocks,p_camera->ssnThreads, 0, *(p_rtl->cudaStream[j])>>>(
+			//, 0, *(optiSession.launchs[i].cudaStream[j]
+			cuda_calc2::raytraceVertices<<<p_camera->ssnBlocks,p_camera->ssnThreads>>>(
 															vertexBuffer.d_vx,
 															vertexBuffer.d_vy,
 															vertexBuffer.d_vz,																										
@@ -1647,20 +1667,20 @@ void CF2::rayTrace()
 															vertexBuffer.d_fy,
 															vertexBuffer.d_fz,													
 															vertexBuffer.nF,
-															p_camera->d[0],
-															p_camera->d[1],
+															optiSession.launchs[i].cams[j]->d[0],
+															optiSession.launchs[i].cams[j]->d[1],
 															samplePosOffet,
 															sampleRotOffet,
-															p_camera->d_ss_x,
-															p_camera->d_ss_y,
-															p_camera->d_ss_z,
-															p_rtl->depthBuffers[j].d_ss_dx,
-															p_rtl->depthBuffers[j].d_ss_dy,
-															p_rtl->depthBuffers[j].d_ss_dz,
+															optiSession.launchs[i].cams[j]->d_ss_x,
+															optiSession.launchs[i].cams[j]->d_ss_y,
+															optiSession.launchs[i].cams[j]->d_ss_z,
+															optiSession.launchs[i].depthBuffers[j].d_ss_dx,
+															optiSession.launchs[i].depthBuffers[j].d_ss_dy,
+															optiSession.launchs[i].depthBuffers[j].d_ss_dz,
 															vertexBuffer.d_f_bbi,
-															p_rtl->depthBuffers[j].d_bb_hit,
+															optiSession.launchs[i].depthBuffers[j].d_bb_hit,
 															boundingBoxBuffer.nBB,
-															humanBB);
+															humanBB, i);
 
 
 			cudaStatus = cudaGetLastError();
@@ -1668,6 +1688,24 @@ void CF2::rayTrace()
 				fprintf(stderr, "raytraceVertices stream %d camera %d launch failed: %s\n", i,j,cudaGetErrorString(cudaStatus));
 				IO::waitForEnter();
 			}
+
+			//cudaStatus = cudaStreamSynchronize(*(optiSession.launchs[i].cudaStream[j]));
+			//if (cudaStatus != cudaSuccess) {
+			//	fprintf(stderr, "cudaDeviceSynchronize returned error code after launching raytraceVertices: %s\n", cudaGetErrorString(cudaStatus));
+			//	fprintf(stderr, "position: %d\t rotation: %d\n", indexPos, indexRot);
+			//	IO::waitForEnter();
+
+			//}
+			
+			cudaStatus = cudaDeviceSynchronize();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "cudaDeviceSynchronize returned error code after launching raytraceVertices: %s\n", cudaGetErrorString(cudaStatus));
+				fprintf(stderr, "position: %d\t rotation: %d\n", indexPos, indexRot);
+				IO::waitForEnter();
+
+			}
+
+
 		}
 	}
 
@@ -1679,6 +1717,12 @@ void CF2::rayTrace()
 
 	}
 
+
+	//checking
+	
+
+
+
 	rayTraceCameras();
 
 	for(int i=0; i<optiSession.n; i++)
@@ -1686,25 +1730,6 @@ void CF2::rayTrace()
 		p_rtl = &optiSession.launchs[i];
 		for(int j=0; j<p_rtl->n; j++)
 		{
-
-
-			
-	//mergeSuperSampling(float* s_dx, float* s_dy, float* s_dz,
-	//									int ss_x, int ss_y,
-	//									int nx, int ny,
-	//									int minW, 
-	//									float* bb_H, float* bb_D, int nBB,
-	//									float* camPos_H, float* camRot_H,
-	//									float* camRayX, float* camRayY, float* camRayZ,
-	//									float* c, curandState_t* devStates,
-	//									float* dx, float* dy, float* dz)
-
-
-
-			//
-
-			//if(!p_rtl->depthBuffers[j].bb_hit[humanBB])
-			//	continue;
 
 			indexPos = *(p_rtl->pI[j]);
 			indexRot = *(p_rtl->aI[j]);
@@ -1715,7 +1740,7 @@ void CF2::rayTrace()
 			
 
 			p_camera = p_rtl->cams[j];		
-			cuda_calc2::mergeSuperSampling<<<p_camera->nBlocks,p_camera->nThreads, 0, *(p_rtl->cudaStream[j])>>>(
+			cuda_calc2::mergeSuperSampling<<<p_camera->nBlocks,p_camera->nThreads/*, 0, *(p_rtl->cudaStream[j])*/>>>(
 															p_rtl->depthBuffers[j].d_ss_dx,
 															p_rtl->depthBuffers[j].d_ss_dy,
 															p_rtl->depthBuffers[j].d_ss_dz,	
@@ -1741,30 +1766,18 @@ void CF2::rayTrace()
 															humanBB);
 
 
-			//cuda_calc2::raytraceVertices<<<p_camera->nBlocks,p_camera->nThreads, 0, *(p_rtl->cudaStream[j])>>>(
-			//												vertexBuffer.d_vx,
-			//												vertexBuffer.d_vy,
-			//												vertexBuffer.d_vz,																										
-			//												vertexBuffer.d_fx,
-			//												vertexBuffer.d_fy,
-			//												vertexBuffer.d_fz,													
-			//												vertexBuffer.nF,
-			//												p_camera->d[0],
-			//												p_camera->d[1],
-			//												samplePosOffet,
-			//												sampleRotOffet,
-			//												p_camera->d_x,
-			//												p_camera->d_y,
-			//												p_camera->d_z,
-			//												p_rtl->depthBuffers[j].d_dx,
-			//												p_rtl->depthBuffers[j].d_dy,
-			//												p_rtl->depthBuffers[j].d_dz);
-
 
 			cudaStatus = cudaGetLastError();
 			if (cudaStatus != cudaSuccess) {
 				fprintf(stderr, "raytraceVertices stream %d camera %d launch failed: %s\n", i,j,cudaGetErrorString(cudaStatus));
 				IO::waitForEnter();
+			}
+
+			cudaStatus = cudaDeviceSynchronize();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "cudaDeviceSynchronize returned error code after launching mergeSuperSampling: %s\n", cudaGetErrorString(cudaStatus));
+				IO::waitForEnter();
+
 			}
 		}
 	}
@@ -1847,24 +1860,28 @@ void CF2::printCentroid(struct DEPTH_BUFFER* depth)
 	CudaMem::cudaMemCpyReport(z, depth->d_dz, depth->size*sizeof(float), cudaMemcpyDeviceToHost);
 
 	//check avg value
-	float vx = 0.0f;
-	float vy = 0.0f;
-	float vz = 0.0f;
-	int w = 0;
-	for(int i=0; i<depth->size; i++)
+	for(int j=0;j<optiSession.n; j++)
 	{
-		if(!IO::is_nan(x[i]))
+		int size = optiSession.launchs[j].depthBuffer.size;
+		float vx = 0.0f;
+		float vy = 0.0f;
+		float vz = 0.0f;
+		int w = 0;
+		for(int i=0; i<size; i++)
 		{
-			vx += x[i];
-			vy += y[i];
-			vz += z[i];
-			w++;
+			if(!IO::is_nan(x[j*size+i]))
+			{
+				vx += x[j*size+i];
+				vy += y[j*size+i];
+				vz += z[j*size+i];
+				w++;
+			}
 		}
+		vx = vx/w;
+		vy = vy/w;
+		vz = vz/w;
+		printf("centroid: [%.6f  %.6f  %.6f]\t%d\n", vx, vy, vz, w);
 	}
-	vx = vx/w;
-	vy = vy/w;
-	vz = vz/w;
-	printf("centroid: [%.6f  %.6f  %.6f]\t%d\n", vx, vy, vz, w);
 	delete x;
 	delete y;
 	delete z;
@@ -1884,7 +1901,7 @@ void CF2::calculateCentroid()
 	
 		
 		//calcMiddlePoint(float* Dx, float* Dy, float* Dz, int nP, float* a_x, float* a_y, float* a_z)			
-		cuda_calc2::calcMiddlePoint<<<1,AVG_BUFFER_SIZE, 0, *(p_rtl->cudaStream[0])>>>(
+		cuda_calc2::calcMiddlePoint<<<1,AVG_BUFFER_SIZE/*, 0, *(p_rtl->cudaStream[0])*/>>>(
 														p_rtl->depthBuffer.d_dx,													
 														p_rtl->depthBuffer.d_dy,
 														p_rtl->depthBuffer.d_dz,
@@ -1902,6 +1919,12 @@ void CF2::calculateCentroid()
 		cudaStatus = cudaGetLastError();
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "calcMiddlePoint stream %d launch failed: %s\n", i,cudaGetErrorString(cudaStatus));
+			IO::waitForEnter();
+		}
+
+		cudaStatus = cudaDeviceSynchronize();
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching calcMiddlePoint!\n", cudaStatus);
 			IO::waitForEnter();
 		}
 		
@@ -2073,7 +2096,7 @@ void CF2::calculateProbOfHumanDetection()
 	for(int i=0; i<optiSession.n; i++)
 	{
 		p_rtl = &optiSession.launchs[i];								
-		cuda_calc2::distanceToEllipseModel<<<launchConfigModelFitting.nblocks,launchConfigModelFitting.nthreads, 0, *(p_rtl->cudaStream[0])>>>(
+		cuda_calc2::distanceToEllipseModel<<<launchConfigModelFitting.nblocks,launchConfigModelFitting.nthreads/*, 0, *(p_rtl->cudaStream[0])*/>>>(
 														p_rtl->depthBuffer.d_dx,													
 														p_rtl->depthBuffer.d_dy,
 														p_rtl->depthBuffer.d_dz,
@@ -2099,6 +2122,11 @@ void CF2::calculateProbOfHumanDetection()
 			IO::waitForEnter();
 		}
 		
+		cudaStatus = cudaDeviceSynchronize();
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching distanceToEllipseModel!\n", cudaStatus);
+			IO::waitForEnter();
+		}
 	}
 
 	
@@ -2176,7 +2204,7 @@ void CF2::calculateMaxProb()
 	for(int i=0; i<optiSession.n; i++)
 	{
 		p_rtl = &optiSession.launchs[i];
-		cuda_calc2::calculateMaxProb<<<1,MAX_BUFFER_SIZE,0, *(p_rtl->cudaStream[0])>>>(
+		cuda_calc2::calculateMaxProb<<<1,MAX_BUFFER_SIZE/*,0, *(p_rtl->cudaStream[0])*/>>>(
 														p_rtl->probResult.d_p,
 														p_rtl->probResult.n,
 														p_rtl->probResult.d_maxp,
@@ -2190,6 +2218,12 @@ void CF2::calculateMaxProb()
 			fprintf(stderr, "calculateMaxProb stream %d launch failed: %s\n", i,cudaGetErrorString(cudaStatus));
 			IO::waitForEnter();
 		}
+
+		cudaStatus = cudaDeviceSynchronize();
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching calcMiddlePoint!\n", cudaStatus);
+			IO::waitForEnter();
+		}
 	}
 
 	cudaStatus = cudaDeviceSynchronize();
@@ -2201,7 +2235,7 @@ void CF2::calculateMaxProb()
 	for(int i=0; i<optiSession.n; i++)
 	{
 		p_rtl = &optiSession.launchs[i];
-		cuda_calc2::calculateMinDist<<<1,MAX_BUFFER_SIZE,0, *(p_rtl->cudaStream[0])>>>(
+		cuda_calc2::calculateMinDist<<<1,MAX_BUFFER_SIZE/*,0, *(p_rtl->cudaStream[0])*/>>>(
 														p_rtl->probResult.d_d,
 														p_rtl->probResult.n,
 														p_rtl->probResult.d_maxd,
@@ -2213,6 +2247,12 @@ void CF2::calculateMaxProb()
 		cudaStatus = cudaGetLastError();
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "calculateMaxProb stream %d launch failed: %s\n", i,cudaGetErrorString(cudaStatus));
+			IO::waitForEnter();
+		}
+
+		cudaStatus = cudaDeviceSynchronize();
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching calcMiddlePoint!\n", cudaStatus);
 			IO::waitForEnter();
 		}
 	}
@@ -2228,7 +2268,7 @@ void CF2::calculateMaxProb()
 	{
 		//calculateMinWeight(int* weights, int n, float* dist, float* mindist, int* w)
 		p_rtl = &optiSession.launchs[i];
-		cuda_calc2::calculateMinWeight<<<1,MAX_BUFFER_SIZE,0, *(p_rtl->cudaStream[0])>>>(
+		cuda_calc2::calculateMinWeight<<<1,MAX_BUFFER_SIZE/*,0, *(p_rtl->cudaStream[0])*/>>>(
 														p_rtl->probResult.d_w,
 														p_rtl->probResult.n,
 														p_rtl->probResult.d_d,
@@ -2241,6 +2281,12 @@ void CF2::calculateMaxProb()
 		cudaStatus = cudaGetLastError();
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "calculateMaxProb stream %d launch failed: %s\n", i,cudaGetErrorString(cudaStatus));
+			IO::waitForEnter();
+		}
+
+		cudaStatus = cudaDeviceSynchronize();
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching calcMiddlePoint!\n", cudaStatus);
 			IO::waitForEnter();
 		}
 	}

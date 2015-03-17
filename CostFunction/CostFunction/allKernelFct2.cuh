@@ -639,7 +639,7 @@ namespace cuda_calc2{
 														float* camRayX, float* camRayY, float* camRayZ,
 														float* Dx, float* Dy, float* Dz,
 														int* fbbi, bool* bbHitGlobal, int nBB,
-														int humanBB)
+														int humanBB, int session)
 	{
 		//defining vertex buffer
 		__shared__ float v1[VERTEX_BUFFER_SIZE*3];
@@ -682,6 +682,11 @@ namespace cuda_calc2{
 		float* v2_d;
 		float* v3_d;
 		calculateOrginAndDirection(camPos_H, camRot_H, camRayX[threadId], camRayY[threadId], camRayZ[threadId], o, di);
+		
+		//if(threadId < 10)
+		//{
+		//	printf("%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n", o[0],o[1],o[2],di[0],di[1],di[2]); 
+		//}
 
 		//determining number of vertices to be copied by each thread into buffer
 		int nItePerThread = (int)((VERTEX_BUFFER_SIZE/blockSize)+1);
@@ -779,6 +784,7 @@ namespace cuda_calc2{
 
 		if(d > dist_min && d < dist_max)
 		{
+
 			//setting real value and calculate weighted average
 			Dx[threadId] = p[0];
 			Dy[threadId] = p[1];
@@ -982,9 +988,9 @@ namespace cuda_calc2{
 		p[2] = b[2];
 	}
 
-	#define	tailor_a (1.001728649930781f)
-	#define	tailor_b (-11.517243358808045f)
-	#define tailor_min (1.499627542216331e-04f)
+	#define	tailor_a (2.055792709094123f)
+	#define	tailor_b (-13.314579265182624f)
+	#define tailor_min (0.054125744849443f)
 
 	#define tailor_weight_a (0.056234132519035f)
 	#define tailor_weight_b (0.028782313662426f)
@@ -1177,7 +1183,8 @@ namespace cuda_calc2{
 			
 			float w_w = calculateWeightOfDetection(w);
 			float w_p = calculateProbabilityOfDetection(dist);
-			prop[threadId] = ((WEIGHT_P*w_p)+(WEIGHT_W*w_w))/WEIGHT_SUM;
+			//prop[threadId] = ((WEIGHT_P*w_p)+(WEIGHT_W*w_w))/WEIGHT_SUM;
+			prop[threadId] = w_p*w_w;
 			distance[threadId] = dist;
 			weight[threadId] = w;
 			//if(w > MINIMUM_POINTS_DETECTION)

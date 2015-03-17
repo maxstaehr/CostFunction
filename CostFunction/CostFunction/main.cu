@@ -68,8 +68,15 @@ int main(int argc, char** argv)
 
 	//CostFunctionClass::testUpdateCameraParameters();
 	CF2 cf;
+#ifdef EVALUATE	
+	cf.run_evaluation();
+#elif COMPLETE_ENUMERATION
+	cf.run_completeEnumeration();
+#else	
 	cf.run();
+#endif
 	//cf.run_completeEnumeration();
+	
 	
 	
 

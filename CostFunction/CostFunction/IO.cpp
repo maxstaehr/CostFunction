@@ -414,7 +414,11 @@ void IO::loadSamplePositions(struct SAMPLE_POSITIONS* pos, const char* name)
 
 	inbin.close();
 
-	//pos->nP = 2;
+	//pos->nP = 1;
+#ifdef COMPLETE_ENUMERATION
+	pos->nP = 1;
+#endif
+
 	//normalizing priorities to one
 	float sum = 0.0;
 	for(int i=0; i<pos->nP; i++)
@@ -603,7 +607,7 @@ void IO::loadResultingSolution(struct RESULT_SOLUTION* solu, const char* name)
 	inbin.read((char*)solu->pclIndex, solu->nC*sizeof(int));
 	if (!inbin) std::cerr << "error";
 
-	inbin.read((char*)solu->pclIndex, solu->nC*sizeof(int));
+	inbin.read((char*)solu->angleIndex, solu->nC*sizeof(int));
 	if (!inbin) std::cerr << "error";
 
 	char c;

@@ -51,6 +51,7 @@ public:
 	void printMinPositionToFile(std::string pre, struct SAMPLE_POINTS_BUFFER* samplePoints);
 	void printDistanceMatrix();
 	bool isCompleteConfigurationValid(int* pclIndex);
+	void writeMinCostToFile(unsigned long long* vec);
 
 private:
 	int NofE;
