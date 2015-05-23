@@ -40,7 +40,7 @@ int inline SimulatedAnnealing::getIndex(int enegeryIndex, int sign, int cam)
 	return enegeryIndex*2*nC+sign*nC+cam;
 }
 
-SimulatedAnnealing::SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, VALID_POS* vp, int nC, int nI, int* nn_indices, AngleGenerator* ag):SearchClass(sp, sr, vp, nC, nI, nn_indices, ag),ite(0),neighbourRadius(1.2), neighbourAngle(2.4), firstEvaluation(true), NofIteration(SIM_ITE*800), maxIteration(nC*NofIteration), firstIteration(true), min_threshold(1.0e-1)
+SimulatedAnnealing::SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, VALID_POS* vp, int nC, int nI, int* nn_indices, AngleGenerator* ag):SearchClass(sp, sr, vp, nC, nI, nn_indices, ag),ite(0),neighbourRadius(1.2), neighbourAngle(2.4), firstEvaluation(true), NofIteration(SIM_ITE*400), maxIteration(nC*NofIteration), firstIteration(true), min_threshold(1.0e-1)
 {
 	assert(nI>0 && nI%2==0);
 	NofE = (int)nI/2;

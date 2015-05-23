@@ -82,6 +82,7 @@ private:
 
 	
 	int					humanBB;
+	int					currentCameraConfig;
 
 	OPTIMIZATION_SESSION optiSession;
 
@@ -97,6 +98,9 @@ private:
 	float* debug_propability_buffer;
 
 	RESULT_SOLUTION		resultingSolution;
+
+	void getCurrentPA_Index(int *const pI, int* const aI, int cam);
+
 
 
 

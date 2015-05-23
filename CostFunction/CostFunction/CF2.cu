@@ -45,7 +45,7 @@
 
 //#include "global.h"
 #include "allKernelFct2.cuh"
-CF2::CF2():currentNumberOfCams(1)
+CF2::CF2():currentNumberOfCams(1), currentCameraConfig(0)
 {
 
 	cudaError_t	cudaStatus = cudaDeviceReset();
@@ -497,21 +497,25 @@ void CF2::run()
 					zeroProb();
 					for(int i=0; i< samplePositions.nP; i++)
 					{
-						reinitLoop();
+						
 						setCurrentTans(i);
 						transformVertexBuffer();
 						transformBoundingBoxBuffer();
 						transformSamplePointBuffer();
 
-						rayTrace();
-						//IO::saveDepthBufferToFile(&depthBuffer, "depthBuffer.bin");
-						calculateCluster();
-						calculateCentroid();
-						//checkFirstTwoCameras();
-						//printCentroid(&depthBuffer);
-						calculateProbOfHumanDetection();
-						//checkFirstTwoCameras();
-						calculateMaxProb();
+						for(currentCameraConfig=0; currentCameraConfig<MAX_ITE; currentCameraConfig++)
+						{
+							reinitLoop();
+							rayTrace();
+							//IO::saveDepthBufferToFile(&depthBuffer, "depthBuffer.bin");
+							calculateCluster();
+							calculateCentroid();
+							//checkFirstTwoCameras();
+							//printCentroid(&depthBuffer);
+							calculateProbOfHumanDetection();
+							//checkFirstTwoCameras();
+							calculateMaxProb();
+						}
 						
 						
 						//Progress::printProgress((double)i, (double)samplePositions.nP, start, "raytracing rp ");	
@@ -580,21 +584,30 @@ void CF2::run_evaluation()
 	zeroProb();
 	for(int i=0; i< samplePositions.nP; i++)
 	{
-		reinitLoop();
+						
 		setCurrentTans(i);
 		transformVertexBuffer();
 		transformBoundingBoxBuffer();
 		transformSamplePointBuffer();
 
-		rayTrace();
-		//IO::saveDepthBufferToFile(&depthBuffer, "depthBuffer.bin");
-		calculateCluster();
-		calculateCentroid();
-		//printCentroid(&depthBuffer);
-		calculateProbOfHumanDetection();
-		calculateMaxProb();
+		for(currentCameraConfig=0; currentCameraConfig<MAX_ITE; currentCameraConfig++)
+		{
+			reinitLoop();
+			rayTrace();
+			//IO::saveDepthBufferToFile(&depthBuffer, "depthBuffer.bin");
+			calculateCluster();
+			calculateCentroid();
+			//checkFirstTwoCameras();
+			//printCentroid(&depthBuffer);
+			calculateProbOfHumanDetection();
+			//checkFirstTwoCameras();
+			calculateMaxProb();
+		}
+						
+						
 		//Progress::printProgress((double)i, (double)samplePositions.nP, start, "raytracing rp ");	
 	}
+					
 	normalizeMaxProb();
 	//checkIntermediateResults();
 	 
@@ -769,20 +782,17 @@ void CF2::freeCudaStream(cudaStream_t* streams,int n)
 }
 void CF2::zeroProb()
 {
-	CudaMem::cudaMemsetReport(depthBuffer.d_dx,0, depthBuffer.size*sizeof(float));
-	CudaMem::cudaMemsetReport(depthBuffer.d_dy,0, depthBuffer.size*sizeof(float));
-	CudaMem::cudaMemsetReport(depthBuffer.d_dz,0, depthBuffer.size*sizeof(float));
 
-	//CudaMem::cudaMemsetReport(probResult.d_p, 0, probResult.n*sizeof(double));
-	//CudaMem::cudaMemsetReport(probResult.d_maxp, 0, probResult.nmax*sizeof(double));
-
-	for(int i=0;i<probResult.nmax; i++)
+	for(int i=0; i<MAX_ITE; i++)
 	{
 		probResult.maxp_normalized[i] = 0.0;
 	}
 
 
+
 }
+
+
 
 void CF2::reinitLoop()
 {
@@ -796,11 +806,15 @@ void CF2::reinitLoop()
 	CudaMem::cudaMemCpyReport(probResult.d_p, probResult.p, probResult.n*sizeof(double), cudaMemcpyHostToDevice);
 	CudaMem::cudaMemCpyReport(probResult.d_d, probResult.d, probResult.n*sizeof(float), cudaMemcpyHostToDevice);
 	CudaMem::cudaMemCpyReport(probResult.d_w, probResult.w, probResult.n*sizeof(float), cudaMemcpyHostToDevice);
+
 	for(int i=0; i<probResult.nmax; i++)
 	{
 		probResult.maxp[i] = 0.0;
 	}
 	CudaMem::cudaMemCpyReport(probResult.d_maxp, probResult.maxp, probResult.nmax*sizeof(double), cudaMemcpyHostToDevice);
+
+
+
 
 
 	//setting bounding box
@@ -854,11 +868,12 @@ void CF2::initParallelOptiRuns()
 
 
 	//starting the real number of sessions
-	optiSession.n = MAX_ITE;
+	//optiSession.n = MAX_ITE;
+	optiSession.n = 1;
 	optiSession.launchs = new struct RAYTRACING_LAUNCH[optiSession.n];
 
-	optiSession.pI = new int[optiSession.n*currentNumberOfCams];
-	optiSession.aI = new int[optiSession.n*currentNumberOfCams];
+	optiSession.pI = new int[MAX_ITE*currentNumberOfCams];
+	optiSession.aI = new int[MAX_ITE*currentNumberOfCams];
 	optiSession.ecs = new EC*[optiSession.n];
 	
 
@@ -888,6 +903,8 @@ void CF2::initParallelOptiRuns()
 		raysSSPerLaunch = 0;
 		cameraVerticesPerLaunch = 0;
 		cameraFacesPerLaunch = 0;
+
+
 
 		for(int i=0; i<currentNumberOfCams; i++)
 		{			
@@ -1179,9 +1196,9 @@ void CF2::freeParallelOptiRuns()
 	size_t avail3;
 	size_t total3;
 
-	int numberOfSessions = MAX_ITE;
 
-	for(int ite=0; ite<numberOfSessions; ite++)
+
+	for(int ite=0; ite<optiSession.n; ite++)
 	{		
 		delete optiSession.launchs[ite].cams;				
 		delete optiSession.launchs[ite].depthBuffers;
@@ -1200,7 +1217,7 @@ void CF2::freeParallelOptiRuns()
 	freeCentroidBuffer(&centroid);
 	freePropBuffer(&probResult);	
 	freeCameraVertexBuffer(&vertexBufferCamera);
-	freeCudaStream(cudaStream, currentNumberOfCams*numberOfSessions);
+	freeCudaStream(cudaStream, currentNumberOfCams*optiSession.n);
 
 
 	delete optiSession.pI;
@@ -1626,8 +1643,7 @@ void CF2::rayTraceCameras()
 		{
 
 
-			indexPos = *(p_rtl->pI[j]);
-			indexRot = *(p_rtl->aI[j]);
+			getCurrentPA_Index(&indexPos, &indexRot, j);
 			
 			samplePosOffet = samplePointsBuffer.d_H	+indexPos*NUMELEM_H;
 			sampleRotOffet = sampleRotations.d_R	+indexRot*NUMELEM_H;
@@ -1687,8 +1703,7 @@ void CF2::rayTraceCameras()
 		{
 
 
-			indexPos = *(p_rtl->pI[j]);
-			indexRot = *(p_rtl->aI[j]);
+			getCurrentPA_Index(&indexPos, &indexRot, j);
 			
 			samplePosOffet = samplePointsBuffer.d_H	+indexPos*NUMELEM_H;
 			sampleRotOffet = sampleRotations.d_R	+indexRot*NUMELEM_H;
@@ -1747,6 +1762,12 @@ void CF2::rayTraceCameras()
 
 }
 
+void CF2::getCurrentPA_Index(int *const pI, int* const aI, int cam)
+{
+	*pI = optiSession.pI[currentNumberOfCams*currentCameraConfig+cam];
+	*aI = optiSession.aI[currentNumberOfCams*currentCameraConfig+cam];
+}
+
 void CF2::rayTrace()
 {
 
@@ -1773,8 +1794,7 @@ void CF2::rayTrace()
 		{
 
 
-			indexPos = *(p_rtl->pI[j]);
-			indexRot = *(p_rtl->aI[j]);
+			getCurrentPA_Index(&indexPos, &indexRot, j);
 
 			//printf("%i\t%i\t%i\t%i\n", i, j, indexPos, indexRot); 
 			
@@ -1842,8 +1862,7 @@ void CF2::rayTrace()
 		p_rtl = &optiSession.launchs[i];
 		for(int j=0; j<p_rtl->n; j++)
 		{
-			indexPos = *(p_rtl->pI[j]);
-			indexRot = *(p_rtl->aI[j]);
+			getCurrentPA_Index(&indexPos, &indexRot, j);
 
 			samplePosOffet = samplePointsBuffer.d_H	+indexPos*NUMELEM_H;
 			sampleRotOffet = sampleRotations.d_R	+indexRot*NUMELEM_H;
@@ -1922,8 +1941,7 @@ void CF2::rayTrace()
 		for(int j=0; j<p_rtl->n; j++)
 		{
 
-			indexPos = *(p_rtl->pI[j]);
-			indexRot = *(p_rtl->aI[j]);
+			getCurrentPA_Index(&indexPos, &indexRot, j);
 
 			samplePosOffet = samplePointsBuffer.d_H	+indexPos*NUMELEM_H;
 			sampleRotOffet = sampleRotations.d_R	+indexRot*NUMELEM_H;
@@ -2340,7 +2358,7 @@ void CF2::initPropBuffer(PROB_RESULT* probResult, int n, int session)
 
 	probResult->p = new double[n*session];
 	probResult->maxp = new double[session];
-	probResult->maxp_normalized = new double[session];
+	probResult->maxp_normalized = new double[MAX_ITE];
 
 #ifndef EVALUATE
 	resultSolution.nC = currentNumberOfCams;
@@ -2515,8 +2533,8 @@ void CF2::calculateMaxProb()
 	for(int i=0; i<probResult.nmax; i++)
 	{
 		
-		probResult.maxp_normalized[i] += ((double)(*currentTrans.p_pr))*probResult.maxp[i];
-		assert(probResult.maxp[i] <= 1.0 /*&& probResult.maxp_normalized[i] <= 1.0*/);
+		probResult.maxp_normalized[currentCameraConfig] += ((double)(*currentTrans.p_pr))*probResult.maxp[i];
+		assert(probResult.maxp[currentCameraConfig] <= 1.0 /*&& probResult.maxp_normalized[i] <= 1.0*/);
 		
 	}
 
@@ -2527,7 +2545,7 @@ void CF2::normalizeMaxProb()
 {
 
 
-	for(int i=0; i<probResult.nmax; i++)
+	for(int i=0; i<MAX_ITE; i++)
 	{
 		//assert(probResult.maxp_normalized[i] <= 1.0);
 		probResult.maxp_normalized[i] /= samplePositions.sumAllPriorities;		
