@@ -16,12 +16,31 @@
 #include "CudaMem.h"
 #include "IO.h"
 
+	//		int pa_index_m1 = i*2*nC+0*nC+cam1;
+	//		int pa_index_p1 = i*2*nC+1*nC+cam1;
+
+/*
+ 3 cameras, 2 configurationen, 2 energy, 4 costs
+ <--------------energy0-------------><--------------energy1------------->
+ <-----cost0------><-----cost1------><-----cost2------><-----cost3------>
+ [[[c0-][c1-][c2-]][[c0+][c1+][c2+]]][[[c0-][c1-][c2-]][[c0+][c1+][c2+]]]
+*/
 
 
+
+static double calcDistance(double xd, double yd, double zd)
+{
+	 return sqrt(pow(xd,2.0)+pow(yd,2.0)+pow(zd,2.0));
+}
 double const SimulatedAnnealing::e( 2.7182818284590452353602874713526624977572 );
 
 
-SimulatedAnnealing::SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, int nI, int* nn_indices, AngleGenerator* ag):SearchClass(sp, sr, nC, nI, nn_indices, ag),ite(0),neighbourRadius(1.2), neighbourAngle(2.4), firstEvaluation(true), NofIteration(800), maxIteration(nC*NofIteration), firstIteration(true), min_threshold(1.0e-1)
+int inline SimulatedAnnealing::getIndex(int enegeryIndex, int sign, int cam)
+{
+	return enegeryIndex*2*nC+sign*nC+cam;
+}
+
+SimulatedAnnealing::SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, VALID_POS* vp, int nC, int nI, int* nn_indices, AngleGenerator* ag):SearchClass(sp, sr, vp, nC, nI, nn_indices, ag),ite(0),neighbourRadius(1.2), neighbourAngle(2.4), firstEvaluation(true), NofIteration(SIM_ITE*800), maxIteration(nC*NofIteration), firstIteration(true), min_threshold(1.0e-1)
 {
 	assert(nI>0 && nI%2==0);
 	NofE = (int)nI/2;
@@ -29,16 +48,20 @@ SimulatedAnnealing::SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int
 	Nangle = sr->nRotations;
 	nOfCams = nC;
 	robot = sp;
+	globalMin.costs = DBL_MAX;
 
-	minEnergy = new float [NofE];
+	minEnergy = new double [NofE];
 	DOF = 6*nOfCams;
 	noChange = new bool[NofE*DOF];
 	cDim = new unsigned char[NofE];	
+	hasImproved = new int[NofE];
+	nsRuns = new int[NofE];
 
 	pclIndex_t1 = new int[nOfCams*nI];
 	angleIndex_t1 = new int[nOfCams*nI];
-	minEnergy_t1 = new float[NofE];
+	minEnergy_t1 = new double[NofE];
 	
+	globalMin.minEnergy = 1.0;
 
 
 	this->solu = new struct SOLUTION[NofE];
@@ -48,6 +71,9 @@ SimulatedAnnealing::SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int
 		memset(this->solu[i].angle, 0, nC*sizeof(int));
 		this->solu[i].pcl = new int[nC];
 		memset(this->solu[i].pcl, 0, nC*sizeof(int));
+		minEnergy_t1[i] = DBL_MAX;
+		hasImproved[i] = DOF;
+		nsRuns[i] = 0;
 	}
 
 	this->curStates = new enum STATE[NofE];
@@ -78,7 +104,7 @@ SimulatedAnnealing::SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int
 		{
 			noChange[i*DOF+j] = false;
 		}
-		curStates[i] = STATE::HC;
+		curStates[i] = STATE::NS;
 		solu[i].currProp = 0.0;
 	}
 
@@ -140,7 +166,7 @@ SimulatedAnnealing::SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int
 //    srand((unsigned int)t);              /* Zufallsgenerator initialisieren */
 //}
 
-void SimulatedAnnealing::setCoolingPlan(float* costs)
+void SimulatedAnnealing::setCoolingPlan(double const * const costs)
 {	
 	time_t end;
 	time(&end);
@@ -149,19 +175,19 @@ void SimulatedAnnealing::setCoolingPlan(float* costs)
 	float maxTemperature(FLT_MIN);
 	for(unsigned int i=0; i<2*NofE; i++)
 	{
-		if(1.0f-costs[i] > maxTemperature)
+		if(1.0-costs[i] > maxTemperature)
 		{
-			maxTemperature = 1.0f-costs[i];
+			maxTemperature = 1.0-costs[i];
 		}
 	}
 	//float maxTemperature = 1.0;
 	T = maxTemperature/2.0;	
 	min_threshold = T/5.0;
 
-	float basis = min_threshold/T;
-	float expo = 1.0f/((float)nOfCams*maxIteration);
-	alpha = powf(basis, expo);
-	assert(alpha < 1.0f);
+	double basis = min_threshold/T;
+	double expo = 1.0/((double)nOfCams*maxIteration);
+	alpha = pow(basis, expo);
+	assert(alpha < 1.0);
 
 	maxTime = maxIteration*loopTime;
 }
@@ -182,7 +208,7 @@ void SimulatedAnnealing::writeResultsToFile(unsigned long long* vec, int nOfCams
 	fn = "min_cost" + suffix;
 	printMinPositionToFile(fn, samplePoints);
 
-	writeMinCostToFile(vec);
+	//writeMinCostToFile(vec);
 	
 }
 
@@ -206,289 +232,162 @@ SimulatedAnnealing::~SimulatedAnnealing(void)
 	
 }
 
-bool SimulatedAnnealing::isCompleteConfigurationValid(int* pclIndex)
-{
-	bool isValid = true;
-	for(unsigned int i=0; i<NofE; i++)
-	{
-		
-		for(unsigned int cam=0; cam<nC; cam++)
-		{
-			int pa_index_m = i*2*nC+0*nC+cam;
-			int pa_index_p = i*2*nC+1*nC+cam;
 
-			isValid &= isPCLIndexValid(pclIndex, pa_index_m, pa_index_p,i, pclIndex[pa_index_m]);
-			isValid &= isPCLIndexValid(pclIndex, pa_index_m, pa_index_p,i, pclIndex[pa_index_p]);
+
+
+
+bool SimulatedAnnealing::isConfigurationValidAssert(int* pI, int i, int sign)
+{
+	//checking the pcl index by doing a cross product check
+	double d,xd, yd, zd;
+	int pcl_i1, pcl_i2;
+	bool isValid = true;
+
+	for(int cam1=0; cam1<this->nC; cam1++)
+	{
+		for(int cam2=0; cam2<this->nC; cam2++)
+		{
+			if(cam1 == cam2)
+				continue;
+
+			pcl_i1 = getIndex(i, sign, cam1);
+			pcl_i2 = getIndex(i, sign, cam2);
+
+			xd = robot->x[pI[pcl_i1]] - robot->x[pI[pcl_i2]];
+			yd = robot->y[pI[pcl_i1]] - robot->y[pI[pcl_i2]];
+			zd = robot->z[pI[pcl_i1]] - robot->z[pI[pcl_i2]];
+			d = calcDistance(xd, yd, zd);
+			if(!(MIN_DIST_BETWEEN_CAMERA < d))
+			{
+				printf("error\n");
+			}
+			assert(MIN_DIST_BETWEEN_CAMERA < d);
+			isValid &= (MIN_DIST_BETWEEN_CAMERA < d);
 		}
 	}
+
 	return isValid;
-}
-
-void SimulatedAnnealing::initializeFirstRun(int* pclIndex, int* angleIndex)
-{	
-	
-	
-	for(unsigned int i=0; i<NofE; i++)
-	{
-		minEnergy_t1[i] = 1.0f;
-		bool isValidConfiguration = false;
-		do{
-			for(unsigned int cam=0; cam<nC; cam++)
-			{
-				int pa_index_m = i*2*nC+0*nC+cam;
-				int pa_index_p = i*2*nC+1*nC+cam;
-
-
-
-				int p_index =  rand() % Npcl;
-				int a_index =	aG->generateRandomAngle();
-				pclIndex[pa_index_m] = p_index;
-				angleIndex[pa_index_m] = a_index; 
-				pclIndex[pa_index_p] = p_index;
-				angleIndex[pa_index_p] = a_index;
-				pclIndex_t1[pa_index_m] = p_index;
-				angleIndex_t1[pa_index_m] = a_index; 
-				pclIndex_t1[pa_index_p] = p_index;
-				angleIndex_t1[pa_index_p] = a_index;
-
-			}
-
-
-			bool isValid = true;
-			for(unsigned int cam=0; cam<nC; cam++)
-			{
-				int pa_index_m = i*2*nC+0*nC+cam;
-				int pa_index_p = i*2*nC+1*nC+cam;
-
-				isValid &= isPCLIndexValid(pclIndex, pa_index_m, pa_index_p,i, pclIndex[pa_index_m]);
-				isValid &= isPCLIndexValid(pclIndex, pa_index_m, pa_index_p,i, pclIndex[pa_index_p]);
-			}
-			isValidConfiguration = isValid;
-			//printf("\n\n\n\n\n");
-		}while(!isValidConfiguration);
-
-	}
-	time(&start);
-	//printDistanceMatrix();
 
 }
 
-void SimulatedAnnealing::printDistanceMatrix()
+
+
+bool SimulatedAnnealing::isConfigurationValid(int* pI, int i, int sign)
 {
-	//float d, xd, yd, zd;
-	//for(unsigned int i=0; i<NofE; i++)
-	//{
-
-	//	for(unsigned int cam1=0; cam1<nC; cam1++)
-	//	{
-	//		int pa_index_m1 = i*2*nC+0*nC+cam1;
-	//		int pa_index_p1 = i*2*nC+1*nC+cam1;
-
-	//		for(unsigned int i=0; i<NofE; i++)
-	//		{
-
-	//			for(unsigned int cam2=0; cam2<nC; cam2++)
-	//			{
-	//				int pa_index_m2 = i*2*nC+0*nC+cam2;
-	//				int pa_index_p2 = i*2*nC+1*nC+cam2;
-
-	//				xd = robot->x[pa_index_m1] - robot->x[pa_index_m2];
-	//				yd = robot->y[pa_index_m1] - robot->y[pa_index_m2];
-	//				zd = robot->z[pa_index_m1] - robot->z[pa_index_m2];
-	//				d = sqrt(powf(xd,2.0f)+powf(yd,2.0f)+powf(zd,2.0f));
-	//				printf("%.2f\t", d);
-
-	//				xd = robot->x[pa_index_m1] - robot->x[pa_index_p2];
-	//				yd = robot->y[pa_index_m1] - robot->y[pa_index_p2];
-	//				zd = robot->z[pa_index_m1] - robot->z[pa_index_p2];
-	//				d = sqrt(powf(xd,2.0f)+powf(yd,2.0f)+powf(zd,2.0f));
-	//				printf("%.2f\t", d);
-
-	//				xd = robot->x[pa_index_p1] - robot->x[pa_index_m2];
-	//				yd = robot->y[pa_index_p1] - robot->y[pa_index_m2];
-	//				zd = robot->z[pa_index_p1] - robot->z[pa_index_m2];
-	//				d = sqrt(powf(xd,2.0f)+powf(yd,2.0f)+powf(zd,2.0f));
-	//				printf("%.2f\t", d);
-
-	//				xd = robot->x[pa_index_p1] - robot->x[pa_index_p2];
-	//				yd = robot->y[pa_index_p1] - robot->y[pa_index_p2];
-	//				zd = robot->z[pa_index_p1] - robot->z[pa_index_p2];
-	//				d = sqrt(powf(xd,2.0f)+powf(yd,2.0f)+powf(zd,2.0f));
-	//				printf("%.2f\t", d);
-	//			}
-	//		}
-	//		printf("\n", d);
-	//	}		
-	//}
-}
-
-int SimulatedAnnealing::createPCLIndexInRange(int* pcl, int offset_m_in, int offset_p_in, int index)
-{
-	int i2;
-	float xd, yd, zd, d;
-	int offset_m,offset_p;
+	//checking the pcl index by doing a cross product check
+	double d,xd, yd, zd;
+	int pcl_i1, pcl_i2;
 	bool isValid = true;
-	
-	do
+
+	for(int cam1=0; cam1<this->nC; cam1++)
 	{
-	
-		i2 = rand()%Npcl;
-		isValid = true;
-		for(int cam=0; cam<nOfCams; cam++)
+		for(int cam2=0; cam2<this->nC; cam2++)
 		{
-			offset_m = index*2*nC+0*nC+cam;
-			offset_p = index*2*nC+1*nC+cam;
+			if(cam1 == cam2)
+				continue;
 
-			if(offset_m != offset_m_in)
-			{
-			
-				//check if conditions are fullfilled
-				xd = robot->x[pcl[offset_m]] - robot->x[i2];
-				yd = robot->y[pcl[offset_m]] - robot->y[i2];
-				zd = robot->z[pcl[offset_m]] - robot->z[i2];
-				d = sqrt(powf(xd,2.0f)+powf(yd,2.0f)+powf(zd,2.0f));
-				//printf("%.5f\n", d);
-				isValid &= (MIN_DIST_BETWEEN_CAMERA < d);
-			}
-			
+			pcl_i1 = getIndex(i, sign, cam1);
+			pcl_i2 = getIndex(i, sign, cam2);
 
-			if(offset_p == offset_p_in)
-			{
-				//check if conditions are fullfilled
-				xd = robot->x[pcl[offset_p]] - robot->x[i2];
-				yd = robot->y[pcl[offset_p]] - robot->y[i2];
-				zd = robot->z[pcl[offset_p]] - robot->z[i2];
-				d = sqrt(powf(xd,2.0f)+powf(yd,2.0f)+powf(zd,2.0f));
-				//printf("%.5f\n", d);
-				isValid &= (MIN_DIST_BETWEEN_CAMERA < d);
-			}
-		}
-		
-	}while(!isValid);
-	return i2;
-}
-bool SimulatedAnnealing::isPCLIndexValid(int* pcl, int offset_m_in, int offset_p_in, int index, int i2)
-{
-	
-	float xd, yd, zd, d;
-	int offset_m,offset_p;
-	bool isValid = true;
-	
-
-
-	for(int cam=0; cam<nOfCams; cam++)
-	{
-		offset_m = index*2*nC+0*nC+cam;
-		offset_p = index*2*nC+1*nC+cam;
-
-		if(offset_m != offset_m_in)
-		{
-			//check if conditions are fullfilled
-			xd = robot->x[pcl[offset_m]] - robot->x[i2];
-			yd = robot->y[pcl[offset_m]] - robot->y[i2];
-			zd = robot->z[pcl[offset_m]] - robot->z[i2];
-			d = sqrt(powf(xd,2.0f)+powf(yd,2.0f)+powf(zd,2.0f));
-			//printf("%.5f\n", d);
+			xd = robot->x[pI[pcl_i1]] - robot->x[pI[pcl_i2]];
+			yd = robot->y[pI[pcl_i1]] - robot->y[pI[pcl_i2]];
+			zd = robot->z[pI[pcl_i1]] - robot->z[pI[pcl_i2]];
+			d = calcDistance(xd, yd, zd);
+			//printf("%.4f\n", d);
+			//assert(d < MIN_DIST_BETWEEN_CAMERA);
 			isValid &= (MIN_DIST_BETWEEN_CAMERA < d);
 		}
-			
-		if(offset_p != offset_p_in)
-		{
-			//check if conditions are fullfilled
-			xd = robot->x[pcl[offset_p]] - robot->x[i2];
-			yd = robot->y[pcl[offset_p]] - robot->y[i2];
-			zd = robot->z[pcl[offset_p]] - robot->z[i2];
-			d = sqrt(powf(xd,2.0f)+powf(yd,2.0f)+powf(zd,2.0f));
-			//printf("%.5f\n", d);
-			isValid &= (MIN_DIST_BETWEEN_CAMERA < d);
-		}
-
-		//if(!isValid)
-		//{
-		//	printf("error distance\n");
-		//	IO::waitForEnter();
-		//}
 	}
-	return isValid;	
+	
+	return isValid;
 
 }
 
 
-int SimulatedAnnealing::createAngleIndexInRange(int a_i)
-{
-	//int ri, pi, yi;
-	//convertAItoRPY(a_i, sr, &ri, &pi, &yi);
 
-
-	//int di;
-	//di = (rand()%angleIndexRandomRange_roll) - angleIndexRandomRange_roll/2;
-	//ri = (ri+di+sr->nRoll)%sr->nRoll;
-
-	//di = (rand()%angleIndexRandomRange_pitch) - angleIndexRandomRange_pitch/2;
-	//pi = (pi+di+sr->nPitch)%sr->nPitch;
-
-	//di = (rand()%angleIndexRandomRange_yaw) - angleIndexRandomRange_yaw/2;
-	//yi = (yi+di+sr->nYaw)%sr->nYaw;
-
-
-	int ret;
-	//convertRPYtoAI(ri, pi, yi, sr, &ret);
-	ret = aG->generateRandomAngle();
-	return ret;
-}
 
 void SimulatedAnnealing::chooseRandomConfiguration(int* pclIndex, int* angleIndex, int index)
 {
 
-	int offset_m,offset_p;
-	for(int cam=0; cam<nOfCams; cam++)
-	{
-		offset_m = index*2*nC+0*nC+cam;
-		offset_p = index*2*nC+1*nC+cam;
-
-		int p_index = createPCLIndexInRange( pclIndex, offset_m,offset_p, index);
-		int a_index = createAngleIndexInRange(angleIndex[offset_m]);
-
-		pclIndex[offset_m] = p_index;
-		angleIndex[offset_m] = a_index; 
-
-		pclIndex[offset_p] = p_index;
-		angleIndex[offset_p] = a_index;
-
-	}
-
-
 	
+	
+	// generating random configuration until we have found a valid configuration
+
+	bool isValid;	
+	int pcl_i1, sign =0;
+	int a, p;
+	//generating pcl until constraints fit
+	do{		
+		//generating random configuration for a single camera
+		for(int cam = 0; cam<nC; cam++)
+		{
+			pcl_i1 = getIndex(index, sign, cam);			
+			do
+			{
+				a = aG->generateRandomAngle();
+				p = rand()%Npcl;
+
+				angleIndex[pcl_i1] = a;
+				pclIndex[pcl_i1] = p;
+
+				angleIndex_t1[pcl_i1] = a;
+				pclIndex_t1[pcl_i1] = p;
+
+			}while(!isPositionValid(pclIndex[pcl_i1], angleIndex[pcl_i1]));			
+		}			
+		
+	}while(!isConfigurationValid(pclIndex, index, sign));
+
+	sign = 1;
+	//generating pcl until constraints fit
+	do{		
+		//generating random configuration for a single camera
+		for(int cam = 0; cam<nC; cam++)
+		{
+			pcl_i1 = getIndex(index, sign, cam);			
+			do
+			{
+				a = aG->generateRandomAngle();
+				p = rand()%Npcl;
+
+				angleIndex[pcl_i1] = a;
+				pclIndex[pcl_i1] = p;
+
+				angleIndex_t1[pcl_i1] = a;
+				pclIndex_t1[pcl_i1] = p;
+			}while(!isPositionValid(pclIndex[pcl_i1], angleIndex[pcl_i1]));			
+		}					
+	}while(!isConfigurationValid(pclIndex, index, sign));	
 }
 
-void SimulatedAnnealing::findGlobalMinimum(void)
+void SimulatedAnnealing::findGlobalMinimum(int i)
 {
-	for(unsigned int i=0; i< NofE; i++)
+	
+	if(solu[i].costs < globalMin.costs)
 	{
-		if(solu[i].costs < globalMin.costs)
-		{
-			// not allowed because copying pointer is not good
-			// globalMin = solu[i];
+		// not allowed because copying pointer is not good
+		// globalMin = solu[i];
 
 
-			globalMin.costs = solu[i].costs;
-			globalMin.globalMin = solu[i].globalMin;
-			globalMin.currProp = solu[i].currProp;
-			globalMin.curT = solu[i].curT;
-			globalMin.ite = solu[i].ite;
-			globalMin.minEnergy = solu[i].minEnergy;
-			globalMin.state = solu[i].state;
-			memcpy(globalMin.pcl, solu[i].pcl, nC*sizeof(int));
-			memcpy(globalMin.angle, solu[i].angle, nC*sizeof(int));
+		globalMin.costs = solu[i].costs;
+		globalMin.globalMin = solu[i].globalMin;
+		globalMin.currProp = solu[i].currProp;
+		globalMin.curT = solu[i].curT;
+		globalMin.ite = solu[i].ite;
+		globalMin.minEnergy = solu[i].minEnergy;
+		globalMin.state = solu[i].state;
+		memcpy(globalMin.pcl, solu[i].pcl, nC*sizeof(int));
+		memcpy(globalMin.angle, solu[i].angle, nC*sizeof(int));
 
-			//setting global minimum solution
-			//memcpy(minSol.aI, 
-		}
+		//setting global minimum solution
+		//memcpy(minSol.aI, 
 	}
+	
 }
 
 void SimulatedAnnealing::printCurrentStatus(void)
 {
+	system("cls");	
 	//system("cls");	
 	//printf("minI\tST\tminE\t\tcosts\t\tprob\t\tpcl\tangle\n");
 	//for(unsigned int i=0; i< 50 && i< NofE; i++)
@@ -524,11 +423,14 @@ void SimulatedAnnealing::printCurrentStatus(void)
 		break;
 	};
 
-	system("cls");	
+	
 	printf("ST\tminE\tcosts\t\tprob\n");
-	printf("%s\t%.5f\t%.5f\t%.10f\n\n\n",   state.c_str(),minEnergy[0], solu[0].costs, solu[0].currProp);
+	for(int i=0; i<NofE; i++)
+	{
+		printf("%s\t%.5f\t%.5f\t%.10f\t%d\t%d\n",   state.c_str(),minEnergy[i], solu[i].costs, solu[i].currProp, hasImproved[i], nsRuns[i]);
+	}
 
-	printf("cam\tpcl\troll\tpitch\tyaw\tdim\n");
+	printf("\n\ncam\tpcl\troll\tpitch\tyaw\tdim\n");
 	for(int i=0; i<nC; i++)
 	{			
 		int roll, pitch, yaw;
@@ -570,9 +472,16 @@ void SimulatedAnnealing::writeMinCostToFile(unsigned long long* vec)
 	std::string fn = "resultingSolution.bin";
 	std::ofstream outbin( fn.c_str(), std::ios::binary );
 
+	printf("optimal solution: \n");
+	for(int i=0; i<nC; i++)
+	{
+		printf("%d\t%d\n", globalMin.pcl[i], globalMin.angle[i]);
+	}
+
+
 	outbin.write((char*)&nC, sizeof(int));
 	outbin.write((char*)buffer, nC*sizeof(int));
-	outbin.write((char*)globalMin.pcl,	nC*sizeof(int));
+	outbin.write((char*)globalMin.pcl,	nC*sizeof(int));	
 	outbin.write((char*)globalMin.angle, nC*sizeof(int));
 	outbin.close();
 	delete buffer;
@@ -582,34 +491,151 @@ void SimulatedAnnealing::writeMinCostToFile(unsigned long long* vec)
 
 void SimulatedAnnealing::resetHasChanged(int i)
 {
-	for(unsigned int j=0; j<DOF; j++)
-	{
-		noChange[i*DOF+j] = false;
-	}
+	//for(unsigned int j=0; j<DOF; j++)
+	//{
+	//	noChange[i*DOF+j] = false;
+	//}
+	hasImproved[i] = DOF;
 }
 
 bool SimulatedAnnealing::hasHillClimbingFinished(int i)
 {
-	bool hasFinished = true;
-	for(unsigned int j=0; j<DOF; j++)
-	{
-		hasFinished &= noChange[i*DOF+j];
-	}
-	return hasFinished; 
+	//bool hasFinished = true;
+	//for(unsigned int j=0; j<DOF; j++)
+	//{
+	//	hasFinished &= noChange[i*DOF+j];
+	//}
+	//return hasFinished; 
+	return hasImproved[i] < 0; 
 }
 
-double SimulatedAnnealing::iterateSingle(const int* const nn_indices, int* pclIndex, int* angleIndex, float* costs, int i)
+void SimulatedAnnealing::setXYZ(int* const pclIndex, int*const angleIndex, int enegeryIndex, int dim, int cam)
 {
-	int p_i, a_i;
-	float localMinE = 0.0;
+	
+	int sign = 0;
+	int index = getIndex(enegeryIndex, sign, cam);
+	int p_i = pclIndex[index];
+	int pi_new = nn_indices[p_i*6+dim*2+sign];
 
-	float cm = 1.0-costs[2*i+0];
-	float cp = 1.0-costs[2*i+1];
+	//checking if consistent before
+	assert(areAllPositionsValidAssert(pclIndex, angleIndex));
+	//setting new version an checking if consistent
+	pclIndex[index] = pi_new;
+	if(!areAllPositionsValid(pclIndex, angleIndex))
+	{
+		//setting back to previous and check agains
+		pclIndex[index] = p_i;
+	}
+	assert(areAllPositionsValidAssert(pclIndex, angleIndex));
+
+	//doing the same for the plus sign
+	sign = 1;
+	index = getIndex(enegeryIndex, sign, cam);
+	p_i = pclIndex[index];
+	pi_new = nn_indices[p_i*6+dim*2+sign];
+	//checking if consistent before
+	assert(areAllPositionsValidAssert(pclIndex, angleIndex));
+	//setting new version an checking if consistent
+	pclIndex[index] = pi_new;
+	if(!areAllPositionsValid(pclIndex, angleIndex))
+	{
+		//setting back to previous and check agains
+		pclIndex[index] = p_i;
+	}
+	assert(areAllPositionsValidAssert(pclIndex, angleIndex));
+	
+}
+void SimulatedAnnealing::setAngle(int* const pclIndex, int*const angleIndex, int enegeryIndex, int dim, int cam)
+{
+	int ri, pi, yi, t; 
+	int ai_new;	
+	
+	int sign = 0;
+	int index = getIndex(enegeryIndex, sign, cam);
+	int a_i = angleIndex[index];
+
+
+		
+	convertAItoRPY(a_i, sr, &ri, &pi, &yi);	
+	switch(dim){
+	case 3:
+		t = (ri+sr->nRoll-1)%sr->nRoll;
+		convertRPYtoAI(t, pi, yi, sr, &ai_new);
+		break;
+	case 4:
+		t = (pi+sr->nPitch-1)%sr->nPitch;
+		convertRPYtoAI(ri, t, yi, sr, &ai_new);
+		break;
+	case 5:
+		t = (yi+sr->nYaw-1)%sr->nYaw;
+		convertRPYtoAI(ri, pi, t, sr, &ai_new);
+		break;
+	default:
+		assert(false);
+	};
+
+	//check first if is allright
+	assert(areAllPositionsValidAssert(pclIndex, angleIndex));
+	//setting new version an checking if consistent
+	angleIndex[index] = ai_new;
+	if(!areAllPositionsValid(pclIndex, angleIndex))
+	{
+		//setting back to previous and check agains
+		angleIndex[index] = a_i;
+	}
+	assert(areAllPositionsValidAssert(pclIndex, angleIndex));
+
+
+	sign = 1;
+	index = getIndex(enegeryIndex, sign, cam);
+	a_i = angleIndex[index];
+	convertAItoRPY(a_i, sr, &ri, &pi, &yi);	
+	switch(dim){
+	case 3:		
+		t = (ri+1)%sr->nRoll;
+		convertRPYtoAI(t, pi, yi, sr, &ai_new);
+		break;
+	case 4:
+		t = (pi+1)%sr->nPitch;
+		convertRPYtoAI(ri, t, yi, sr, &ai_new);
+		break;
+	case 5:
+		t = (yi+1)%sr->nYaw;
+		convertRPYtoAI(ri, pi, t, sr, &ai_new);
+		break;
+	default:
+		assert(false);
+	};
+
+	//check first if is allright
+	assert(areAllPositionsValidAssert(pclIndex, angleIndex));
+	//setting new version an checking if consistent
+	angleIndex[index] = ai_new;
+	if(!areAllPositionsValid(pclIndex, angleIndex))
+	{
+		//setting back to previous and check agains
+		angleIndex[index] = a_i;
+	}
+	assert(areAllPositionsValidAssert(pclIndex, angleIndex));
+
+
+}
+
+double SimulatedAnnealing::iterateSingle(const int* const nn_indices, int* const pclIndex, int*const angleIndex, double const*const costs, int i)
+{
+
+	assert(areAllPositionsValidAssert(pclIndex, angleIndex));
+	int p_i, a_i;
+	double localMinE = 0.0;
+
+	double cm = 1.0-costs[2*i+0];
+	double cp = 1.0-costs[2*i+1];
 
 	int dim = cDim[i]%6;
 	int cam = cDim[i]/6;
-	int pa_index_m = i*2*nC+0*nC+cam;
-	int pa_index_p = i*2*nC+1*nC+cam;
+	
+	int pa_index_m = getIndex(i,0,cam);;
+	int pa_index_p = getIndex(i,1,cam);;
 	
 
 
@@ -651,7 +677,7 @@ double SimulatedAnnealing::iterateSingle(const int* const nn_indices, int* pclIn
 
 		
 	}
-
+	findGlobalMinimum(i);
 
 
 
@@ -663,110 +689,54 @@ double SimulatedAnnealing::iterateSingle(const int* const nn_indices, int* pclIn
 	{
 		//there has been actual improvement
 		//solution is stored into history
-		memcpy(pclIndex_t1+i*2*nC, pclIndex, nOfCams*sizeof(int));
-		memcpy(angleIndex_t1+i*2*nC, angleIndex, nOfCams*sizeof(int));
-		memcpy(minEnergy_t1+i, minEnergy+i, sizeof(float));
+		memcpy(pclIndex_t1+i*2*nC, pclIndex+i*2*nC, 2*nOfCams*sizeof(int));
+		memcpy(angleIndex_t1+i*2*nC, angleIndex+i*2*nC, 2*nOfCams*sizeof(int));
+		memcpy(minEnergy_t1+i, minEnergy+i, sizeof(double));
+		
 	}else
 	{
 		//there has no actual improvement 
 		//the state before mutation is restored
-		memcpy(pclIndex+i*2*nC, pclIndex_t1, nOfCams*sizeof(int));
-		memcpy(angleIndex+i*2*nC, angleIndex_t1, nOfCams*sizeof(int));
-		memcpy(minEnergy+i, minEnergy_t1+i, sizeof(float));
+		memcpy(pclIndex+i*2*nC, pclIndex_t1+i*2*nC, 2*nOfCams*sizeof(int));
+		memcpy(angleIndex+i*2*nC, angleIndex_t1+i*2*nC, 2*nOfCams*sizeof(int));
+		memcpy(minEnergy+i, minEnergy_t1+i, sizeof(double));
+		
 	}
+	
 
-	//if(costs[2*i+0] < costs[2*i+1])
-	//{	//change to minus
-	//	localMinE = costs[2*i+0];
-	//	p_i = pclIndex[2*i+0];
-	//	a_i = angleIndex[2*i+0];
-	//}else
-	//{	//change to plus
-	//	localMinE = costs[2*i+1];
-	//	p_i = pclIndex[2*i+1];
-	//	a_i = angleIndex[2*i+1];				
-	//}
-
-	//double prop = (rand() / (double)RAND_MAX);
-	//double newprop = pow(e, (minEnergy[i]-localMinE) / T);
-	//		
-
-	//if(prop <= newprop)
-	if(localMinE < minEnergy[i])
-	{	//has changed
-	//	noChange[6*i+cDim[i]] = false;
-		resetHasChanged(i);	
-	}else{
-		noChange[DOF*i+cDim[i]] = true;
-	}
-
-
-	//found best position setting next position
 
 	
 	cDim[i] = (cDim[i]+1)%DOF;
 	dim = cDim[i]%6;
 	cam = cDim[i]/6;
-	pa_index_m = i*2*nC+0*nC+cam;
-	pa_index_p = i*2*nC+1*nC+cam;
 	
+
 	
-	//int ri = a_i/(sr->nPitch*sr->nYaw);
-	//int pi = (a_i - ri*sr->nPitch*sr->nYaw)/sr->nYaw;
-	//int yi = a_i-ri*sr->nPitch*sr->nYaw-pi*sr->nYaw;
-	int ri, pi, yi;
-	convertAItoRPY(a_i, sr, &ri, &pi, &yi);
-
-	int roll = ri, pitch = pi, yaw = yi;
-	int am, ap;
 
 
-	int index_m =0, index_p=0;
+	
 	switch(dim){
 	case 0:		
 	case 1:
 	case 2:
-		//x,y,z
-		index_m = nn_indices[p_i*6+dim*2+0];
-		index_p = nn_indices[p_i*6+dim*2+1];
-
-		
-		if(isPCLIndexValid(pclIndex, pa_index_m, pa_index_p,i, index_m))
-			pclIndex[pa_index_m] = index_m;
-
-		if(isPCLIndexValid(pclIndex, pa_index_m, pa_index_p,i, index_p))
-			pclIndex[pa_index_p] = index_p;
-
-/*		pclIndex[pa_index_m] = nn_indices[p_i*6+dim*2+0];
-		pclIndex[pa_index_p] = nn_indices[p_i*6+dim*2+1];*/	
+		setXYZ(pclIndex, angleIndex, i, dim, cam);
 		break;
 	case 3:
-		//roll
-		am = (ri+sr->nRoll-1)%sr->nRoll;
-		ap = (ri+sr->nRoll+1)%sr->nRoll;
-		convertRPYtoAI(am, yi, yi, sr, &(angleIndex[pa_index_m]));
-		convertRPYtoAI(ap, yi, yi, sr, &(angleIndex[pa_index_p]));
-		break;
 	case 4:
-		//pitch
-		am = (pi+sr->nPitch-1)%sr->nPitch;
-		ap = (pi+sr->nPitch+1)%sr->nPitch;
-		convertRPYtoAI(ri, am, yi, sr, &(angleIndex[pa_index_m]));
-		convertRPYtoAI(ri, ap, yi, sr, &(angleIndex[pa_index_p]));
-		break;
 	case 5:
-		//yaw
-		am = (yi+sr->nYaw-1)%sr->nYaw;
-		ap = (yi+sr->nYaw+1)%sr->nYaw;
-		convertRPYtoAI(ri, pi, am, sr, &(angleIndex[pa_index_m]));
-		convertRPYtoAI(ri, pi, ap, sr, &(angleIndex[pa_index_p]));
+		setAngle(pclIndex, angleIndex, i, dim, cam);
 		break;
 	default:
 		assert(false);
 	};
 
+
 	assert(angleIndex[pa_index_p] >= 0 && angleIndex[pa_index_p] <sr->nRotations);
 	assert(angleIndex[pa_index_m] >= 0 && angleIndex[pa_index_m] <sr->nRotations);
+	
+
+
+
 	//printf("iterate single...\n");
 	//assert(localMinE > 0.0);
 	return localMinE;
@@ -843,9 +813,10 @@ void SimulatedAnnealing::printMinPositionToFile(std::string pre, struct SAMPLE_P
 	std::string fn = "minCameraPos" + pre+ ".bin";
 	std::ofstream outbin(fn, std::ofstream::binary );
 
+	float globalMinFloat = (float)globalMin.costs;
 	outbin.write((char*)&nC, sizeof(int));
 	outbin.write((char*)buf2, nC*NUMELEM_H*sizeof(float));
-	outbin.write((char*)&globalMin.costs, sizeof(float));
+	outbin.write((char*)&globalMinFloat, sizeof(float));
 	outbin.write((char*)buf3, nC*sizeof(int));
 	outbin.write((char*)buf4, nC*sizeof(int));
 	outbin.close();
@@ -938,12 +909,24 @@ void SimulatedAnnealing::setNewVector(int i)
 //	return true;
 //}
 
-bool SimulatedAnnealing::iterate(int* pclIndex, int* angleIndex, float* costs, float* d, int* weights)
+
+
+bool SimulatedAnnealing::iterate(int* const pclIndex, int *const angleIndex, double const *const costs, float const *const d, int const *const weights)
 {
+	//for(int i=0; i<2*NofE; i++)
+	//{
+	//	printf("energy: %d\t%.10lf\n", i, costs[i]);
+	//}
+	//IO::waitForEnter();
 	if(firstIteration)
 	{
-		initializeFirstRun(pclIndex, angleIndex);
+		for(int energy=0;energy<NofE; energy++)
+		{
+			chooseRandomConfiguration(pclIndex, angleIndex, energy);
+		}
+		time(&start);
 		firstIteration = false;
+		assert(areAllPositionsValid(pclIndex, angleIndex) == true);
 		return true;
 	}else
 	{
@@ -953,6 +936,8 @@ bool SimulatedAnnealing::iterate(int* pclIndex, int* angleIndex, float* costs, f
 			setCoolingPlan(costs);
 		}
 	}
+
+
 
 	
 
@@ -986,6 +971,7 @@ bool SimulatedAnnealing::iterate(int* pclIndex, int* angleIndex, float* costs, f
 			if(hasHillClimbingFinished(i))
 			{   //switch to ns
 				curStates[i] = STATE::NS;
+				nsRuns[i]++;
 				setNewVector(i);
 				//printf("random jump...\n");
 				chooseRandomConfiguration(pclIndex, angleIndex, i);			
@@ -995,7 +981,14 @@ bool SimulatedAnnealing::iterate(int* pclIndex, int* angleIndex, float* costs, f
 			if(localMinE < minEnergy[i])
 			{
 				minEnergy[i] = localMinE;
+				resetHasChanged(i);	
+			}else
+			{
+				hasImproved[i]--;
 			}
+
+
+
 			break;
 		case STATE::NS:
 			//try to accept new bet
@@ -1040,9 +1033,7 @@ bool SimulatedAnnealing::iterate(int* pclIndex, int* angleIndex, float* costs, f
 	//	printf("error\n");
 	//	IO::waitForEnter();
 	//}
-	addResult();
-	findGlobalMinimum();
-	printCurrentStatus();
+
 	ite++;
 	//std::cout << "waiting for key..." << std::endl;
 	//std::string mystr;
@@ -1061,12 +1052,58 @@ bool SimulatedAnnealing::iterate(int* pclIndex, int* angleIndex, float* costs, f
 	//}
 
 	//if(T >min_threshold)
-	if(ite<maxIteration)
+	addResult();	
+	printCurrentStatus();
+	assert(areAllPositionsValid(pclIndex, angleIndex) == true);
+	if(ite<maxIteration && abs(globalMin.costs) > 1e-8f)
 	{
 		T *= alpha;
 		return true;
 	}else
 	{
+		printf("finishing sa\n");
 		return false;
 	}
+}
+
+
+
+bool SimulatedAnnealing::areAllPositionsValidAssert(int*const pI, int*const aI)
+{
+	bool valid = true;
+	int index = 0;
+	for(int energy=0; energy<NofE; energy++)
+	{
+		for(int sign=0; sign<2; sign++)
+		{
+			for(int cam=0;cam<nC; cam++)
+			{
+				index = getIndex(energy, sign, cam);	
+				valid &= isPositionValid(pI[index], aI[index]);	
+			}
+			valid &= isConfigurationValidAssert(pI, energy, sign);
+		}
+				
+	}
+	return valid;
+}
+
+bool SimulatedAnnealing::areAllPositionsValid(int* pI, int* aI)
+{
+	bool valid = true;
+	int index = 0;
+	for(int energy=0; energy<NofE; energy++)
+	{
+		for(int sign=0; sign<2; sign++)
+		{
+			for(int cam=0;cam<nC; cam++)
+			{
+				index = getIndex(energy, sign, cam);	
+				valid &= isPositionValid(pI[index], aI[index]);	
+			}
+			valid &= isConfigurationValid(pI, energy, sign);
+		}
+				
+	}
+	return valid;
 }

@@ -5,7 +5,7 @@
 #define MAX_SPACE (10.f)
 
 
-InversionSearch::InversionSearch(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, int nI, int* const nn_indices):SearchClass(sp,sr,nC,nI,nn_indices, NULL)
+InversionSearch::InversionSearch(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, VALID_POS* vp, int nC, int nI, int* const nn_indices):SearchClass(sp,sr,vp,nC,nI,nn_indices, NULL)
 {
 
 
@@ -56,7 +56,7 @@ InversionSearch::InversionSearch(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, i
 	c_i = 0;	
 	c_vi = 0;
 	l_vi = 0;
-	this->prop = new float[SEARCH_DOF*sr->nRotations];
+	this->prop = new double[SEARCH_DOF*sr->nRotations];
 	this->dist = new float[SEARCH_DOF*sr->nRotations];
 	this->weights = new int[SEARCH_DOF*sr->nRotations];
 	for(int i=0; i<SEARCH_DOF*sr->nRotations; i++)
@@ -100,7 +100,7 @@ void InversionSearch::setInversionParamters(SAMPLE_POINTS_BUFFER* buffer)
 }
 
 	
-bool InversionSearch::iterate(int* pI, int* aI, float* p, float* d, int* w)
+bool InversionSearch::iterate(int* const pI, int*const aI, double const* const p, float const *const d, int const *const w)
 {
 	if(c_vi > 0)
 	{

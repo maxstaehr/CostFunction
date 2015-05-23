@@ -18,7 +18,7 @@ AngleGenerator::AngleGenerator()
 	indices[1] = 198;
 }
 
-AngleGenerator::AngleGenerator(float* prop, int nAngle, int DOF)
+AngleGenerator::AngleGenerator(double* prop, int nAngle, int DOF)
 {
 	time_t t;
 	time(&t);
@@ -86,24 +86,26 @@ bool AngleGenerator::checkIndex(int i, float value)
 
 int AngleGenerator::generateRandomAngle()
 {
-	float value = (float)rand()/RAND_MAX;
-	int index = -1;
-	for(int i=0; i<nOfLimits; i++)
-	{
-		if(checkIndex(i,value))
-		{
-			index = i;
-			break;
-		}
-	}
-	int angle = indices[index];
-	//printf("angle at %d gene: %d\t%d\n",index, angle,nOfLimits ); 
-	assert(index > -1);
-	assert(index<nOfLimits);
-	assert(angle > -1);
-	assert(indices[index] < nAng);                       
-	return indices[index];
-	//return rand()%nAng;   
+	//float value = (float)rand()/RAND_MAX;
+	//int index = -1;
+	//for(int i=0; i<nOfLimits; i++)
+	//{
+	//	if(checkIndex(i,value))
+	//	{
+	//		index = i;
+	//		break;
+	//	}
+	//}
+	//if(index >= nOfLimits)
+	//	index = nOfLimits-1;
+	//int angle = indices[index];
+	////printf("angle at %d gene: %d\t%d\n",index, angle,nOfLimits ); 	
+	//assert(index > -1);
+	//assert(index<nOfLimits);
+	//assert(angle > -1);
+	//assert(indices[index] < nAng);                       
+	//return indices[index];
+	return rand()%nAng;   
 }
 
 

@@ -11,7 +11,7 @@
 #include "InversionSearch.h"
 #include "EC.h"
 
-
+#include <Windows.h>
 #include <cstdio>
 #include <string.h>
 #include <math.h>
@@ -207,6 +207,11 @@ CF2::CF2():currentNumberOfCams(1)
 	srand (time(NULL));
 	cameraCombination.vector = NULL;
 
+	resultingSolution.cameraTypes = NULL;
+	resultingSolution.angleIndex = NULL;
+	resultingSolution.pclIndex = NULL;
+	
+
 
 
 	
@@ -218,6 +223,7 @@ CF2::CF2():currentNumberOfCams(1)
 	IO::loadSamplePCL(&samplePoints, "samplePoints.bin");
 	IO::loadSampleRotations(&sampleRotations, "sampleRotations.bin");
 	IO::loadSampleCamera(&sampleCameraTypes, "sampleCamera.bin");
+	IO::loadValidPos(&sampleValidPositions, "sampleValidPositions.bin");
 	IO::loadSampleFitting(&sampleFitting, &launchConfigModelFitting, "sampleFitting.bin");
 	IO::loadDistanceMatrix(&distMatrix, "distMatrix.bin");
 	//setting launch Configuration
@@ -276,8 +282,134 @@ void CF2::initCameraCombination()
 {
 	if(cameraCombination.vector != NULL) delete cameraCombination.vector;
 
-	cameraCombination.vector = new unsigned long long[currentNumberOfCams];
+	cameraCombination.vector = new unsigned long long[currentNumberOfCams];	
+	//cameraCombination.gen_result = gen_comb_norep_lex_init(cameraCombination.vector, sampleCameraTypes.nCameraTypes, currentNumberOfCams);
 	cameraCombination.gen_result = gen_comb_rep_lex_init(cameraCombination.vector, sampleCameraTypes.nCameraTypes, currentNumberOfCams);
+}
+
+void CF2::overlayData()
+{
+	for(int i=0; i<probResult.nmax; i++)
+	{
+		//assert(probResult.maxp_normalized[i] <= 1.0);
+	
+		optiSession.pI[i*currentNumberOfCams+0] = 109;
+		optiSession.aI[i*currentNumberOfCams+0] = 430;
+		optiSession.pI[i*currentNumberOfCams+1] = 130;
+		optiSession.aI[i*currentNumberOfCams+1] = 315;
+	}
+}
+
+void CF2::checkFirstTwoCameras()
+{
+
+	int* cis1 = new int[optiSession.launchs[0].depthBuffer.size];
+	int* cis2 = new int[optiSession.launchs[0].depthBuffer.size];
+
+	CudaMem::cudaMemCpyReport(cis1, optiSession.launchs[0].depthBuffer.d_cis, optiSession.launchs[0].depthBuffer.size*sizeof(int), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(cis2, optiSession.launchs[1].depthBuffer.d_cis, optiSession.launchs[1].depthBuffer.size*sizeof(int), cudaMemcpyDeviceToHost);
+
+
+	for(int i=0; i<optiSession.launchs[0].depthBuffer.size; i++)
+	{
+		assert(cis1[i] == cis2[i]);
+	}
+
+	delete cis1;
+	delete cis2;
+
+	float* depth1 = new float[optiSession.launchs[0].depthBuffer.size];
+	float* depth2 = new float[optiSession.launchs[1].depthBuffer.size];
+
+	const float epsf = 1e-5f;
+	double const eps = 1e-5;
+
+	CudaMem::cudaMemCpyReport(depth1, optiSession.launchs[0].depthBuffer.d_dx, optiSession.launchs[0].depthBuffer.size*sizeof(float), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(depth2, optiSession.launchs[1].depthBuffer.d_dx, optiSession.launchs[1].depthBuffer.size*sizeof(float), cudaMemcpyDeviceToHost);
+	for(int i=0; i<optiSession.launchs[0].depthBuffer.size; i++)
+	{
+		if(isnan(depth1[i]) || isnan(depth2[i]))
+		{
+			assert(isnan(depth1[i]) && isnan(depth1[i]));
+		}else{
+			assert(abs(depth1[i]-depth2[i]) < epsf);
+		}		
+	}
+
+	CudaMem::cudaMemCpyReport(depth1, optiSession.launchs[0].depthBuffer.d_dy, optiSession.launchs[0].depthBuffer.size*sizeof(float), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(depth2, optiSession.launchs[1].depthBuffer.d_dy, optiSession.launchs[1].depthBuffer.size*sizeof(float), cudaMemcpyDeviceToHost);
+	for(int i=0; i<optiSession.launchs[0].depthBuffer.size; i++)
+	{
+		if(isnan(depth1[i]) || isnan(depth2[i]))
+		{
+			assert(isnan(depth1[i]) && isnan(depth1[i]));
+		}else{
+			assert(abs(depth1[i]-depth2[i]) < epsf);
+		}		
+	}
+
+	CudaMem::cudaMemCpyReport(depth1, optiSession.launchs[0].depthBuffer.d_dz, optiSession.launchs[0].depthBuffer.size*sizeof(float), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(depth2, optiSession.launchs[1].depthBuffer.d_dz, optiSession.launchs[1].depthBuffer.size*sizeof(float), cudaMemcpyDeviceToHost);
+	for(int i=0; i<optiSession.launchs[0].depthBuffer.size; i++)
+	{
+		if(isnan(depth1[i]) || isnan(depth2[i]))
+		{
+			assert(isnan(depth1[i]) && isnan(depth1[i]));
+		}else{
+			assert(abs(depth1[i]-depth2[i]) < epsf);
+		}		
+	}
+
+	delete depth1;
+	delete depth2;
+
+	float c1, c2;
+	CudaMem::cudaMemCpyReport(&c1, optiSession.launchs[0].centroid.d_cx, sizeof(float), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(&c2, optiSession.launchs[1].centroid.d_cx, sizeof(float), cudaMemcpyDeviceToHost);	
+	if(isnan(c1) || isnan(c2))
+	{
+		assert(isnan(c1) && isnan(c2));
+	}else{
+		assert(abs(c1-c2) < epsf);
+	}	
+	CudaMem::cudaMemCpyReport(&c1, optiSession.launchs[0].centroid.d_cy, sizeof(float), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(&c2, optiSession.launchs[1].centroid.d_cy, sizeof(float), cudaMemcpyDeviceToHost);
+	if(isnan(c1) || isnan(c2))
+	{
+		assert(isnan(c1) && isnan(c2));
+	}else{
+		assert(abs(c1-c2) < epsf);
+	}	
+	CudaMem::cudaMemCpyReport(&c1, optiSession.launchs[0].centroid.d_cz, sizeof(float), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(&c2, optiSession.launchs[1].centroid.d_cz, sizeof(float), cudaMemcpyDeviceToHost);
+	if(isnan(c1) || isnan(c2))
+	{
+		assert(isnan(c1) && isnan(c2));
+	}else{
+		assert(abs(c1-c2) < epsf);
+	}	
+
+
+
+
+	double *prob1 = new double[probResult.n];
+	double *prob2 = new double[probResult.n];
+
+	
+
+	CudaMem::cudaMemCpyReport(prob1, optiSession.launchs[0].probResult.d_p, optiSession.launchs[0].probResult.n*sizeof(double), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(prob2, optiSession.launchs[1].probResult.d_p, optiSession.launchs[1].probResult.n*sizeof(double), cudaMemcpyDeviceToHost);
+
+	for(int i=0; i<probResult.n; i++)
+	{
+		assert(abs(prob1[i]-prob2[i]) < eps);
+	}
+
+		
+
+	delete prob1;
+	delete prob2;
+
 }
 
 void CF2::run()
@@ -289,7 +421,7 @@ void CF2::run()
 	initParallelOptiRuns();
 	IO::waitForEnter();
 	//////////finding first the probability density funtion of the angles to reduces the amount of raytracing angles
-	sC = new InversionSearch(&samplePoints, &sampleRotations, 1, MAX_ITE, nn->getNN());
+	sC = new InversionSearch(&samplePoints, &sampleRotations,&sampleValidPositions, 1, MAX_ITE, nn->getNN());
 
 	//((InversionSearch*)sC)->setInversionParamters(&samplePointsBuffer);
 	//while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp, probResult.maxd, probResult.maxw) )
@@ -326,20 +458,28 @@ void CF2::run()
 	delete sC;
 
 	freeParallelOptiRuns();
+#ifdef RAISING_CAMERAS
+	currentNumberOfCams = 1;
+#else
 	currentNumberOfCams = 4;
+#endif
+	
 	initCameraCombination();
 	printf("starting optimisation...\n");
 	//IO::waitForEnter();
 	
-
-	while(currentNumberOfCams <5)
+#ifdef RAISING_CAMERAS
+	while(currentNumberOfCams < 10)
+#else
+	while(currentNumberOfCams < 5)
+#endif
 	{
 	
 		int ite =0;
 		do
 		{
 			//sC = new CompleteEnumeration(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, NULL);
-			sC = new SimulatedAnnealing(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, nn->getNN(), &aG);
+			sC = new SimulatedAnnealing(&samplePoints, &sampleRotations, &sampleValidPositions,  currentNumberOfCams, MAX_ITE, nn->getNN(), &aG);
 			
 
 			initParallelOptiRuns();			
@@ -348,11 +488,16 @@ void CF2::run()
 
 			//if (currentNumberOfCams == 2)
 			//{
-				while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp, probResult.maxd, probResult.maxw))
+				while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp_normalized, probResult.maxd, probResult.maxw)/*&&ite<50*/ )
 				{
+					//overlayData();
+					//Sleep(4000);
+					//system("cls");	
+					ite++;
 					zeroProb();
 					for(int i=0; i< samplePositions.nP; i++)
-					{				
+					{
+						reinitLoop();
 						setCurrentTans(i);
 						transformVertexBuffer();
 						transformBoundingBoxBuffer();
@@ -362,12 +507,20 @@ void CF2::run()
 						//IO::saveDepthBufferToFile(&depthBuffer, "depthBuffer.bin");
 						calculateCluster();
 						calculateCentroid();
+						//checkFirstTwoCameras();
 						//printCentroid(&depthBuffer);
 						calculateProbOfHumanDetection();
+						//checkFirstTwoCameras();
 						calculateMaxProb();
-						ite++;
+						
+						
 						//Progress::printProgress((double)i, (double)samplePositions.nP, start, "raytracing rp ");	
 					}
+					
+					normalizeMaxProb();
+					
+					
+					//printf("global min CF %.10lf\n", resultingSolution.minCost);
 					//IO::saveDepthBufferToFile(&depthBuffer, "depthBuffer.bin");
 					//IO::saveDepthBufferToFileSuperSamples(&depthBuffer, "depthBuffer.bin");
 					//Progress::printProgress((double)optiSession.pI[0], (double)samplePoints.n, start, "raytracing cp ");
@@ -383,11 +536,12 @@ void CF2::run()
 			//transformSamplePointBuffer();
 			//IO::saveOptimisationResults(&samplePointsBuffer, &samplePoints, &sampleRotations, sC->prop, sC->dist,sC->weights,  "completeEnumeration.bin");
 			setCurrentTans(0);
+			IO::writeMinCostToFile(cameraCombination.vector, resultingSolution.pclIndex, resultingSolution.angleIndex, currentNumberOfCams);
 			sC->writeResultsToFile(cameraCombination.vector, currentNumberOfCams, &samplePointsBuffer);
 			delete sC;
 			freeParallelOptiRuns();
 
-			printf("finished current camera combination\n");
+			printf("finished current camera combination with max prob %.10lf\n", resultingSolution.minCost);
 
 			//IO::waitForEnter();
 			
@@ -425,7 +579,8 @@ void CF2::run_evaluation()
 
 	zeroProb();
 	for(int i=0; i< samplePositions.nP; i++)
-	{				
+	{
+		reinitLoop();
 		setCurrentTans(i);
 		transformVertexBuffer();
 		transformBoundingBoxBuffer();
@@ -440,9 +595,10 @@ void CF2::run_evaluation()
 		calculateMaxProb();
 		//Progress::printProgress((double)i, (double)samplePositions.nP, start, "raytracing rp ");	
 	}
+	normalizeMaxProb();
 	//checkIntermediateResults();
-	float result = 1.0f - probResult.maxp[0];
-	printf("resulting prop: %.10f\n", result);
+	 
+	printf("resulting prop: %.10lf\n", probResult.maxp_normalized[0]);
 	IO::waitForEnter();
 
 
@@ -452,18 +608,19 @@ void CF2::run_completeEnumeration()
 {
 		//outer loop for combination of multiple cameras
 	initCameraCombination();
-	sC = new CompleteEnumeration(&samplePoints, &sampleRotations, currentNumberOfCams, MAX_ITE, NULL);		
+	sC = new CompleteEnumeration(&samplePoints, &sampleRotations, &sampleValidPositions, currentNumberOfCams, MAX_ITE, NULL);		
 	initParallelOptiRuns();		
 	printf("starting optimisation...\n");
 	IO::waitForEnter();
 	time_t start;			
 	time(&start);
 
-	while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp, probResult.maxd, probResult.maxw) )
+	while(sC->iterate(optiSession.pI, optiSession.aI, probResult.maxp_normalized, probResult.maxd, probResult.maxw) )
 	{
 		zeroProb();
 		for(int i=0; i< samplePositions.nP; i++)
-		{				
+		{
+			reinitLoop();
 			setCurrentTans(i);
 			transformVertexBuffer();
 			transformBoundingBoxBuffer();
@@ -478,9 +635,10 @@ void CF2::run_completeEnumeration()
 			calculateMaxProb();
 			//Progress::printProgress((double)i, (double)samplePositions.nP, start, "raytracing rp ");	
 		}
+		normalizeMaxProb();
 		//IO::saveDepthBufferToFile(&depthBuffer, "depthBuffer.bin");
 		//IO::saveDepthBufferToFileSuperSamples(&depthBuffer, "depthBuffer.bin");
-		Progress::printProgress((double)optiSession.pI[0], (double)samplePoints.n, start, "raytracing cp ");
+		//Progress::printProgress((double)optiSession.pI[0], (double)samplePoints.n, start, "raytracing cp ");
 		//IO::waitForEnter();
 
 	}
@@ -488,10 +646,13 @@ void CF2::run_completeEnumeration()
 
 	
 	//saving results	
-	setCurrentTans(0);
-	transformSamplePointBuffer();
-	IO::saveOptimisationResults(&samplePointsBuffer, &samplePoints, &sampleRotations, sC->prop, sC->dist,sC->weights,  "completeEnumeration.bin");
-	sC->writeResultsToFile(cameraCombination.vector, currentNumberOfCams, &samplePointsBuffer);
+	double percentage = ((double)(100.0*sC->numberOfCalculations))/((double)(samplePoints.n*sampleRotations.nRotations));
+	printf("%.10lf\t%d\t%d\t%.2lf\n", sC->maxProb, sC->bestPindex, sC->bestAngleIndex, percentage); 
+	IO::waitForEnter();
+	//setCurrentTans(0);
+	//transformSamplePointBuffer();
+	//IO::saveOptimisationResults(&samplePointsBuffer, &samplePoints, &sampleRotations, sC->prop, sC->dist,sC->weights,  "completeEnumeration.bin");
+	//sC->writeResultsToFile(cameraCombination.vector, currentNumberOfCams, &samplePointsBuffer);
 	delete sC;
 	freeParallelOptiRuns();
 
@@ -505,41 +666,25 @@ void CF2::checkIntermediateResults()
 
 
 	RAYTRACING_LAUNCH* p_rtl;
-
+	p_rtl = &optiSession.launchs[0];
+	double* p = new double[p_rtl->probResult.n];
+	double maxp, maxp2;
+	double eps=1e-5;
 	for(int j=0; j<optiSession.n; j++)
 	{
 		p_rtl = &optiSession.launchs[j];	
-
-		float* p = new float[p_rtl->probResult.n];
-		float* d = new float[p_rtl->probResult.n];
-		float maxp, mind;
-
-		CudaMem::cudaMemCpyReport(p, p_rtl->probResult.d_p, p_rtl->probResult.n*sizeof(float), cudaMemcpyDeviceToHost);
-		CudaMem::cudaMemCpyReport(d, p_rtl->probResult.d_d, p_rtl->probResult.n*sizeof(float), cudaMemcpyDeviceToHost);
-		CudaMem::cudaMemCpyReport(&maxp, p_rtl->probResult.d_maxp, sizeof(float), cudaMemcpyDeviceToHost);
-		CudaMem::cudaMemCpyReport(&mind, p_rtl->probResult.d_maxd, sizeof(float), cudaMemcpyDeviceToHost);
-
-		float maxp2 = 0.0f, mind2= FLT_MAX;
+		maxp2 = 0.0;
+		
+		CudaMem::cudaMemCpyReport(p, p_rtl->probResult.d_p, p_rtl->probResult.n*sizeof(double), cudaMemcpyDeviceToHost);		
+		CudaMem::cudaMemCpyReport(&maxp, p_rtl->probResult.d_maxp, sizeof(double), cudaMemcpyDeviceToHost);
+				
 		for(int i=0;i<p_rtl->probResult.n; i++)
 		{
-			maxp2 = std::max(maxp2,p[i]);
-			//mind2 = std::min(mind2,d[i]);
-		}
-		float eps=1e-5;
-		float diff_p = abs(maxp-maxp2);
-		//float diff_d = abs(mind-mind2);
-		printf("j=%d: maxp cuda %.10f\tmaxp host %.10f\n", j, maxp, maxp2);
-//#ifndef NDEBUG
-//		if(diff_p >= eps)
-//		{
-//			printf("diff p: %.10f\t iteration: %d\n", diff_p, j);
-//		}
-//#endif
-		//assert(diff_p < eps);
-		//assert(diff_d < eps);
-		delete p;
-		delete d;
+			maxp2 = std::max(maxp2,p[i]);			
+		}		
+		assert( abs(maxp-maxp2) < eps && maxp <= 1.0  && maxp2 <= 1.0 );				
 	}
+	delete p;
 }
 
 void CF2::initBoundingBoxBuffer()
@@ -627,28 +772,72 @@ void CF2::zeroProb()
 	CudaMem::cudaMemsetReport(depthBuffer.d_dx,0, depthBuffer.size*sizeof(float));
 	CudaMem::cudaMemsetReport(depthBuffer.d_dy,0, depthBuffer.size*sizeof(float));
 	CudaMem::cudaMemsetReport(depthBuffer.d_dz,0, depthBuffer.size*sizeof(float));
-	CudaMem::cudaMemsetReport(probResult.d_p, 0, probResult.n*sizeof(float));
-	CudaMem::cudaMemsetReport(probResult.d_maxp, 0, probResult.nmax*sizeof(float));
+
+	//CudaMem::cudaMemsetReport(probResult.d_p, 0, probResult.n*sizeof(double));
+	//CudaMem::cudaMemsetReport(probResult.d_maxp, 0, probResult.nmax*sizeof(double));
+
+	for(int i=0;i<probResult.nmax; i++)
+	{
+		probResult.maxp_normalized[i] = 0.0;
+	}
+
 
 }
-//void CF2::normalizeProb()
-//{
-//	cudaError_t cudaStatus;
-//	cuda_calc2::normalizeProb<<<PAR_KERNEL_LAUNCHS,CAM_ITE>>>(probResult.d_maxp, samplePositions.nP);
-//
-//	cudaStatus = cudaGetLastError();
-//	if (cudaStatus != cudaSuccess) {
-//		fprintf(stderr, "normalizeProb launch failed: %s\n", cudaGetErrorString(cudaStatus));
-//	}
-//
-//	cudaStatus = cudaDeviceSynchronize();
-//	if (cudaStatus != cudaSuccess) {
-//		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching normalizeProb!\n", cudaStatus);
-//
-//	}
-//
-//	CudaMem::cudaMemCpyReport(probResult.maxp, probResult.d_maxp, probResult.nmax*sizeof(float), cudaMemcpyDeviceToHost);
-//}
+
+void CF2::reinitLoop()
+{
+	//reinit all props of the loop for 
+	for(int i=0; i<probResult.n; i++)
+	{
+		probResult.p[i] = 0.0;
+		probResult.d[i] = 0.0;
+		probResult.w[i] = 0.0;
+	}
+	CudaMem::cudaMemCpyReport(probResult.d_p, probResult.p, probResult.n*sizeof(double), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(probResult.d_d, probResult.d, probResult.n*sizeof(float), cudaMemcpyHostToDevice);
+	CudaMem::cudaMemCpyReport(probResult.d_w, probResult.w, probResult.n*sizeof(float), cudaMemcpyHostToDevice);
+	for(int i=0; i<probResult.nmax; i++)
+	{
+		probResult.maxp[i] = 0.0;
+	}
+	CudaMem::cudaMemCpyReport(probResult.d_maxp, probResult.maxp, probResult.nmax*sizeof(double), cudaMemcpyHostToDevice);
+
+
+	//setting bounding box
+	for(int i=0; i<optiSession.n*currentNumberOfCams*boundingBoxBuffer.nBB; i++)
+	{
+		depthBuffer.bb_hit[i] = true;
+	}
+	CudaMem::cudaMemCpyReport(depthBuffer.d_bb_hit, depthBuffer.bb_hit, optiSession.n*currentNumberOfCams*boundingBoxBuffer.nBB*sizeof(bool), cudaMemcpyHostToDevice);
+
+	//setting up ss
+	cudaMemset(depthBuffer.d_ss_dx, 0, depthBuffer.sssize*sizeof(int));
+	cudaMemset(depthBuffer.d_ss_dy, 0, depthBuffer.sssize*sizeof(int));
+	cudaMemset(depthBuffer.d_ss_dz, 0, depthBuffer.sssize*sizeof(int));
+
+	cudaMemset(depthBuffer.d_dx, 0, depthBuffer.size*sizeof(int));
+	cudaMemset(depthBuffer.d_dy, 0, depthBuffer.size*sizeof(int));
+	cudaMemset(depthBuffer.d_dz, 0, depthBuffer.size*sizeof(int));
+	cudaMemset(depthBuffer.d_cis, -1, depthBuffer.size*sizeof(int));
+
+	memset(depthBuffer.dx, 0, depthBuffer.size*sizeof(int));
+	memset(depthBuffer.dy, 0, depthBuffer.size*sizeof(int));
+	memset(depthBuffer.dz, 0, depthBuffer.size*sizeof(int));	
+	memset(depthBuffer.cis, -1, depthBuffer.size*sizeof(int));
+
+	//setting 
+	memset(centroid.cx, 0, optiSession.n*sizeof(float));	
+	memset(centroid.cy, 0, optiSession.n*sizeof(float));	
+	memset(centroid.cz, 0, optiSession.n*sizeof(float));	
+
+	cudaMemset(centroid.d_cx, 0, optiSession.n*sizeof(float));	
+	cudaMemset(centroid.d_cy, 0, optiSession.n*sizeof(float));	
+	cudaMemset(centroid.d_cz, 0, optiSession.n*sizeof(float));	
+
+
+	
+}
+
 
 void CF2::initParallelOptiRuns()
 {
@@ -722,7 +911,7 @@ void CF2::initParallelOptiRuns()
 	initCentroidBuffer(&centroid, optiSession.n);
 	initPropBuffer(&probResult ,sampleFitting.n, optiSession.n);	
 
-	clearPropBuffer(&probResult,sampleFitting.n*optiSession.n);
+	//clearPropBuffer(&probResult);
 	createCudaStream(&cudaStream, currentNumberOfCams*optiSession.n);
 
 	//setting all the pointer
@@ -781,6 +970,7 @@ void CF2::initParallelOptiRuns()
 
 		optiSession.launchs[ite].probResult.d_maxp = probResult.d_maxp+ite;
 		optiSession.launchs[ite].probResult.maxp = probResult.maxp+ite;
+		optiSession.launchs[ite].probResult.maxp_normalized = probResult.maxp_normalized+ite;
 
 		optiSession.launchs[ite].probResult.d_maxd = probResult.d_maxd+ite;
 		optiSession.launchs[ite].probResult.maxd = probResult.maxd+ite;
@@ -900,7 +1090,7 @@ void CF2::initParallelOptiRuns()
 
 
 
-
+	
 
 
 	cudaMemGetInfo( &avail3, &total3 );
@@ -1238,6 +1428,7 @@ void CF2::setCurrentTans(int i)
 						transIndex*N_ELEMENT_EV *NUMELEM_H;
 
 	currentTrans.d_pr = samplePositions.d_pr+i;
+	currentTrans.p_pr = samplePositions.pr+i;
 }
 
 void CF2::transformBoundingBoxBuffer()
@@ -1931,11 +2122,10 @@ void CF2::calculateCentroid()
 	}
 
 			
-	cudaStatus = cudaDeviceSynchronize();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching calcMiddlePoint!\n", cudaStatus);
-		IO::waitForEnter();
-	}
+	//double c1, c2;
+	//CudaMem::cudaMemCpyReport(&c1, optiSession.launchs[0].centroid.d_cx, sizeof(double), cudaMemcpyDeviceToHost);
+	//CudaMem::cudaMemCpyReport(&c2, optiSession.launchs[1].centroid.d_cx, sizeof(double), cudaMemcpyDeviceToHost);
+
 }
 
 void CF2::calculateCluster()
@@ -1992,12 +2182,18 @@ void CF2::calculateCluster()
 	//	IO::waitForEnter();
 	//}
 
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for(int i=0; i<optiSession.n; i++)
 	{
 		p_rtl = &optiSession.launchs[i];
 		optiSession.ecs[i]->cluster();
 		//printf("parallel sesssion %d\n", i);
+		//CudaMem::cudaMemCpyReport(p_rtl->depthBuffer.d_cis, p_rtl->depthBuffer.cis, p_rtl->depthBuffer.size*sizeof(int), cudaMemcpyHostToDevice);
+	}
+
+	for(int i=0; i<optiSession.n; i++)
+	{
+		p_rtl = &optiSession.launchs[i];
 		CudaMem::cudaMemCpyReport(p_rtl->depthBuffer.d_cis, p_rtl->depthBuffer.cis, p_rtl->depthBuffer.size*sizeof(int), cudaMemcpyHostToDevice);
 	}
 
@@ -2142,14 +2338,28 @@ void CF2::initPropBuffer(PROB_RESULT* probResult, int n, int session)
 	probResult->n = n*session;
 	probResult->nmax = session;
 
-	probResult->p = new float[n*session];
-	probResult->maxp = new float[session];
+	probResult->p = new double[n*session];
+	probResult->maxp = new double[session];
+	probResult->maxp_normalized = new double[session];
 
-	memset(probResult->p, 0, n*session*sizeof(float));
-	memset(probResult->maxp, 0, session*sizeof(float));
+#ifndef EVALUATE
+	resultSolution.nC = currentNumberOfCams;
+	if(resultingSolution.cameraTypes != NULL)
+		delete resultingSolution.cameraTypes;
+	if(resultingSolution.nC != NULL)
+		delete resultingSolution.pclIndex;
+	if(resultingSolution.angleIndex != NULL)
+		delete resultingSolution.angleIndex;
 
-	CudaMem::cudaMemAllocReport((void**)&probResult->d_p, n*session*sizeof(float));
-	CudaMem::cudaMemAllocReport((void**)&probResult->d_maxp, session*sizeof(float));
+	resultingSolution.minCost = 0.0;
+	resultingSolution.pclIndex = new int[currentNumberOfCams];
+	resultingSolution.angleIndex = new int[currentNumberOfCams];
+	resultingSolution.cameraTypes = new int[currentNumberOfCams];
+#endif
+
+
+	CudaMem::cudaMemAllocReport((void**)&probResult->d_p, n*session*sizeof(double));
+	CudaMem::cudaMemAllocReport((void**)&probResult->d_maxp, session*sizeof(double));
 
 	probResult->d = new float[n*session];
 	probResult->maxd = new float[session];
@@ -2169,6 +2379,8 @@ void CF2::freePropBuffer(PROB_RESULT* probResult)
 	
 	delete probResult->p;
 	delete probResult->maxp;
+	delete probResult->maxp_normalized;
+
 	CudaMem::cudaFreeReport(probResult->d_p);
 	CudaMem::cudaFreeReport(probResult->d_maxp);
 
@@ -2183,14 +2395,7 @@ void CF2::freePropBuffer(PROB_RESULT* probResult)
 	CudaMem::cudaFreeReport(probResult->d_maxw);
 }
 
-void CF2::clearPropBuffer(PROB_RESULT* probResult, int n)
-{
-	memset(probResult->p, 0, n*sizeof(float));
-	memset(probResult->maxp, 0, sizeof(float));
 
-	CudaMem::cudaMemsetReport(probResult->d_p, 0, n*sizeof(float));
-	CudaMem::cudaMemsetReport(probResult->d_maxp, 0, sizeof(float));
-}
 
 void CF2::calculateMaxProb()
 {
@@ -2297,15 +2502,55 @@ void CF2::calculateMaxProb()
 		IO::waitForEnter();
 	}
 
+#ifdef _DEBUG
+	checkIntermediateResults();
+#endif
 
+	//instead copying the complete memory down to host	
+	CudaMem::cudaMemCpyReport(probResult.maxp, probResult.d_maxp, probResult.nmax*		sizeof(double), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(probResult.maxd, probResult.d_maxd, probResult.nmax*		sizeof(float), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(probResult.maxw, probResult.d_maxw, probResult.nmax*		sizeof(int),	cudaMemcpyDeviceToHost);
 
-	for(int i=0; i<optiSession.n; i++)
+	//adding the normalized weighted value to the normalized prob
+	for(int i=0; i<probResult.nmax; i++)
 	{
-		p_rtl = &optiSession.launchs[i];
-		CudaMem::cudaMemCpyReport(p_rtl->probResult.maxp, p_rtl->probResult.d_maxp, sizeof(float), cudaMemcpyDeviceToHost);
-		CudaMem::cudaMemCpyReport(p_rtl->probResult.maxd, p_rtl->probResult.d_maxd, sizeof(float), cudaMemcpyDeviceToHost);
-		CudaMem::cudaMemCpyReport(p_rtl->probResult.maxw, p_rtl->probResult.d_maxw, sizeof(int), cudaMemcpyDeviceToHost);
-
+		
+		probResult.maxp_normalized[i] += ((double)(*currentTrans.p_pr))*probResult.maxp[i];
+		assert(probResult.maxp[i] <= 1.0 /*&& probResult.maxp_normalized[i] <= 1.0*/);
+		
 	}
+
 	
+}
+
+void CF2::normalizeMaxProb()
+{
+
+
+	for(int i=0; i<probResult.nmax; i++)
+	{
+		//assert(probResult.maxp_normalized[i] <= 1.0);
+		probResult.maxp_normalized[i] /= samplePositions.sumAllPriorities;		
+		//for(int cam=0; cam<currentNumberOfCams; cam++)
+		//{
+		//	printf("%d\t%d\t", optiSession.pI[i*currentNumberOfCams+cam], optiSession.aI[i*currentNumberOfCams+cam]);
+		//}
+		//printf("%.10lf\n", probResult.maxp_normalized[i]);
+		
+		if(resultingSolution.minCost < probResult.maxp_normalized[i])
+		{
+			resultingSolution.minCost = probResult.maxp_normalized[i];
+			for(int j=0; j<currentNumberOfCams; j++)
+			{
+
+				resultingSolution.cameraTypes[j] = cameraCombination.vector[j];
+				resultingSolution.pclIndex[j] = optiSession.pI[i*currentNumberOfCams+j];
+				resultingSolution.angleIndex[j] = optiSession.aI[i*currentNumberOfCams+j];
+			}
+		}
+	}
+
+
+
+
 }

@@ -19,16 +19,23 @@ enum STATE{
 	OR
 };
 
+struct VALID_POS
+{
+	int nPCL;
+	int nRot;
+	unsigned char* validPos;
+};
+
 struct SOLUTION{
 	int* pcl;
 	int* angle;
-	float costs;
+	double costs;
 	float currProp;
 	float curT;
 	int ite;
 	float minEnergy;
 	enum STATE state;	
-	float globalMin;
+	double globalMin;
 };
 
 
@@ -99,11 +106,12 @@ struct PROB_RESULT{
 	int n;
 	int nmax;
 
-	float* p;
-	float* maxp;
+	double* p;	
+	double* maxp;
+	double* maxp_normalized;
 
-	float* d_p;
-	float* d_maxp;
+	double* d_p;
+	double* d_maxp;
 
 	float* d;
 	float* maxd;
@@ -200,6 +208,8 @@ struct SAMPLE_POSITIONS
 	float* d_qh;
 	float* d_qe;
 	float* d_pr;
+
+	double sumAllPriorities;
 };
 
 struct SAMPLE_CAMERA
@@ -297,6 +307,7 @@ struct RESULT_SOLUTION{
 	int* cameraTypes;
 	int* pclIndex;
 	int* angleIndex;
+	double minCost;
 };
 
 struct BB_BUFFER;
@@ -355,6 +366,7 @@ struct CURRENT_TRANS{
 	float* d_h;
 	float* d_e;
 	float* d_pr;
+	float* p_pr;
 };
 
 

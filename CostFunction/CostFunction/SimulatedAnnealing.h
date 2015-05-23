@@ -24,14 +24,14 @@ public:
 	//SimulatedAnnealing(int N, double T, double alpha, int Npcl, int Nangle, int nOfCams, int* NN, struct PCL* robot);
 
 
-	SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, int nI, int* nn_indices, AngleGenerator* ag);
+	SimulatedAnnealing(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, VALID_POS* vp, int nC, int nI, int* nn_indices, AngleGenerator* ag);
 	~SimulatedAnnealing(void);
 
-	void initializeFirstRun(int* pclIndex, int* angleIndex);
+	
 	//bool iterate2(const int* const nn_indices, int* pclIndex, int* angleIndex, double* costs);
 	void chooseRandomConfiguration(int* pclIndex, int* angleIndex, int i);
 	void printCurrentStatus();
-	void findGlobalMinimum();
+	void findGlobalMinimum(int i);
 	void resetHasChanged(int i);
 	bool hasHillClimbingFinished(int i);
 	void writeResultsToFile(std::string pre, struct PCL *pcl, struct POSITIONS *pos);
@@ -40,18 +40,26 @@ public:
 	void addResult(void);
 	void addSingleResult(int i);
 	void writeAllResultToFile(std::string pre);
-	int createPCLIndexInRange(int* pcl, int offset_m, int offset_p_in, int index);
-	bool isPCLIndexValid(int* pcl, int offset_m_in, int offset_p_in, int i, int index);
-	int createAngleIndexInRange(int angle);
-	double iterateSingle(const int* const nn_indices, int* pclIndex, int* angleIndex, float* costs, int i);
-	void setCoolingPlan(float *costs);
 
-	bool iterate(int* pI, int* aI, float* prob, float* d, int* weights);
+	void setXYZ(int* const pclIndex, int*const angleIndex, int enegeryIndex, int dim, int cam);
+	void setAngle(int* const pclIndex, int*const angleIndex, int enegeryIndex, int dim, int cam);
+	
+	
+	
+	double iterateSingle(const int* const nn_indices, int * const pclIndex, int * const angleIndex, double const *const costs, int i);
+	void setCoolingPlan(double const *const costs);
+
+	bool iterate(int* const pI, int*const aI, double const* const prob, float const *const d, int const *const weights);
 	void writeResultsToFile(unsigned long long* vec, int nOfCams, struct SAMPLE_POINTS_BUFFER* samplePoints);
 	void printMinPositionToFile(std::string pre, struct SAMPLE_POINTS_BUFFER* samplePoints);
-	void printDistanceMatrix();
-	bool isCompleteConfigurationValid(int* pclIndex);
-	void writeMinCostToFile(unsigned long long* vec);
+	
+	
+	void writeMinCostToFile(unsigned long long* vec);	
+	bool areAllPositionsValid(int* pI, int* aI);
+	bool areAllPositionsValidAssert(int* pI, int* aI);
+	bool isConfigurationValid(int* pI, int i, int sign);
+	bool isConfigurationValidAssert(int* pI, int i, int sign);
+	int getIndex(int enegeryIndex, int sign, int cam);
 
 private:
 	int NofE;
@@ -62,6 +70,8 @@ private:
 	int nOfCams;
 	double alpha;
 	int DOF;
+	int* hasImproved;
+	int* nsRuns;
 
 
 	
@@ -74,10 +84,10 @@ private:
 
 	int* pclIndex_t1;
 	int* angleIndex_t1;
-	float* minEnergy_t1;
+	double* minEnergy_t1;
 
 
-	float* minEnergy;
+	double* minEnergy;
 	bool* noChange;
 	unsigned char* cDim;
 	static const double e;

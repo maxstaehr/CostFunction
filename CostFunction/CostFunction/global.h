@@ -8,13 +8,19 @@
 #define WS_BORDER (1.0)
 
 #ifdef EVALUATE
-	#define CAM_ITE 2
+	#define CAM_ITE 1
+	#define SIM_ITE 64
+#elif COMPLETE_ENUMERATION
+	#define CAM_ITE 1
+	#define SIM_ITE 64
 #else
 	#define CAM_ITE 2
+	#define SIM_ITE 1
 #endif
 
 #define PAR_KERNEL_LAUNCHS 1
-#define DIST_PIXEL (0.0025f)
+//#define DIST_PIXEL (0.0025f)
+#define DIST_PIXEL (0.25f)
 
 #define MAX_CLUSTER_BUFFER_SIZE (256)
 #define MAX_CLUSTER_N_SIZE (10)
@@ -38,7 +44,7 @@
 #define MAX_NUM_CAMS 20
 
 #define VERTEX_BUFFER_SIZE (1300)
-#define MIN_DIST_BETWEEN_CAMERA (0.1f)
+#define MIN_DIST_BETWEEN_CAMERA (0.2f)
 #define AVG_BUFFER_SIZE (512)
 #define DIST_MATRIX_BLOCK_X_SIZE (16)
 #define DIST_MATRIX_BLOCK_SIZE (DIST_MATRIX_BLOCK_X_SIZE*DIST_MATRIX_BLOCK_X_SIZE)

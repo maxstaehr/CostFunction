@@ -10,8 +10,8 @@ public:
 	
 
 
-	InversionSearch(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, int nC, int nI, int* const nn_indices);
-	bool iterate(int* pI, int* aI, float* prob, float* d, int* weights);
+	InversionSearch(SAMPLE_PCL* sp, SAMPLE_ROTATIONS* sr, VALID_POS* vp, int nC, int nI, int* const nn_indices);
+	bool iterate(int* const pI, int*const aI, double const* const prob, float const *const d, int const *const weights);
 
 	void setInversionParamters(SAMPLE_POINTS_BUFFER* buffer);
 	~InversionSearch(void);

@@ -447,6 +447,7 @@ namespace cuda_calc2{
 				a_y[0] = nanf("");;
 				a_z[0] = nanf("");;
 			}
+			//printf("centroid at %.3f %.3f %.3f\n", a_x[0], a_y[0], a_z[0]);
 		}
 
 
@@ -493,7 +494,7 @@ namespace cuda_calc2{
 			sigma += coeffs[i]*powf(z, exp);
 		}
 		sigma *= sigmaFactor;
-		return z+sigma*rand;
+		return z;//+sigma*rand;
 	}
 
 	__global__ void raytraceVerticesCamera(				float* xi, float* yi, float* zi,
@@ -988,27 +989,27 @@ namespace cuda_calc2{
 		p[2] = b[2];
 	}
 
-	#define	tailor_a (2.055792709094123f)
-	#define	tailor_b (-13.314579265182624f)
-	#define tailor_min (0.054125744849443f)
+	#define	tailor_a (2.055792709094123)
+	#define	tailor_b (-13.314579265182624)
+	#define tailor_min (0.054125744849443)
 
-	#define tailor_weight_a (0.056234132519035f)
-	#define tailor_weight_b (0.028782313662426f)
+	#define tailor_weight_a (0.056234132519035)
+	#define tailor_weight_b (0.028782313662426)
 	#define tailor_weight_max 100
 
 
-	__device__ float calculateProbabilityOfDetection(float meanDistance)
+	__device__ double calculateProbabilityOfDetection(float meanDistance)
 	{
 		//meanDistance = 4.0*meanDistance;
 		if(meanDistance < tailor_min){
 			//printf("%.5f\n", meanDistance);
-			return 1.0f;
+			return 1.0;
 		}else{
-			return tailor_a*expf(tailor_b*meanDistance);
+			return tailor_a*exp(tailor_b*meanDistance);
 		}
 	}
 
-	__device__ float calculateWeightOfDetection(int w)
+	__device__ double calculateWeightOfDetection(int w)
 	{
 		//if(w > MINIMUM_POINTS_DETECTION)
 		//	return 1.0f;
@@ -1017,9 +1018,9 @@ namespace cuda_calc2{
 		//meanDistance = 4.0*meanDistance;
 		if(w > tailor_weight_max){
 			//printf("%.5f\n", meanDistance);
-			return 1.0f;
+			return 1.0;
 		}else{
-			return tailor_weight_a*expf(tailor_weight_b*w);
+			return tailor_weight_a*exp(tailor_weight_b*w);
 		}
 	}
 
@@ -1041,7 +1042,7 @@ namespace cuda_calc2{
 	__global__ void zeroProb(float* prob)
 	{
 		int threadId =  blockIdx.x *blockDim.x + threadIdx.x;
-		prob[threadId] = 0.0f;
+		prob[threadId] = 0.0;
 	}
 
 	__global__ void normalizeProb(float* prob, int n)
@@ -1057,7 +1058,7 @@ namespace cuda_calc2{
 									  float* R, float* Fx, float* Fy,
 									  float* cx, float* cy, float* cz,	
 									  float* ws_l_params, int* ws_n_params, float* d_m,									 
-									  float* prop, float* distance, int* weight)
+									  double* prop, float* distance, int* weight)
 	{
 		__shared__ float vx[POINT_BUFFER_SIZE];
 		__shared__ float vy[POINT_BUFFER_SIZE];
@@ -1081,7 +1082,7 @@ namespace cuda_calc2{
 		if(isnan(cx[0]))
 		{
 			//probability of detection zero and leave
-			prop[threadId] = 0.0f;
+			prop[threadId] = 0.0;
 			distance[threadId] = FLT_MAX;
 			weight[threadId] = 0;
 			return;
@@ -1181,10 +1182,11 @@ namespace cuda_calc2{
 		{
 			dist /= w;
 			
-			float w_w = calculateWeightOfDetection(w);
-			float w_p = calculateProbabilityOfDetection(dist);
+			double w_w = calculateWeightOfDetection(w);
+			double w_p = calculateProbabilityOfDetection(dist);
+			double ret = w_p*w_w;
 			//prop[threadId] = ((WEIGHT_P*w_p)+(WEIGHT_W*w_w))/WEIGHT_SUM;
-			prop[threadId] = w_p*w_w;
+			prop[threadId] = fmin(ret, 1.0);
 			distance[threadId] = dist;
 			weight[threadId] = w;
 			//if(w > MINIMUM_POINTS_DETECTION)
@@ -1200,7 +1202,7 @@ namespace cuda_calc2{
 
 		}else
 		{
-				prop[threadId] = 0.0f;
+				prop[threadId] = 0.0;
 				distance[threadId] = FLT_MAX;
 				weight[threadId] = 0;
 		}
@@ -1313,9 +1315,30 @@ namespace cuda_calc2{
 
 	}
 
-	__global__ void calculateMaxProb(float* prob, int n, float* maxp, float* pr)
+	__global__ void zeroMaxProb(double* prob, int n, double* maxp)
 	{
-		__shared__ float max_buffer[MAX_BUFFER_SIZE];
+		
+
+		int nItePerThread = (int)((n/MAX_BUFFER_SIZE)+1);
+		int curIndex;
+		int i;
+
+				
+		for(i=0; i<nItePerThread; i++)
+		{
+			curIndex = threadIdx.x*nItePerThread+i;			
+			if(curIndex < n)
+			{
+				prob[curIndex] = 0.0;				
+			}
+		}
+		maxp[0] = 0.0;
+	}
+
+
+	__global__ void calculateMaxProb(double* prob, int n, double* maxp, float* pr)
+	{
+		__shared__ double max_buffer[MAX_BUFFER_SIZE];
 
 		int nItePerThread = (int)((n/MAX_BUFFER_SIZE)+1);
 		int curIndex;
@@ -1323,7 +1346,7 @@ namespace cuda_calc2{
 
 		
 
-		float localMax = 0.0f;
+		double localMax = 0.0;
 		//float localMax = FLT_MAX;
 		for(i=0; i<nItePerThread; i++)
 		{
@@ -1331,7 +1354,7 @@ namespace cuda_calc2{
 			//check if the iteration is still within limits
 			if(curIndex < n)
 			{
-				localMax = fmaxf(prob[curIndex],  localMax);
+				localMax = fmax(prob[curIndex],  localMax);
 				//localMax = fmin(prob[curIndex],  localMax);
 			}
 		}
@@ -1346,7 +1369,7 @@ namespace cuda_calc2{
 			__syncthreads();
 			if(threadIdx.x < i)
 			{
-				max_buffer[threadIdx.x] = fmaxf(max_buffer[threadIdx.x],  max_buffer[threadIdx.x+i]);
+				max_buffer[threadIdx.x] = fmax(max_buffer[threadIdx.x],  max_buffer[threadIdx.x+i]);
 				//max_buffer[threadIdx.x] = fmin(max_buffer[threadIdx.x],  max_buffer[threadIdx.x+i]);
 			}
 		}
@@ -1356,8 +1379,8 @@ namespace cuda_calc2{
 		{
 			
 			//printf("res on cuda %.10f\n", res);
-			maxp[0] += pr[0] * max_buffer[0];
-			//maxp[0] = max_buffer[0];
+			//maxp[0] += ((double)pr[0]) * max_buffer[0];
+			maxp[0] = max_buffer[0];
 		}
 
 	}

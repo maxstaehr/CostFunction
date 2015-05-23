@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <cmath>
 #include "_generate.h"
+#include "EC.h"
 
 struct B{
 	int pcl;
@@ -64,6 +65,52 @@ int main(int argc, char** argv)
 
 	//	 gen_result = gen_comb_norep_lex_next(vector, n, k);
 	// }
+
+
+	//cluster test 
+//	int n = 20000;
+//
+//	float *x = new float[n];
+//	float *y = new float[n];
+//	float *z = new float[n];
+//	int *cis = new int[n];
+//	bool *hasProcessed = new bool[n];
+//
+//#define nsamples 10
+//	double sampleTimes[nsamples];
+//	int nc = 10;
+//	for(int i=0;i<n;)
+//	{
+//		for(int j=0;j<nc && i<n; j++, i++)
+//		{
+//			x[i] = rand()/RAND_MAX + 10*j;
+//			y[i] = rand()/RAND_MAX + 10*j;
+//			z[i] = rand()/RAND_MAX + 10*j;
+//		}
+//	}
+//
+//
+//	EC ec(x, y, z, cis, hasProcessed, n);
+//	clock_t start, end;			
+//	double diffTime;
+//	double diffClock;
+//	for(int i=0; i<nsamples; i++)
+//	{		  
+//		start = clock();
+//		ec.cluster();
+//		end = clock();
+//		diffClock = (double)(end-start);
+//		diffTime = diffClock/((double)CLOCKS_PER_SEC);
+//		printf("time: %.10lf\n", diffTime);
+//		sampleTimes[i] = diffTime;
+//	}
+//
+//	double avgTime = 0.0;
+//	for(int i=0;i<nsamples; i++)
+//		avgTime += sampleTimes[i];
+//
+//	avgTime /= nsamples;
+//	printf("avg time: %.10lf\n", avgTime);
 
 
 	//CostFunctionClass::testUpdateCameraParameters();

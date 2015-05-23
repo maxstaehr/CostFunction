@@ -25,6 +25,7 @@ private:
 	SAMPLE_POSITIONS		samplePositions;
 	SAMPLE_PCL				samplePoints;
 	SAMPLE_ROTATIONS		sampleRotations;
+	VALID_POS				sampleValidPositions;
 	POSSIBLE_CAMERA_TYPES	sampleCameraTypes;
 
 	//vertex buffer
@@ -41,6 +42,7 @@ private:
 	BB_BUFFER			boundingBoxBufferEnvironment;
 	BB_BUFFER			boundingBoxBufferHuman;
 	
+	RESULT_SOLUTION		resultSolution;
 
 	//depth buffer
 	DEPTH_BUFFER		depthBuffer;
@@ -104,6 +106,10 @@ private:
 	void initBoundingBoxBuffer();
 	void freeVertexBuffer();
 	void freeBoundingBoxBuffer();
+	void reinitLoop();
+	void overlayData();
+	void checkFirstTwoCameras();
+	
 
 
 	void initSamplePointsBuffer();
@@ -115,9 +121,11 @@ private:
 	void initCameraVertexBuffer(VERTEX_BUFFER* vertexBuffer, int sessions);
 	void freeCameraVertexBuffer(VERTEX_BUFFER* vertexBuffer);
 
+	void normalizeMaxProb();
 
 
-	void clearPropBuffer(PROB_RESULT* probResult, int n);
+
+	
 	void createCudaStream(cudaStream_t** streams, int n);
 	
 

@@ -42,6 +42,9 @@ public:
 	static void saveInversionSearch(float* p, float* d, int* w, int n, const char* name);
 	static void loadInversionSearch(float* p, float* d, int* w, int* n, const char* name);
 	static void loadResultingSolution(struct RESULT_SOLUTION* solu, const char* name);
+	static void loadValidPos(struct VALID_POS* pos, const char* name);
+	static void writeMinCostToFile(unsigned long long* vec, int* pcl, int* angle, int nC);
+
 	
 
 

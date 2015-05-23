@@ -30,6 +30,30 @@ IO::~IO() {
 	// TODO Auto-generated destructor stub
 }
 
+void IO:: loadValidPos(struct VALID_POS* pos, const char* name)
+{
+	ifstream inbin;
+	inbin.open(name, ifstream::binary);
+	if(!inbin.is_open()) std::cerr << "error";
+
+	inbin.read((char*)&pos->nPCL, sizeof(int));
+	if (!inbin) std::cerr << "error";
+
+	inbin.read((char*)&pos->nRot, sizeof(int));
+	if (!inbin) std::cerr << "error";
+
+	printf("reading %d positions and %d rotations...\n", pos->nPCL, pos->nRot);
+
+	pos->validPos = new unsigned char[pos->nPCL*pos->nRot];
+	inbin.read((char*)pos->validPos, pos->nPCL*pos->nRot*sizeof(unsigned char));
+
+	char c;
+	inbin.get(c);
+
+	if(!inbin.eof()) std::cerr << "error";
+	inbin.close();
+}
+
 
 void IO::loadSamplePCL(struct SAMPLE_PCL* pcl, const char* name)
 {		
@@ -39,6 +63,8 @@ void IO::loadSamplePCL(struct SAMPLE_PCL* pcl, const char* name)
 
 	inbin.read((char*)&pcl->n, sizeof(int));
 	if (!inbin) std::cerr << "error";
+
+	printf("reading %d sample camera positions...\n", pcl->n);
 
 
 	//allocating memory
@@ -148,6 +174,8 @@ void IO::loadSampleRotations(struct SAMPLE_ROTATIONS* rot, const char* name)
 
 	inbin.read((char*)&rot->nRotations, sizeof(int));
 	if (!inbin) std::cerr << "error";
+
+	printf("reading %d rotaions...\n", rot->nRotations);
 	
 
 	rot->R = new float[rot->nRotations*NUMELEM_H];
@@ -416,29 +444,30 @@ void IO::loadSamplePositions(struct SAMPLE_POSITIONS* pos, const char* name)
 
 	//pos->nP = 1;
 #ifdef COMPLETE_ENUMERATION
-	pos->nP = 1;
+	//pos->nP = 1;
 #endif
 
 	//normalizing priorities to one
-	float sum = 0.0;
+	pos->sumAllPriorities = 0.0;
 	for(int i=0; i<pos->nP; i++)
 	{
-		sum += pos->pr[i];
+		pos->sumAllPriorities += (double)pos->pr[i];
 	}
-	printf("sum of all priorities %.5f\n",sum);
+	printf("sum of all priorities %.5lf\n",pos->sumAllPriorities);
+	 
 
-	for(int i=0; i<pos->nP; i++)
-	{
-		pos->pr[i] /= sum;
-		//pos->pr[i] = 1.0f/pos->nP;
-	}
+	//for(int i=0; i<pos->nP; i++)
+	//{
+	//	pos->pr[i] /= sum;
+	//	//pos->pr[i] = 1.0f/pos->nP;
+	//}
 
-	sum = 0.0;
-	for(int i=0; i<pos->nP; i++)
-	{
-		sum += pos->pr[i];
-	}
-	printf("normalized sum of all priorities %.5f\n",sum);
+	//sum = 0.0;
+	//for(int i=0; i<pos->nP; i++)
+	//{
+	//	sum += pos->pr[i];
+	//}
+	//printf("normalized sum of all priorities %.5f\n",sum);
 
 
 
@@ -594,8 +623,11 @@ void IO::loadResultingSolution(struct RESULT_SOLUTION* solu, const char* name)
 	inbin.open(name, ifstream::binary);
 	if(!inbin.is_open()) std::cerr << "error";
 	
+	int nC;
 	inbin.read((char*)&solu->nC, sizeof(int));
 	if (!inbin) std::cerr << "error";
+
+	
 
 	solu->cameraTypes = new int[solu->nC];
 	solu->pclIndex = new int[solu->nC];
@@ -618,6 +650,34 @@ void IO::loadResultingSolution(struct RESULT_SOLUTION* solu, const char* name)
 
 
 }
+void IO::writeMinCostToFile(unsigned long long* vec, int* pcl, int* angle, int nC)
+{
+	int *buffer = new int[nC];
+	for(int i=0; i<nC; i++)
+	{
+		buffer[i] = (int)vec[i];
+	}
+
+	std::string fn = "resultingSolution.bin";
+	std::ofstream outbin( fn.c_str(), std::ios::binary );
+
+	printf("optimal solution: \n");
+	for(int i=0; i<nC; i++)
+	{
+		printf("%d\t%d\n", pcl[i], angle[i]);
+	}
+	
+
+
+	outbin.write((char*)&nC, sizeof(int));
+	outbin.write((char*)buffer, nC*sizeof(int));
+	outbin.write((char*)pcl,	nC*sizeof(int));	
+	outbin.write((char*)angle,	nC*sizeof(int));
+	outbin.close();
+	delete buffer;
+
+}
+
 void IO::saveBoundingBoxBuffer(struct BB_BUFFER* bbBuffer, const char* name)
 {
 
@@ -832,12 +892,12 @@ void IO::loadSampleFitting(struct SAMPLE_FITTING* sampleFitting,struct LAUNCH_CO
 
 void IO::saveProbResult2File(struct PROB_RESULT* probResult, const char* name)
 {
-	float* p = new float[probResult->n];
-	float max;
-	CudaMem::cudaMemCpyReport(p, probResult->d_p, probResult->n*sizeof(float), cudaMemcpyDeviceToHost);
-	CudaMem::cudaMemCpyReport(&max, probResult->d_maxp, sizeof(float), cudaMemcpyDeviceToHost);
+	double* p = new double[probResult->n];
+	double max;
+	CudaMem::cudaMemCpyReport(p, probResult->d_p, probResult->n*sizeof(double), cudaMemcpyDeviceToHost);
+	CudaMem::cudaMemCpyReport(&max, probResult->d_maxp, sizeof(double), cudaMemcpyDeviceToHost);
 
-	float m = 0.0f;
+	double m = 0.0;
 	for(int i=0;i<probResult->n; i++)
 	{
 		m = std::max(m,p[i]);
@@ -849,7 +909,7 @@ void IO::saveProbResult2File(struct PROB_RESULT* probResult, const char* name)
 	outbin.write((char*)&probResult->n,sizeof(int));
 	if (!outbin) std::cerr << "error";
 
-	outbin.write((char*)p, probResult->n*sizeof(float));
+	outbin.write((char*)p, probResult->n*sizeof(double));
 	if (!outbin) std::cerr << "error";
 
 	outbin.close();

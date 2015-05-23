@@ -18,6 +18,8 @@ Global
 		DebugEvaluate|x64 = DebugEvaluate|x64
 		Evaluate|Win32 = Evaluate|Win32
 		Evaluate|x64 = Evaluate|x64
+		RaisingCameras|Win32 = RaisingCameras|Win32
+		RaisingCameras|x64 = RaisingCameras|x64
 		Release|Win32 = Release|Win32
 		Release|x64 = Release|x64
 	EndGlobalSection
@@ -38,6 +40,10 @@ Global
 		{23B79AF0-E655-4B07-BCA5-8A1471CF8A92}.Evaluate|Win32.Build.0 = Evaluate|Win32
 		{23B79AF0-E655-4B07-BCA5-8A1471CF8A92}.Evaluate|x64.ActiveCfg = Evaluate|x64
 		{23B79AF0-E655-4B07-BCA5-8A1471CF8A92}.Evaluate|x64.Build.0 = Evaluate|x64
+		{23B79AF0-E655-4B07-BCA5-8A1471CF8A92}.RaisingCameras|Win32.ActiveCfg = RaisingCameras|Win32
+		{23B79AF0-E655-4B07-BCA5-8A1471CF8A92}.RaisingCameras|Win32.Build.0 = RaisingCameras|Win32
+		{23B79AF0-E655-4B07-BCA5-8A1471CF8A92}.RaisingCameras|x64.ActiveCfg = RaisingCameras|x64
+		{23B79AF0-E655-4B07-BCA5-8A1471CF8A92}.RaisingCameras|x64.Build.0 = RaisingCameras|x64
 		{23B79AF0-E655-4B07-BCA5-8A1471CF8A92}.Release|Win32.ActiveCfg = Release|Win32
 		{23B79AF0-E655-4B07-BCA5-8A1471CF8A92}.Release|Win32.Build.0 = Release|Win32
 		{23B79AF0-E655-4B07-BCA5-8A1471CF8A92}.Release|x64.ActiveCfg = Release|x64
