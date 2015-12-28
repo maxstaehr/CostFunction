@@ -12,3 +12,8 @@
 
 #define EYE_16 {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}
 #define EYE_9 {	1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f}
+
+#define NELEM_H (16)
+#define DOF_R (10)
+#define DOF_E (1)
+#define DOF_H (1)

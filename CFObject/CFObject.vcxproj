@@ -217,6 +217,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="global.h" />
     <ClInclude Include="HConfig.h" />
     <ClInclude Include="HomogeneTransformation.h" />
+    <ClInclude Include="KinChain.h" />
     <ClInclude Include="Link.h" />
     <ClInclude Include="PCL.h" />
     <ClInclude Include="Rotation.h" />
@@ -225,6 +226,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClCompile Include="FObject.cpp" />
     <ClCompile Include="HConfig.cpp" />
     <ClCompile Include="HomogeneTransformation.cpp" />
+    <ClCompile Include="KinChain.cpp" />
     <ClCompile Include="Link.cpp" />
     <ClCompile Include="PCL.cpp" />
     <ClCompile Include="Rotation.cpp" />

@@ -1,5 +1,9 @@
 #pragma once
-class Link
+#include "global.h"
+
+
+
+class CFOBJECT_EXPORT Link
 {
 public:
 	Link(void);
