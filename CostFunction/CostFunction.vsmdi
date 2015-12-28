@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<TestLists xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <TestList name="test" id="5d1c4cd9-3e8d-48dd-8434-bc70b15da6c5" parentListId="e88408be-1ae6-4687-8da3-c64b35a3a118" />
+  <TestList name="Testlisten" id="8c43106b-9dc1-4907-a29f-aa66a61bf5b6">
+    <RunConfiguration id="224b6bfd-de51-4bf0-8275-64b413d39039" name="Lokal" storage="local.testsettings" type="Microsoft.VisualStudio.TestTools.Common.TestRunConfiguration, Microsoft.VisualStudio.QualityTools.Common, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+  </TestList>
+  <TestList name="Alle Test" id="e88408be-1ae6-4687-8da3-c64b35a3a118" parentListId="8c43106b-9dc1-4907-a29f-aa66a61bf5b6" />
+</TestLists>
