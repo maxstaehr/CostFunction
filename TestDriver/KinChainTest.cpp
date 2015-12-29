@@ -6,6 +6,7 @@ using namespace System::Collections::Generic;
 using namespace	Microsoft::VisualStudio::TestTools::UnitTesting;
 
 #include "../CFObject/KinChain.h"
+#include <cstring>
 
 namespace TestDriver
 {
@@ -137,6 +138,42 @@ namespace TestDriver
 					{						
 						Assert::AreEqual(test.getRobotPos()[pos*DOF_R*NELEM_H + h*NELEM_H + patteri], pattern[patteri]);
 					}
+				}
+			}
+			delete temp1;
+		}
+
+
+		[TestMethod]
+		void TestSetRobotPosIndex()
+		{
+			int nPos = 100;
+			KinChain test(nPos);
+
+			float *temp1 = new float[NELEM_H*DOF_R*nPos];			
+			for(int pos = 0; pos<nPos; pos++)
+			{
+				for(int h=0; h<DOF_R; h++)
+				{
+					for(int patteri=0; patteri<NELEM_H; patteri++)
+					{
+						temp1[pos*DOF_R*NELEM_H + h*NELEM_H + patteri] = pos*DOF_R*NELEM_H + h*NELEM_H + patteri;
+					}
+				}
+			}
+
+			test.setRobotPos(temp1);
+			int pos = 5;
+			test.setPosIndex(pos);			
+			Link link;
+
+			for(int h=0; h<DOF_R; h++)
+			{
+				link = test.getRobotLinks()[h];
+				for(int patteri=0; patteri<NELEM_H; patteri++)
+				{						
+					Assert::AreEqual((float)pos*DOF_R*NELEM_H + h*NELEM_H + patteri,
+						link.getH().V()[patteri]);
 				}
 			}
 			delete temp1;

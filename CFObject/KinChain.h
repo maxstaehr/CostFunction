@@ -21,7 +21,9 @@ public:
 	const float const* getEnvPos(){return eP;};
 	int getNPos(){return nPos;}
 
-
+	Link* getHumanLinks(){return h;}
+	Link* getRobotLinks(){return r;}
+	Link* getEnvLinks(){return e;}
 
 
 	~KinChain(void);

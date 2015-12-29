@@ -42,5 +42,22 @@ void KinChain::setRobotPos(const float const* pos)
 void KinChain::setPosIndex(int i)
 {
 	assert(i >= 0 && i < nPos);
-	//copy things into the link
+	
+	float* start_h = hP+i*NELEM_H*DOF_H;
+	for(int ih=0; ih<DOF_H; ih++)
+	{
+		h[ih].getH().setH(start_h+ih*NELEM_H);
+	}
+
+	float* start_r = rP+i*NELEM_H*DOF_R; 
+	for(int ir=0; ir<DOF_R; ir++)
+	{
+		r[ir].getH().setH(start_r+ir*NELEM_H);
+	}
+
+	float* start_e = eP+i*NELEM_H*DOF_E; 
+	for(int ie=0; ie<DOF_E; ie++)
+	{
+		e[ie].getH().setH(start_e+ie*NELEM_H);
+	}	
 }

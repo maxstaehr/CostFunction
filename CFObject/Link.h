@@ -2,6 +2,7 @@
 #include "global.h"
 
 
+#include "HomogeneTransformation.h"
 
 class CFOBJECT_EXPORT Link
 {
@@ -9,11 +10,11 @@ public:
 	Link(void);
 	~Link(void);
 
-	void setH(float H[16]);
-	void getH(float* H);
+	void setH(HomogeneTransformation H) {this->H = H;}
+	HomogeneTransformation& getH(){ return H;}
 
 private:
-	float H[16];
+	HomogeneTransformation H;
 
 
 };
