@@ -12,6 +12,9 @@ public:
 						 const int const * fx, 
 						 const int const * fy,
 						 const int const * fz);
+	PCL();
+	PCL(PCL& pcl);
+	void operator=(PCL& rhs );
 	~PCL(void);
 
 	int getnV(void){return nV;};

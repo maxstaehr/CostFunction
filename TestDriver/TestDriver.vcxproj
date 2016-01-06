@@ -77,11 +77,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AssemblyInfo.cpp" />
+    <ClCompile Include="BoundingBoxTest.cpp" />
+    <ClCompile Include="CameraTest.cpp" />
+    <ClCompile Include="CameraTypeTest.cpp" />
+    <ClCompile Include="ECTest.cpp" />
     <ClCompile Include="HomogeneTransformationTest.cpp" />
     <ClCompile Include="KinChainTest.cpp" />
     <ClCompile Include="LinkTest.cpp" />
     <ClCompile Include="PCLTest.cpp" />
     <ClCompile Include="RotationTest.cpp" />
+    <ClCompile Include="SampleCameraConfigurationTest.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

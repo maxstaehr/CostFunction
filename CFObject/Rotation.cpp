@@ -84,19 +84,13 @@ void Rotation::initYaw(float w)
 	H[8] = 1.0f;	
 }
 
-void Rotation::getH(float * res)
-{
-	memcpy(res, H, sizeof(float)*9);
-}
+
 void Rotation::setH(const float const* res)
 {
 	memcpy(H, res, sizeof(float)*9);
 }
 
-float const* const Rotation::V(void)
-{
-	return H;
-}
+
 
 Rotation::~Rotation(void)
 {

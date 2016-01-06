@@ -7,6 +7,9 @@ using namespace	Microsoft::VisualStudio::TestTools::UnitTesting;
 
 
 #include "../CFObject/HomogeneTransformation.h"
+#include <float.h>
+#include <stdlib.h>
+#include <time.h>
 namespace TestDriver
 {
 	[TestClass]
@@ -15,89 +18,134 @@ namespace TestDriver
 	public: 
 
 		[TestMethod]
+		void TestConstructor()
+		{
+			HomogeneTransformation test1;
+
+
+			Assert::AreEqual(test1.getH()[0], 1.0f);
+			Assert::AreEqual(test1.getH()[1], 0.0f);
+			Assert::AreEqual(test1.getH()[2], 0.0f);
+			Assert::AreEqual(test1.getH()[3], 0.0f);
+
+			Assert::AreEqual(test1.getH()[4], 0.0f);
+			Assert::AreEqual(test1.getH()[5], 1.0f);
+			Assert::AreEqual(test1.getH()[6], 0.0f);
+			Assert::AreEqual(test1.getH()[7], 0.0f);
+
+			Assert::AreEqual(test1.getH()[8], 0.0f);
+			Assert::AreEqual(test1.getH()[9], 0.0f);
+			Assert::AreEqual(test1.getH()[10], 1.0f);
+			Assert::AreEqual(test1.getH()[11], 0.0f);
+
+			Assert::AreEqual(test1.getH()[12], 0.0f);
+			Assert::AreEqual(test1.getH()[13], 0.0f);
+			Assert::AreEqual(test1.getH()[14], 0.0f);
+			Assert::AreEqual(test1.getH()[15], 1.0f);
+		}
+
+		[TestMethod]
 		void TestGetter()
 		{
 			HomogeneTransformation test;
-			float temp[16];
-			test.getH(temp);
 
-			Assert::AreEqual(temp[0], 1.0f);
-			Assert::AreEqual(temp[1], 0.0f);
-			Assert::AreEqual(temp[2], 0.0f);
-			Assert::AreEqual(temp[3], 0.0f);
+			Assert::AreEqual(test.getH()[0], 1.0f);
+			Assert::AreEqual(test.getH()[1], 0.0f);
+			Assert::AreEqual(test.getH()[2], 0.0f);
+			Assert::AreEqual(test.getH()[3], 0.0f);
 
-			Assert::AreEqual(temp[4], 0.0f);
-			Assert::AreEqual(temp[5], 1.0f);
-			Assert::AreEqual(temp[6], 0.0f);
-			Assert::AreEqual(temp[7], 0.0f);
+			Assert::AreEqual(test.getH()[4], 0.0f);
+			Assert::AreEqual(test.getH()[5], 1.0f);
+			Assert::AreEqual(test.getH()[6], 0.0f);
+			Assert::AreEqual(test.getH()[7], 0.0f);
 
-			Assert::AreEqual(temp[8], 0.0f);
-			Assert::AreEqual(temp[9], 0.0f);
-			Assert::AreEqual(temp[10], 1.0f);
-			Assert::AreEqual(temp[11], 0.0f);
+			Assert::AreEqual(test.getH()[8], 0.0f);
+			Assert::AreEqual(test.getH()[9], 0.0f);
+			Assert::AreEqual(test.getH()[10], 1.0f);
+			Assert::AreEqual(test.getH()[11], 0.0f);
 
-			Assert::AreEqual(temp[12], 0.0f);
-			Assert::AreEqual(temp[13], 0.0f);
-			Assert::AreEqual(temp[14], 0.0f);
-			Assert::AreEqual(temp[15], 1.0f);
+			Assert::AreEqual(test.getH()[12], 0.0f);
+			Assert::AreEqual(test.getH()[13], 0.0f);
+			Assert::AreEqual(test.getH()[14], 0.0f);
+			Assert::AreEqual(test.getH()[15], 1.0f);
 		}
 
 		[TestMethod]
 		void TestSetter()
 		{
-			HomogeneTransformation test;
-			float temp1[16];
+			HomogeneTransformation test;			
 			float temp2[16] ={	0.0f, 1.0f, 2.0f, 3.0f, 
 								4.0f, 5.0f, 6.0f, 7.0f, 
 								8.0f, 9.0f, 10.0f, 11.0f,
 								12.0f, 13.0f, 14.0f, 15.0f};
 
 
-			test.getH(temp1);
+			
 
-			Assert::AreEqual(temp1[0], 1.0f);
-			Assert::AreEqual(temp1[1], 0.0f);
-			Assert::AreEqual(temp1[2], 0.0f);
-			Assert::AreEqual(temp1[3], 0.0f);
+			Assert::AreEqual(test.getH()[0], 1.0f);
+			Assert::AreEqual(test.getH()[1], 0.0f);
+			Assert::AreEqual(test.getH()[2], 0.0f);
+			Assert::AreEqual(test.getH()[3], 0.0f);
 
-			Assert::AreEqual(temp1[4], 0.0f);
-			Assert::AreEqual(temp1[5], 1.0f);
-			Assert::AreEqual(temp1[6], 0.0f);
-			Assert::AreEqual(temp1[7], 0.0f);
+			Assert::AreEqual(test.getH()[4], 0.0f);
+			Assert::AreEqual(test.getH()[5], 1.0f);
+			Assert::AreEqual(test.getH()[6], 0.0f);
+			Assert::AreEqual(test.getH()[7], 0.0f);
 
-			Assert::AreEqual(temp1[8], 0.0f);
-			Assert::AreEqual(temp1[9], 0.0f);
-			Assert::AreEqual(temp1[10], 1.0f);
-			Assert::AreEqual(temp1[11], 0.0f);
+			Assert::AreEqual(test.getH()[8], 0.0f);
+			Assert::AreEqual(test.getH()[9], 0.0f);
+			Assert::AreEqual(test.getH()[10], 1.0f);
+			Assert::AreEqual(test.getH()[11], 0.0f);
 
-			Assert::AreEqual(temp1[12], 0.0f);
-			Assert::AreEqual(temp1[13], 0.0f);
-			Assert::AreEqual(temp1[14], 0.0f);
-			Assert::AreEqual(temp1[15], 1.0f);
+			Assert::AreEqual(test.getH()[12], 0.0f);
+			Assert::AreEqual(test.getH()[13], 0.0f);
+			Assert::AreEqual(test.getH()[14], 0.0f);
+			Assert::AreEqual(test.getH()[15], 1.0f);
 
 						
 			test.setH(temp2);
-			test.getH(temp1);
+			
+			Assert::AreEqual(test.getH()[0], temp2[0]);
+			Assert::AreEqual(test.getH()[1], temp2[1]);
+			Assert::AreEqual(test.getH()[2], temp2[2]);
+			Assert::AreEqual(test.getH()[3], temp2[3]);
 
-			Assert::AreEqual(temp1[0], temp2[0]);
-			Assert::AreEqual(temp1[1], temp2[1]);
-			Assert::AreEqual(temp1[2], temp2[2]);
-			Assert::AreEqual(temp1[3], temp2[3]);
+			Assert::AreEqual(test.getH()[4], temp2[4]);
+			Assert::AreEqual(test.getH()[5], temp2[5]);
+			Assert::AreEqual(test.getH()[6], temp2[6]);
+			Assert::AreEqual(test.getH()[7], temp2[7]);
 
-			Assert::AreEqual(temp1[4], temp2[4]);
-			Assert::AreEqual(temp1[5], temp2[5]);
-			Assert::AreEqual(temp1[6], temp2[6]);
-			Assert::AreEqual(temp1[7], temp2[7]);
+			Assert::AreEqual(test.getH()[8], temp2[8]);
+			Assert::AreEqual(test.getH()[9], temp2[9]);
+			Assert::AreEqual(test.getH()[10],temp2[10]);
+			Assert::AreEqual(test.getH()[11],temp2[11]);
 
-			Assert::AreEqual(temp1[8], temp2[8]);
-			Assert::AreEqual(temp1[9], temp2[9]);
-			Assert::AreEqual(temp1[10],temp2[10]);
-			Assert::AreEqual(temp1[11],temp2[11]);
+			Assert::AreEqual(test.getH()[12], temp2[12]);
+			Assert::AreEqual(test.getH()[13], temp2[13]);
+			Assert::AreEqual(test.getH()[14], temp2[14]);
+			Assert::AreEqual(test.getH()[15], temp2[15]);
+		}
 
-			Assert::AreEqual(temp1[12], temp2[12]);
-			Assert::AreEqual(temp1[13], temp2[13]);
-			Assert::AreEqual(temp1[14], temp2[14]);
-			Assert::AreEqual(temp1[15], temp2[15]);
+		[TestMethod]
+		void TestIsqual1()
+		{
+			HomogeneTransformation test1;
+			HomogeneTransformation test2;
+			Assert::IsTrue(test1.isEqual(test2));
+
+
+		}
+
+		[TestMethod]
+		void TestIsqual2()
+		{
+			float tmp[] = EYE_16;
+			tmp[0] = 2;
+			HomogeneTransformation test1(tmp);
+			HomogeneTransformation test2;
+			Assert::IsFalse(test1.isEqual(test2));
+
+
 		}
 
 
@@ -124,29 +172,29 @@ namespace TestDriver
 
 			test.setH(temp1);
 			HomogeneTransformation test2 = test.inv();
-			test2.getH(temp2);
+			
 
 
 
-			Assert::AreEqual(temp3[0], temp2[0], 1e-3f);
-			Assert::AreEqual(temp3[1], temp2[1], 1e-3f);
-			Assert::AreEqual(temp3[2], temp2[2], 1e-3f);
-			Assert::AreEqual(temp3[3], temp2[3], 1e-3f);
+			Assert::AreEqual(temp3[0], test2.getH()[0], 1e-3f);
+			Assert::AreEqual(temp3[1], test2.getH()[1], 1e-3f);
+			Assert::AreEqual(temp3[2], test2.getH()[2], 1e-3f);
+			Assert::AreEqual(temp3[3], test2.getH()[3], 1e-3f);
 
-			Assert::AreEqual(temp3[4], temp2[4], 1e-3f);
-			Assert::AreEqual(temp3[5], temp2[5], 1e-3f);
-			Assert::AreEqual(temp3[6], temp2[6], 1e-3f);
-			Assert::AreEqual(temp3[7], temp2[7], 1e-3f);
+			Assert::AreEqual(temp3[4], test2.getH()[4], 1e-3f);
+			Assert::AreEqual(temp3[5], test2.getH()[5], 1e-3f);
+			Assert::AreEqual(temp3[6], test2.getH()[6], 1e-3f);
+			Assert::AreEqual(temp3[7], test2.getH()[7], 1e-3f);
 
-			Assert::AreEqual(temp3[8], temp2[8], 1e-3f);
-			Assert::AreEqual(temp3[9], temp2[9], 1e-3f);
-			Assert::AreEqual(temp3[10],temp2[10], 1e-3f);
-			Assert::AreEqual(temp3[11],temp2[11], 1e-3f);
+			Assert::AreEqual(temp3[8], test2.getH()[8], 1e-3f);
+			Assert::AreEqual(temp3[9], test2.getH()[9], 1e-3f);
+			Assert::AreEqual(temp3[10],test2.getH()[10], 1e-3f);
+			Assert::AreEqual(temp3[11],test2.getH()[11], 1e-3f);
 
-			Assert::AreEqual(temp3[12], temp2[12], 1e-3f);
-			Assert::AreEqual(temp3[13], temp2[13], 1e-3f);
-			Assert::AreEqual(temp3[14], temp2[14], 1e-3f);
-			Assert::AreEqual(temp3[15], temp2[15], 1e-3f);
+			Assert::AreEqual(temp3[12], test2.getH()[12], 1e-3f);
+			Assert::AreEqual(temp3[13], test2.getH()[13], 1e-3f);
+			Assert::AreEqual(temp3[14], test2.getH()[14], 1e-3f);
+			Assert::AreEqual(temp3[15], test2.getH()[15], 1e-3f);
 
 		}
 
@@ -298,29 +346,29 @@ namespace TestDriver
 			HomogeneTransformation test1;
 			test1.setH(temp1);
 			HomogeneTransformation test2(test1);
-			test2.getH(temp2);
+	
 
 
 
-			Assert::AreEqual(temp3[0], temp2[0], 1e-3f);
-			Assert::AreEqual(temp3[1], temp2[1], 1e-3f);
-			Assert::AreEqual(temp3[2], temp2[2], 1e-3f);
-			Assert::AreEqual(temp3[3], temp2[3], 1e-3f);
+			Assert::AreEqual(temp3[0], test2.getH()[0], 1e-3f);
+			Assert::AreEqual(temp3[1], test2.getH()[1], 1e-3f);
+			Assert::AreEqual(temp3[2], test2.getH()[2], 1e-3f);
+			Assert::AreEqual(temp3[3], test2.getH()[3], 1e-3f);
 
-			Assert::AreEqual(temp3[4], temp2[4], 1e-3f);
-			Assert::AreEqual(temp3[5], temp2[5], 1e-3f);
-			Assert::AreEqual(temp3[6], temp2[6], 1e-3f);
-			Assert::AreEqual(temp3[7], temp2[7], 1e-3f);
+			Assert::AreEqual(temp3[4], test2.getH()[4], 1e-3f);
+			Assert::AreEqual(temp3[5], test2.getH()[5], 1e-3f);
+			Assert::AreEqual(temp3[6], test2.getH()[6], 1e-3f);
+			Assert::AreEqual(temp3[7], test2.getH()[7], 1e-3f);
 
-			Assert::AreEqual(temp3[8], temp2[8], 1e-3f);
-			Assert::AreEqual(temp3[9], temp2[9], 1e-3f);
-			Assert::AreEqual(temp3[10],temp2[10], 1e-3f);
-			Assert::AreEqual(temp3[11],temp2[11], 1e-3f);
+			Assert::AreEqual(temp3[8], test2.getH()[8], 1e-3f);
+			Assert::AreEqual(temp3[9], test2.getH()[9], 1e-3f);
+			Assert::AreEqual(temp3[10],test2.getH()[10], 1e-3f);
+			Assert::AreEqual(temp3[11],test2.getH()[11], 1e-3f);
 
-			Assert::AreEqual(temp3[12], temp2[12], 1e-3f);
-			Assert::AreEqual(temp3[13], temp2[13], 1e-3f);
-			Assert::AreEqual(temp3[14], temp2[14], 1e-3f);
-			Assert::AreEqual(temp3[15], temp2[15], 1e-3f);
+			Assert::AreEqual(temp3[12], test2.getH()[12], 1e-3f);
+			Assert::AreEqual(temp3[13], test2.getH()[13], 1e-3f);
+			Assert::AreEqual(temp3[14], test2.getH()[14], 1e-3f);
+			Assert::AreEqual(temp3[15], test2.getH()[15], 1e-3f);
 
 		}
 
@@ -362,29 +410,29 @@ namespace TestDriver
 			test2.setH(temp2);
 
 			HomogeneTransformation test3 = test1.mul(test2);
-			test3.getH(temp4);
+			
 
 
 
-			Assert::AreEqual(temp3[0], temp4[0], 1e-3f);
-			Assert::AreEqual(temp3[1], temp4[1], 1e-3f);
-			Assert::AreEqual(temp3[2], temp4[2], 1e-3f);
-			Assert::AreEqual(temp3[3], temp4[3], 1e-3f);
+			Assert::AreEqual(temp3[0], test3.getH()[0], 1e-3f);
+			Assert::AreEqual(temp3[1], test3.getH()[1], 1e-3f);
+			Assert::AreEqual(temp3[2], test3.getH()[2], 1e-3f);
+			Assert::AreEqual(temp3[3], test3.getH()[3], 1e-3f);
 
-			Assert::AreEqual(temp3[4], temp4[4], 1e-3f);
-			Assert::AreEqual(temp3[5], temp4[5], 1e-3f);
-			Assert::AreEqual(temp3[6], temp4[6], 1e-3f);
-			Assert::AreEqual(temp3[7], temp4[7], 1e-3f);
+			Assert::AreEqual(temp3[4], test3.getH()[4], 1e-3f);
+			Assert::AreEqual(temp3[5], test3.getH()[5], 1e-3f);
+			Assert::AreEqual(temp3[6], test3.getH()[6], 1e-3f);
+			Assert::AreEqual(temp3[7], test3.getH()[7], 1e-3f);
 
-			Assert::AreEqual(temp3[8], temp4[8], 1e-3f);
-			Assert::AreEqual(temp3[9], temp4[9], 1e-3f);
-			Assert::AreEqual(temp3[10],temp4[10], 1e-3f);
-			Assert::AreEqual(temp3[11],temp4[11], 1e-3f);
+			Assert::AreEqual(temp3[8], test3.getH()[8], 1e-3f);
+			Assert::AreEqual(temp3[9], test3.getH()[9], 1e-3f);
+			Assert::AreEqual(temp3[10],test3.getH()[10], 1e-3f);
+			Assert::AreEqual(temp3[11],test3.getH()[11], 1e-3f);
 
-			Assert::AreEqual(temp3[12], temp4[12], 1e-3f);
-			Assert::AreEqual(temp3[13], temp4[13], 1e-3f);
-			Assert::AreEqual(temp3[14], temp4[14], 1e-3f);
-			Assert::AreEqual(temp3[15], temp4[15], 1e-3f);
+			Assert::AreEqual(temp3[12], test3.getH()[12], 1e-3f);
+			Assert::AreEqual(temp3[13], test3.getH()[13], 1e-3f);
+			Assert::AreEqual(temp3[14], test3.getH()[14], 1e-3f);
+			Assert::AreEqual(temp3[15], test3.getH()[15], 1e-3f);
 
 		}
 
@@ -409,27 +457,27 @@ namespace TestDriver
 
 			HomogeneTransformation test1;
 			test1.init(roll, pitch, yaw, x, y, z);
-			test1.getH(temp2);
 
-			Assert::AreEqual(temp3[0], temp2[0], 1e-3f);
-			Assert::AreEqual(temp3[1], temp2[1], 1e-3f);
-			Assert::AreEqual(temp3[2], temp2[2], 1e-3f);
-			Assert::AreEqual(temp3[3], temp2[3], 1e-3f);
 
-			Assert::AreEqual(temp3[4], temp2[4], 1e-3f);
-			Assert::AreEqual(temp3[5], temp2[5], 1e-3f);
-			Assert::AreEqual(temp3[6], temp2[6], 1e-3f);
-			Assert::AreEqual(temp3[7], temp2[7], 1e-3f);
+			Assert::AreEqual(temp3[0], test1.getH()[0], 1e-3f);
+			Assert::AreEqual(temp3[1], test1.getH()[1], 1e-3f);
+			Assert::AreEqual(temp3[2], test1.getH()[2], 1e-3f);
+			Assert::AreEqual(temp3[3], test1.getH()[3], 1e-3f);
 
-			Assert::AreEqual(temp3[8], temp2[8], 1e-3f);
-			Assert::AreEqual(temp3[9], temp2[9], 1e-3f);
-			Assert::AreEqual(temp3[10],temp2[10], 1e-3f);
-			Assert::AreEqual(temp3[11],temp2[11], 1e-3f);
+			Assert::AreEqual(temp3[4], test1.getH()[4], 1e-3f);
+			Assert::AreEqual(temp3[5], test1.getH()[5], 1e-3f);
+			Assert::AreEqual(temp3[6], test1.getH()[6], 1e-3f);
+			Assert::AreEqual(temp3[7], test1.getH()[7], 1e-3f);
 
-			Assert::AreEqual(temp3[12], temp2[12], 1e-3f);
-			Assert::AreEqual(temp3[13], temp2[13], 1e-3f);
-			Assert::AreEqual(temp3[14], temp2[14], 1e-3f);
-			Assert::AreEqual(temp3[15], temp2[15], 1e-3f);
+			Assert::AreEqual(temp3[8], test1.getH()[8], 1e-3f);
+			Assert::AreEqual(temp3[9], test1.getH()[9], 1e-3f);
+			Assert::AreEqual(temp3[10],test1.getH()[10], 1e-3f);
+			Assert::AreEqual(temp3[11],test1.getH()[11], 1e-3f);
+
+			Assert::AreEqual(temp3[12], test1.getH()[12], 1e-3f);
+			Assert::AreEqual(temp3[13], test1.getH()[13], 1e-3f);
+			Assert::AreEqual(temp3[14], test1.getH()[14], 1e-3f);
+			Assert::AreEqual(temp3[15], test1.getH()[15], 1e-3f);
 		}
 
 		[TestMethod]
@@ -453,27 +501,27 @@ namespace TestDriver
 
 			HomogeneTransformation test1;
 			test1.init(roll, pitch, yaw, x, y, z);
-			test1.getH(temp2);
 
-			Assert::AreEqual(temp3[0], temp2[0], 1e-3f);
-			Assert::AreEqual(temp3[1], temp2[1], 1e-3f);
-			Assert::AreEqual(temp3[2], temp2[2], 1e-3f);
-			Assert::AreEqual(temp3[3], temp2[3], 1e-3f);
 
-			Assert::AreEqual(temp3[4], temp2[4], 1e-3f);
-			Assert::AreEqual(temp3[5], temp2[5], 1e-3f);
-			Assert::AreEqual(temp3[6], temp2[6], 1e-3f);
-			Assert::AreEqual(temp3[7], temp2[7], 1e-3f);
+			Assert::AreEqual(temp3[0], test1.getH()[0], 1e-3f);
+			Assert::AreEqual(temp3[1], test1.getH()[1], 1e-3f);
+			Assert::AreEqual(temp3[2], test1.getH()[2], 1e-3f);
+			Assert::AreEqual(temp3[3], test1.getH()[3], 1e-3f);
 
-			Assert::AreEqual(temp3[8], temp2[8], 1e-3f);
-			Assert::AreEqual(temp3[9], temp2[9], 1e-3f);
-			Assert::AreEqual(temp3[10],temp2[10], 1e-3f);
-			Assert::AreEqual(temp3[11],temp2[11], 1e-3f);
+			Assert::AreEqual(temp3[4], test1.getH()[4], 1e-3f);
+			Assert::AreEqual(temp3[5], test1.getH()[5], 1e-3f);
+			Assert::AreEqual(temp3[6], test1.getH()[6], 1e-3f);
+			Assert::AreEqual(temp3[7], test1.getH()[7], 1e-3f);
 
-			Assert::AreEqual(temp3[12], temp2[12], 1e-3f);
-			Assert::AreEqual(temp3[13], temp2[13], 1e-3f);
-			Assert::AreEqual(temp3[14], temp2[14], 1e-3f);
-			Assert::AreEqual(temp3[15], temp2[15], 1e-3f);
+			Assert::AreEqual(temp3[8], test1.getH()[8], 1e-3f);
+			Assert::AreEqual(temp3[9], test1.getH()[9], 1e-3f);
+			Assert::AreEqual(temp3[10],test1.getH()[10], 1e-3f);
+			Assert::AreEqual(temp3[11],test1.getH()[11], 1e-3f);
+
+			Assert::AreEqual(temp3[12], test1.getH()[12], 1e-3f);
+			Assert::AreEqual(temp3[13], test1.getH()[13], 1e-3f);
+			Assert::AreEqual(temp3[14], test1.getH()[14], 1e-3f);
+			Assert::AreEqual(temp3[15], test1.getH()[15], 1e-3f);
 		}
 
 		[TestMethod]
@@ -497,26 +545,26 @@ namespace TestDriver
 
 			HomogeneTransformation test1;
 			test1.init(roll, pitch, yaw, x, y, z);
-			test1.getH(temp2);
-			Assert::AreEqual(temp3[0], temp2[0], 1e-3f);
-			Assert::AreEqual(temp3[1], temp2[1], 1e-3f);
-			Assert::AreEqual(temp3[2], temp2[2], 1e-3f);
-			Assert::AreEqual(temp3[3], temp2[3], 1e-3f);
+			
+			Assert::AreEqual(temp3[0], test1.getH()[0], 1e-3f);
+			Assert::AreEqual(temp3[1], test1.getH()[1], 1e-3f);
+			Assert::AreEqual(temp3[2], test1.getH()[2], 1e-3f);
+			Assert::AreEqual(temp3[3], test1.getH()[3], 1e-3f);
 
-			Assert::AreEqual(temp3[4], temp2[4], 1e-3f);
-			Assert::AreEqual(temp3[5], temp2[5], 1e-3f);
-			Assert::AreEqual(temp3[6], temp2[6], 1e-3f);
-			Assert::AreEqual(temp3[7], temp2[7], 1e-3f);
+			Assert::AreEqual(temp3[4], test1.getH()[4], 1e-3f);
+			Assert::AreEqual(temp3[5], test1.getH()[5], 1e-3f);
+			Assert::AreEqual(temp3[6], test1.getH()[6], 1e-3f);
+			Assert::AreEqual(temp3[7], test1.getH()[7], 1e-3f);
 
-			Assert::AreEqual(temp3[8], temp2[8], 1e-3f);
-			Assert::AreEqual(temp3[9], temp2[9], 1e-3f);
-			Assert::AreEqual(temp3[10],temp2[10], 1e-3f);
-			Assert::AreEqual(temp3[11],temp2[11], 1e-3f);
+			Assert::AreEqual(temp3[8], test1.getH()[8], 1e-3f);
+			Assert::AreEqual(temp3[9], test1.getH()[9], 1e-3f);
+			Assert::AreEqual(temp3[10],test1.getH()[10], 1e-3f);
+			Assert::AreEqual(temp3[11],test1.getH()[11], 1e-3f);
 
-			Assert::AreEqual(temp3[12], temp2[12], 1e-3f);
-			Assert::AreEqual(temp3[13], temp2[13], 1e-3f);
-			Assert::AreEqual(temp3[14], temp2[14], 1e-3f);
-			Assert::AreEqual(temp3[15], temp2[15], 1e-3f);
+			Assert::AreEqual(temp3[12], test1.getH()[12], 1e-3f);
+			Assert::AreEqual(temp3[13], test1.getH()[13], 1e-3f);
+			Assert::AreEqual(temp3[14], test1.getH()[14], 1e-3f);
+			Assert::AreEqual(temp3[15], test1.getH()[15], 1e-3f);
 		}
 
 		[TestMethod]
@@ -540,27 +588,27 @@ namespace TestDriver
 
 			HomogeneTransformation test1;
 			test1.init(roll, pitch, yaw, x, y, z);
-			test1.getH(temp2);
+			
 
-			Assert::AreEqual(temp3[0], temp2[0], 1e-3f);
-			Assert::AreEqual(temp3[1], temp2[1], 1e-3f);
-			Assert::AreEqual(temp3[2], temp2[2], 1e-3f);
-			Assert::AreEqual(temp3[3], temp2[3], 1e-3f);
+			Assert::AreEqual(temp3[0], test1.getH()[0], 1e-3f);
+			Assert::AreEqual(temp3[1], test1.getH()[1], 1e-3f);
+			Assert::AreEqual(temp3[2], test1.getH()[2], 1e-3f);
+			Assert::AreEqual(temp3[3], test1.getH()[3], 1e-3f);
 
-			Assert::AreEqual(temp3[4], temp2[4], 1e-3f);
-			Assert::AreEqual(temp3[5], temp2[5], 1e-3f);
-			Assert::AreEqual(temp3[6], temp2[6], 1e-3f);
-			Assert::AreEqual(temp3[7], temp2[7], 1e-3f);
+			Assert::AreEqual(temp3[4], test1.getH()[4], 1e-3f);
+			Assert::AreEqual(temp3[5], test1.getH()[5], 1e-3f);
+			Assert::AreEqual(temp3[6], test1.getH()[6], 1e-3f);
+			Assert::AreEqual(temp3[7], test1.getH()[7], 1e-3f);
 
-			Assert::AreEqual(temp3[8], temp2[8], 1e-3f);
-			Assert::AreEqual(temp3[9], temp2[9], 1e-3f);
-			Assert::AreEqual(temp3[10],temp2[10], 1e-3f);
-			Assert::AreEqual(temp3[11],temp2[11], 1e-3f);
+			Assert::AreEqual(temp3[8], test1.getH()[8], 1e-3f);
+			Assert::AreEqual(temp3[9], test1.getH()[9], 1e-3f);
+			Assert::AreEqual(temp3[10],test1.getH()[10], 1e-3f);
+			Assert::AreEqual(temp3[11],test1.getH()[11], 1e-3f);
 
-			Assert::AreEqual(temp3[12], temp2[12], 1e-3f);
-			Assert::AreEqual(temp3[13], temp2[13], 1e-3f);
-			Assert::AreEqual(temp3[14], temp2[14], 1e-3f);
-			Assert::AreEqual(temp3[15], temp2[15], 1e-3f);
+			Assert::AreEqual(temp3[12], test1.getH()[12], 1e-3f);
+			Assert::AreEqual(temp3[13], test1.getH()[13], 1e-3f);
+			Assert::AreEqual(temp3[14], test1.getH()[14], 1e-3f);
+			Assert::AreEqual(temp3[15], test1.getH()[15], 1e-3f);
 		}
 
 		[TestMethod]
@@ -585,30 +633,277 @@ namespace TestDriver
 
 			HomogeneTransformation test1;
 			test1.init(roll, pitch, yaw, x, y, z);
-			test1.getH(temp2);
+			
 
-			Assert::AreEqual(temp3[0], temp2[0], 1e-3f);
-			Assert::AreEqual(temp3[1], temp2[1], 1e-3f);
-			Assert::AreEqual(temp3[2], temp2[2], 1e-3f);
-			Assert::AreEqual(temp3[3], temp2[3], 1e-3f);
+			Assert::AreEqual(temp3[0], test1.getH()[0], 1e-3f);
+			Assert::AreEqual(temp3[1], test1.getH()[1], 1e-3f);
+			Assert::AreEqual(temp3[2], test1.getH()[2], 1e-3f);
+			Assert::AreEqual(temp3[3], test1.getH()[3], 1e-3f);
 
-			Assert::AreEqual(temp3[4], temp2[4], 1e-3f);
-			Assert::AreEqual(temp3[5], temp2[5], 1e-3f);
-			Assert::AreEqual(temp3[6], temp2[6], 1e-3f);
-			Assert::AreEqual(temp3[7], temp2[7], 1e-3f);
+			Assert::AreEqual(temp3[4], test1.getH()[4], 1e-3f);
+			Assert::AreEqual(temp3[5], test1.getH()[5], 1e-3f);
+			Assert::AreEqual(temp3[6], test1.getH()[6], 1e-3f);
+			Assert::AreEqual(temp3[7], test1.getH()[7], 1e-3f);
 
-			Assert::AreEqual(temp3[8], temp2[8], 1e-3f);
-			Assert::AreEqual(temp3[9], temp2[9], 1e-3f);
-			Assert::AreEqual(temp3[10],temp2[10], 1e-3f);
-			Assert::AreEqual(temp3[11],temp2[11], 1e-3f);
+			Assert::AreEqual(temp3[8], test1.getH()[8], 1e-3f);
+			Assert::AreEqual(temp3[9], test1.getH()[9], 1e-3f);
+			Assert::AreEqual(temp3[10],test1.getH()[10], 1e-3f);
+			Assert::AreEqual(temp3[11],test1.getH()[11], 1e-3f);
 
-			Assert::AreEqual(temp3[12], temp2[12], 1e-3f);
-			Assert::AreEqual(temp3[13], temp2[13], 1e-3f);
-			Assert::AreEqual(temp3[14], temp2[14], 1e-3f);
-			Assert::AreEqual(temp3[15], temp2[15], 1e-3f);
+			Assert::AreEqual(temp3[12], test1.getH()[12], 1e-3f);
+			Assert::AreEqual(temp3[13], test1.getH()[13], 1e-3f);
+			Assert::AreEqual(temp3[14], test1.getH()[14], 1e-3f);
+			Assert::AreEqual(temp3[15], test1.getH()[15], 1e-3f);
+		}
+
+		[TestMethod]
+		void testDistDimXDiff(void)
+		{
+
+			HomogeneTransformation a;
+			a.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+			HomogeneTransformation b;
+			b.init(0.0, 0.0, 0.0, 1.0, 0.0, 0.0);
+
+			Assert::AreEqual(1.0f,		a.getDist(b, HomogeneTransformation::DIM_DIR::XP));
+			Assert::AreEqual(FLT_MAX,	b.getDist(a, HomogeneTransformation::DIM_DIR::XP));
+
+			Assert::AreEqual(FLT_MAX,	a.getDist(b, HomogeneTransformation::DIM_DIR::XM));
+			Assert::AreEqual(1.0f,		b.getDist(a, HomogeneTransformation::DIM_DIR::XM));
+
+		}
+
+		[TestMethod]
+		void testDistDimXEqual(void)
+		{
+
+			HomogeneTransformation a;
+			a.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+			HomogeneTransformation b;
+			b.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::XP));
+			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::XP));
+
+			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::XM));
+			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::XM));
+
+		}
+
+		[TestMethod]
+		void testDistDimYDiff(void)
+		{
+
+			HomogeneTransformation a;
+			a.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+			HomogeneTransformation b;
+			b.init(0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+
+			Assert::AreEqual(1.0f,		a.getDist(b, HomogeneTransformation::DIM_DIR::YP));
+			Assert::AreEqual(FLT_MAX,	b.getDist(a, HomogeneTransformation::DIM_DIR::YP));
+
+			Assert::AreEqual(FLT_MAX,	a.getDist(b, HomogeneTransformation::DIM_DIR::YM));
+			Assert::AreEqual(1.0f,		b.getDist(a, HomogeneTransformation::DIM_DIR::YM));
+
+		}
+
+		[TestMethod]
+		void testDistDimYEqual(void)
+		{
+
+			HomogeneTransformation a;
+			a.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+			HomogeneTransformation b;
+			b.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::YP));
+			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::YP));
+
+			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::YM));
+			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::YM));
+
+		}
+
+		[TestMethod]
+		void testDistDimZDiff(void)
+		{
+
+			HomogeneTransformation a;
+			a.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+			HomogeneTransformation b;
+			b.init(0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+
+			Assert::AreEqual(1.0f,		a.getDist(b, HomogeneTransformation::DIM_DIR::ZP));
+			Assert::AreEqual(FLT_MAX,	b.getDist(a, HomogeneTransformation::DIM_DIR::ZP));
+
+			Assert::AreEqual(FLT_MAX,	a.getDist(b, HomogeneTransformation::DIM_DIR::ZM));
+			Assert::AreEqual(1.0f,		b.getDist(a, HomogeneTransformation::DIM_DIR::ZM));
+
+		}
+
+		[TestMethod]
+		void testDistDimZEqual(void)
+		{
+
+			HomogeneTransformation a;
+			a.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+			HomogeneTransformation b;
+			b.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::ZP));
+			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::ZP));
+
+			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::ZM));
+			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::ZM));
+
+		}
+
+		[TestMethod]
+		void testDistDimRollDiff(void)
+		{
+
+			HomogeneTransformation a;
+			a.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+			HomogeneTransformation b;
+			b.init(1.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+			Assert::AreEqual(1.0f,		a.getDist(b, HomogeneTransformation::DIM_DIR::ROLLP));
+			Assert::AreEqual(FLT_MAX,	b.getDist(a, HomogeneTransformation::DIM_DIR::ROLLP));
+
+			Assert::AreEqual(FLT_MAX,	a.getDist(b, HomogeneTransformation::DIM_DIR::ROLLM));
+			Assert::AreEqual(1.0f,		b.getDist(a, HomogeneTransformation::DIM_DIR::ROLLM));
+
+		}
+
+		[TestMethod]
+		void testDistDimRollEqual(void)
+		{
+
+			HomogeneTransformation a;
+			a.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+			HomogeneTransformation b;
+			b.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::ROLLP));
+			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::ROLLP));
+
+			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::ROLLM));
+			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::ROLLM));
+
+		}
+
+		[TestMethod]
+		void testDistDimPitchDiff(void)
+		{
+
+			HomogeneTransformation a;
+			a.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+			HomogeneTransformation b;
+			b.init(0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
+
+			Assert::AreEqual(1.0f,		a.getDist(b, HomogeneTransformation::DIM_DIR::PITCHP));
+			Assert::AreEqual(FLT_MAX,	b.getDist(a, HomogeneTransformation::DIM_DIR::PITCHP));
+
+			Assert::AreEqual(FLT_MAX,	a.getDist(b, HomogeneTransformation::DIM_DIR::PITCHM));
+			Assert::AreEqual(1.0f,		b.getDist(a, HomogeneTransformation::DIM_DIR::PITCHM));
+
+		}
+
+		[TestMethod]
+		void testDistDimPitchEqual(void)
+		{
+
+			HomogeneTransformation a;
+			a.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+			HomogeneTransformation b;
+			b.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::PITCHP));
+			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::PITCHP));
+
+			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::PITCHM));
+			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::PITCHM));
+
+		}
+
+		[TestMethod]
+		void testDistDimYawDiff(void)
+		{
+
+			HomogeneTransformation a;
+			a.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+			HomogeneTransformation b;
+			b.init(0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
+
+			Assert::AreEqual(1.0f,		a.getDist(b, HomogeneTransformation::DIM_DIR::YAWP));
+			Assert::AreEqual(FLT_MAX,	b.getDist(a, HomogeneTransformation::DIM_DIR::YAWP));
+
+			Assert::AreEqual(FLT_MAX,	a.getDist(b, HomogeneTransformation::DIM_DIR::YAWM));
+			Assert::AreEqual(1.0f,		b.getDist(a, HomogeneTransformation::DIM_DIR::YAWM));
+
+		}
+
+		[TestMethod]
+		void testDistDimYawEqual(void)
+		{
+
+			HomogeneTransformation a;
+			a.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+			HomogeneTransformation b;
+			b.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::YAWP));
+			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::YAWP));
+
+			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::YAWM));
+			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::YAWM));
+
 		}
 
 
+		[TestMethod]
+		void testDistComplete(void)
+		{
+
+			HomogeneTransformation a;
+			a.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+			HomogeneTransformation b;
+			b.init(0.1, 0.1, 0.1, 0.1, 0.1, 0.1);
+
+			Assert::AreEqual(0.6f,	a.getDist(b));
+			Assert::AreEqual(0.6f,	b.getDist(a));
+
+		}
+
+		[TestMethod]
+		void testTR2RPY(void)
+		{
+			srand (time(NULL));
+			HomogeneTransformation a;
+			float roll = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			float pitch = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			float yaw = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			a.init(roll, pitch, yaw, 0.0, 0.0, 0.0);
+
+			float rpy[3];
+			a.tr2rpy(rpy);
+			Assert::AreEqual(roll, rpy[0], 1e-5f);
+			Assert::AreEqual(pitch, rpy[1], 1e-5f);
+			Assert::AreEqual(yaw, rpy[2], 1e-5f);
+		}
 
 	};
 }

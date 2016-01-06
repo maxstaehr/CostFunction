@@ -10,10 +10,9 @@ public:
 	void initRoll(float w);
 	void initPitch(float w);
 	void initYaw(float w);
-
-	void getH(float * res);
+	
 	void setH(const float const* res);
-	float const* const V(void);
+	float const* const getH(void){return H;}
 
 	~Rotation(void);
 

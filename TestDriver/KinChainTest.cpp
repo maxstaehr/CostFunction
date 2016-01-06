@@ -173,11 +173,81 @@ namespace TestDriver
 				for(int patteri=0; patteri<NELEM_H; patteri++)
 				{						
 					Assert::AreEqual((float)pos*DOF_R*NELEM_H + h*NELEM_H + patteri,
-						link.getH().V()[patteri]);
+						link.getH().getH()[patteri]);
 				}
 			}
 			delete temp1;
 		}
 
+
+		[TestMethod]
+		void TestSetHumanPosIndex()
+		{
+			int nPos = 100;
+			KinChain test(nPos);
+
+			float *temp1 = new float[NELEM_H*DOF_H*nPos];			
+			for(int pos = 0; pos<nPos; pos++)
+			{
+				for(int h=0; h<DOF_H; h++)
+				{
+					for(int patteri=0; patteri<NELEM_H; patteri++)
+					{
+						temp1[pos*DOF_H*NELEM_H + h*NELEM_H + patteri] = pos*DOF_H*NELEM_H + h*NELEM_H + patteri;
+					}
+				}
+			}
+
+			test.setHumanPos(temp1);
+			int pos = 5;
+			test.setPosIndex(pos);			
+			Link link;
+
+			for(int h=0; h<DOF_H; h++)
+			{
+				link = test.getHumanLinks()[h];
+				for(int patteri=0; patteri<NELEM_H; patteri++)
+				{						
+					Assert::AreEqual((float)pos*DOF_H*NELEM_H + h*NELEM_H + patteri,
+						link.getH().getH()[patteri]);
+				}
+			}
+			delete temp1;
+		}
+
+		[TestMethod]
+		void TestSetEnvPosIndex()
+		{
+			int nPos = 100;
+			KinChain test(nPos);
+
+			float *temp1 = new float[NELEM_H*DOF_E*nPos];			
+			for(int pos = 0; pos<nPos; pos++)
+			{
+				for(int h=0; h<DOF_E; h++)
+				{
+					for(int patteri=0; patteri<NELEM_H; patteri++)
+					{
+						temp1[pos*DOF_E*NELEM_H + h*NELEM_H + patteri] = pos*DOF_E*NELEM_H + h*NELEM_H + patteri;
+					}
+				}
+			}
+
+			test.setEnvPos(temp1);
+			int pos = 5;
+			test.setPosIndex(pos);			
+			Link link;
+
+			for(int h=0; h<DOF_E; h++)
+			{
+				link = test.getEnvLinks()[h];
+				for(int patteri=0; patteri<NELEM_H; patteri++)
+				{						
+					Assert::AreEqual((float)pos*DOF_E*NELEM_H + h*NELEM_H + patteri,
+						link.getH().getH()[patteri]);
+				}
+			}
+			delete temp1;
+		}
 	};
 }

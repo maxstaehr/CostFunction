@@ -1,7 +1,9 @@
 #include "HomogeneTransformation.h"
 #include "Rotation.h"
 #include <string>
+#include <algorithm>
 
+#define eps_div (1e-7)
 
 HomogeneTransformation::HomogeneTransformation(void)
 {
@@ -9,7 +11,163 @@ HomogeneTransformation::HomogeneTransformation(void)
 	memcpy(H, temp, sizeof(float)*16);
 }
 
-HomogeneTransformation::HomogeneTransformation(HomogeneTransformation& inst)
+HomogeneTransformation::HomogeneTransformation(const float const* temp)
+{
+	memcpy(H, temp, sizeof(float)*16);
+}
+
+void HomogeneTransformation::operator=(HomogeneTransformation& rhs )
+{
+	
+	memcpy(H, rhs.getH(), sizeof(float)*16);
+}
+float HomogeneTransformation::getDist(HomogeneTransformation& rhs)
+{
+	float a_rpy[3];
+	float b_rpy[3];
+	tr2rpy(a_rpy);
+	rhs.tr2rpy(b_rpy);
+	float ret = 0.0f;
+	ret +=  abs(rhs.getH()[3] - H[3]);
+	ret +=  abs(rhs.getH()[7] - H[7]);
+	ret +=  abs(rhs.getH()[11] - H[11]);
+	ret +=  abs(b_rpy[0] - a_rpy[0]);
+	ret +=  abs(b_rpy[1] - a_rpy[1]);
+	ret +=  abs(b_rpy[2] - a_rpy[2]);
+	return ret;
+}
+
+float HomogeneTransformation::getDist(HomogeneTransformation& rhs, DIM_DIR dim)
+{
+	float ret = FLT_MAX;
+	float dist;
+	float a_rpy[3];
+	float b_rpy[3];
+	tr2rpy(a_rpy);
+	rhs.tr2rpy(b_rpy);
+	using namespace std;
+	switch (dim)
+	{
+		case DIM_DIR::XP:
+			ret = rhs.getH()[3] - H[3];
+			if(ret < 0)
+			{
+				ret = FLT_MAX;
+			}			
+			break;
+		case DIM_DIR::XM:
+			ret = rhs.getH()[3] - H[3];
+			if(ret > 0)
+			{
+				ret = FLT_MAX;
+			}	
+			break;
+		case DIM_DIR::YP:
+			ret = rhs.getH()[7] - H[7];
+			if(ret < 0)
+			{
+				ret = FLT_MAX;
+			}			
+			break;			
+		case DIM_DIR::YM:
+			ret = rhs.getH()[7] - H[7];
+			if(ret > 0)
+			{
+				ret = FLT_MAX;
+			}				
+			break;
+		case DIM_DIR::ZP:
+			ret = rhs.getH()[11] - H[11];
+			if(ret < 0)
+			{
+				ret = FLT_MAX;
+			}			
+			break;	
+		case DIM_DIR::ZM:
+			ret = rhs.getH()[11] - H[11];
+			if(ret > 0)
+			{
+				ret = FLT_MAX;
+			}				
+			break;
+		case DIM_DIR::ROLLP:
+			ret = b_rpy[0] - a_rpy[0];
+			if(ret < 0)
+			{
+				ret = FLT_MAX;
+			}			
+			break;			
+		case DIM_DIR::ROLLM:
+			ret = b_rpy[0] - a_rpy[0];
+			if(ret > 0)
+			{
+				ret = FLT_MAX;
+			}	
+			break;
+		case DIM_DIR::PITCHP:
+			ret = b_rpy[1] - a_rpy[1];
+			if(ret < 0)
+			{
+				ret = FLT_MAX;
+			}			
+			break;			
+		case DIM_DIR::PITCHM:
+			ret = b_rpy[1] - a_rpy[1];
+			if(ret > 0)
+			{
+				ret = FLT_MAX;
+			}	
+			break;
+		case DIM_DIR::YAWP:
+			ret = b_rpy[2] - a_rpy[2];
+			if(ret < 0)
+			{
+				ret = FLT_MAX;
+			}			
+			break;			
+		case DIM_DIR::YAWM:
+			ret = b_rpy[2] - a_rpy[2];
+			if(ret > 0)
+			{
+				ret = FLT_MAX;
+			}	
+			break;
+	};
+	return abs(ret);
+
+}
+
+void HomogeneTransformation::tr2rpy(float* rpy)
+{
+
+	if (abs(H[10]) < eps_div && abs(H[6]) < eps_div)
+	{
+		rpy[0] = 0;
+		rpy[1] = atan2(H[2], H[10]);
+		rpy[2] = atan2(H[4], H[5]);
+	}
+	else
+	{
+		rpy[0] = atan2(-H[6], H[10]);
+	    float sr = sin(rpy[0]);
+		float cr = cos(rpy[0]);
+		rpy[1] = atan2(H[2], cr * H[10] - sr * H[6]);
+		rpy[2] = atan2(-H[1], H[0]);  
+	}
+}
+
+bool HomogeneTransformation::isEqual(HomogeneTransformation& rhs)
+{
+	bool ret  = true;
+	for(int i=0; i<16; i++)
+	{
+		ret &= abs(H[i] - rhs.getH()[i]) < 1e-5f;
+	}
+	return ret;
+}
+
+
+HomogeneTransformation::HomogeneTransformation(const HomogeneTransformation& inst)
 {
 	memcpy(H, inst.H, sizeof(float)*16);
 }
@@ -19,10 +177,7 @@ HomogeneTransformation::~HomogeneTransformation(void)
 {
 }
 
-void HomogeneTransformation::getH(float* res)
-{
-	memcpy(res, H, sizeof(float)*16);
-}
+
 void HomogeneTransformation::setH(const float const* res)
 {
 	memcpy(H, res, sizeof(float)*16);
@@ -147,10 +302,7 @@ HomogeneTransformation HomogeneTransformation::mul(HomogeneTransformation in)
 
 }
 
-float const* const HomogeneTransformation::V(void)
-{
-	return H;
-}
+
 void HomogeneTransformation::init(float roll, float pitch, float yaw, float x, float y, float z)
 {
 	Rotation r1;
@@ -165,19 +317,19 @@ void HomogeneTransformation::init(float roll, float pitch, float yaw, float x, f
 	Rotation r4 = r1.mul(r2);
 	Rotation r5 = r4.mul(r3);
 
-	H[0] = r5.V()[0];
-	H[1] = r5.V()[1];
-	H[2] = r5.V()[2];
+	H[0] = r5.getH()[0];
+	H[1] = r5.getH()[1];
+	H[2] = r5.getH()[2];
 	H[3] = x;
 
-	H[4] = r5.V()[3];
-	H[5] = r5.V()[4];
-	H[6] = r5.V()[5];
+	H[4] = r5.getH()[3];
+	H[5] = r5.getH()[4];
+	H[6] = r5.getH()[5];
 	H[7] = y;
 
-	H[8] = r5.V()[6];
-	H[9] = r5.V()[7];
-	H[10] = r5.V()[8];
+	H[8] = r5.getH()[6];
+	H[9] = r5.getH()[7];
+	H[10] = r5.getH()[8];
 	H[11] = z;
 
 	H[12] = 0.0f;

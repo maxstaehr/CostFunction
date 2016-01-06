@@ -1,5 +1,6 @@
 #include "PCL.h"
 #include <string.h>
+#include <iostream>
 
 PCL::PCL(int nV, int nF,  const float const * x, 
 						 const float const * y,
@@ -8,8 +9,11 @@ PCL::PCL(int nV, int nF,  const float const * x,
 						 const int const * fy,
 						 const int const * fz)
 {
+
+
 	this->nV = nV;
 	this->nF = nF;
+
 	this->x = new float[nV];
 	this->y = new float[nV];
 	this->z = new float[nV];
@@ -26,6 +30,69 @@ PCL::PCL(int nV, int nF,  const float const * x,
 	memcpy(this->fy, fy, sizeof(int)*nF);
 	memcpy(this->fz, fz, sizeof(int)*nF);
 }
+PCL::PCL():nV(0), nF(0), x(NULL), y(NULL), z(NULL), fx(NULL), fy(NULL), fz(NULL)
+{
+
+}
+void PCL::operator=(PCL& inst )
+{
+	
+	if(x!=NULL)
+		delete[] x;
+	if(y!=NULL)
+		delete[] y;
+	if(z!=NULL)
+		delete[] z;
+	if(fx!=NULL)
+		delete[] fx;
+	if(fy!=NULL)
+		delete[] fy;
+	if(fz!=NULL)
+		delete[] fz;
+
+	this->nF = inst.nF;
+	this->nV = inst.nV;
+
+	this->x = new float[nV];
+	this->y = new float[nV];
+	this->z = new float[nV];
+
+	this->fx = new int[nF];
+	this->fy = new int[nF];
+	this->fz = new int[nF];
+
+	memcpy(this->x, inst.getx(), sizeof(float)*nV);
+	memcpy(this->y, inst.gety(), sizeof(float)*nV);
+	memcpy(this->z, inst.getz(), sizeof(float)*nV);
+
+	memcpy(this->fx, inst.getfx(), sizeof(int)*nF);
+	memcpy(this->fy, inst.getfy(), sizeof(int)*nF);
+	memcpy(this->fz, inst.getfz(), sizeof(int)*nF);
+}
+
+PCL::PCL(PCL& inst)
+{
+
+
+	this->nF = inst.nF;
+	this->nV = inst.nV;
+
+	this->x = new float[nV];
+	this->y = new float[nV];
+	this->z = new float[nV];
+
+	this->fx = new int[nF];
+	this->fy = new int[nF];
+	this->fz = new int[nF];
+
+	memcpy(this->x, inst.getx(), sizeof(float)*nV);
+	memcpy(this->y, inst.gety(), sizeof(float)*nV);
+	memcpy(this->z, inst.getz(), sizeof(float)*nV);
+
+	memcpy(this->fx, inst.getfx(), sizeof(int)*nF);
+	memcpy(this->fy, inst.getfy(), sizeof(int)*nF);
+	memcpy(this->fz, inst.getfz(), sizeof(int)*nF);
+}
 
 void PCL::rotate(Rotation rot)
 {
@@ -36,9 +103,9 @@ void PCL::rotate(Rotation rot)
 		yb = y[i];
 		zb = z[i];
 
-		x[i] = xb*rot.V()[0] + yb*rot.V()[1] + zb*rot.V()[2];
-		y[i] = xb*rot.V()[3] + yb*rot.V()[4] + zb*rot.V()[5];
-		z[i] = xb*rot.V()[6] + yb*rot.V()[7] + zb*rot.V()[8];
+		x[i] = xb*rot.getH()[0] + yb*rot.getH()[1] + zb*rot.getH()[2];
+		y[i] = xb*rot.getH()[3] + yb*rot.getH()[4] + zb*rot.getH()[5];
+		z[i] = xb*rot.getH()[6] + yb*rot.getH()[7] + zb*rot.getH()[8];
 	}
 }
 void PCL::transform(HomogeneTransformation trans)
@@ -50,9 +117,9 @@ void PCL::transform(HomogeneTransformation trans)
 		yb = y[i];
 		zb = z[i];
 
-		x[i] = xb*trans.V()[0] + yb*trans.V()[1] + zb*trans.V()[2] + trans.V()[3];
-		y[i] = xb*trans.V()[4] + yb*trans.V()[5] + zb*trans.V()[6] + trans.V()[7];
-		z[i] = xb*trans.V()[8] + yb*trans.V()[9] + zb*trans.V()[10] + trans.V()[11];
+		x[i] = xb*trans.getH()[0] + yb*trans.getH()[1] + zb*trans.getH()[2] + trans.getH()[3];
+		y[i] = xb*trans.getH()[4] + yb*trans.getH()[5] + zb*trans.getH()[6] + trans.getH()[7];
+		z[i] = xb*trans.getH()[8] + yb*trans.getH()[9] + zb*trans.getH()[10] + trans.getH()[11];
 	}
 
 }
@@ -60,12 +127,18 @@ void PCL::transform(HomogeneTransformation trans)
 
 PCL::~PCL(void)
 {
-	delete x;
-	delete y;
-	delete z;
-	delete fx;
-	delete fy;
-	delete fz;
+	if(x!=NULL)
+		delete[] x;
+	if(y!=NULL)
+		delete[] y;
+	if(z!=NULL)
+		delete[] z;
+	if(fx!=NULL)
+		delete[] fx;
+	if(fy!=NULL)
+		delete[] fy;
+	if(fz!=NULL)
+		delete[] fz;
 }
 
 

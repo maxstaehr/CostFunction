@@ -17,21 +17,21 @@ namespace TestDriver
 		void TestConstructor()
 		{
 			Rotation test1;			
-			float temp[9];
+			
 
-			test1.getH(temp);
+			
 
-			Assert::AreEqual(temp[0], 1.0f);
-			Assert::AreEqual(temp[1], 0.0f);
-			Assert::AreEqual(temp[2], 0.0f);			
+			Assert::AreEqual(test1.getH()[0], 1.0f);
+			Assert::AreEqual(test1.getH()[1], 0.0f);
+			Assert::AreEqual(test1.getH()[2], 0.0f);			
 
-			Assert::AreEqual(temp[3], 0.0f);
-			Assert::AreEqual(temp[4], 1.0f);
-			Assert::AreEqual(temp[5], 0.0f);			
+			Assert::AreEqual(test1.getH()[3], 0.0f);
+			Assert::AreEqual(test1.getH()[4], 1.0f);
+			Assert::AreEqual(test1.getH()[5], 0.0f);			
 
-			Assert::AreEqual(temp[6], 0.0f);
-			Assert::AreEqual(temp[7], 0.0f);
-			Assert::AreEqual(temp[8], 1.0f);			
+			Assert::AreEqual(test1.getH()[6], 0.0f);
+			Assert::AreEqual(test1.getH()[7], 0.0f);
+			Assert::AreEqual(test1.getH()[8], 1.0f);			
 
 		}
 
@@ -39,40 +39,40 @@ namespace TestDriver
 		void TestSetter()
 		{
 			Rotation test;
-			float temp1[9];
+
 			float temp2[9] ={	0.0f, 1.0f, 2.0f, 
 								3.0f, 4.0f, 5.0f, 
 								6.0f, 7.0f, 8.0f
 							};								
-			test.getH(temp1);
-
-			Assert::AreEqual(temp1[0], 1.0f);
-			Assert::AreEqual(temp1[1], 0.0f);
-			Assert::AreEqual(temp1[2], 0.0f);
 			
-			Assert::AreEqual(temp1[3], 0.0f);
-			Assert::AreEqual(temp1[4], 1.0f);
-			Assert::AreEqual(temp1[5], 0.0f);			
 
-			Assert::AreEqual(temp1[6], 0.0f);
-			Assert::AreEqual(temp1[7], 0.0f);
-			Assert::AreEqual(temp1[8], 1.0f);
+			Assert::AreEqual(test.getH()[0], 1.0f);
+			Assert::AreEqual(test.getH()[1], 0.0f);
+			Assert::AreEqual(test.getH()[2], 0.0f);
+			
+			Assert::AreEqual(test.getH()[3], 0.0f);
+			Assert::AreEqual(test.getH()[4], 1.0f);
+			Assert::AreEqual(test.getH()[5], 0.0f);			
+
+			Assert::AreEqual(test.getH()[6], 0.0f);
+			Assert::AreEqual(test.getH()[7], 0.0f);
+			Assert::AreEqual(test.getH()[8], 1.0f);
 			
 						
 			test.setH(temp2);
-			test.getH(temp1);
-
-			Assert::AreEqual(temp1[0], temp2[0]);
-			Assert::AreEqual(temp1[1], temp2[1]);
-			Assert::AreEqual(temp1[2], temp2[2]);			
-
-			Assert::AreEqual(temp1[3], temp2[3]);
-			Assert::AreEqual(temp1[4], temp2[4]);
-			Assert::AreEqual(temp1[5], temp2[5]);
 			
-			Assert::AreEqual(temp1[6], temp2[6]);
-			Assert::AreEqual(temp1[7], temp2[7]);
-			Assert::AreEqual(temp1[8], temp2[8]);			
+
+			Assert::AreEqual(test.getH()[0], temp2[0]);
+			Assert::AreEqual(test.getH()[1], temp2[1]);
+			Assert::AreEqual(test.getH()[2], temp2[2]);			
+
+			Assert::AreEqual(test.getH()[3], temp2[3]);
+			Assert::AreEqual(test.getH()[4], temp2[4]);
+			Assert::AreEqual(test.getH()[5], temp2[5]);
+			
+			Assert::AreEqual(test.getH()[6], temp2[6]);
+			Assert::AreEqual(test.getH()[7], temp2[7]);
+			Assert::AreEqual(test.getH()[8], temp2[8]);			
 
 		}
 
@@ -99,21 +99,21 @@ namespace TestDriver
 			Rotation test1;
 			test1.setH(temp1);
 			Rotation test2(test1);
-			test2.getH(temp2);
+			
 
 
 
-			Assert::AreEqual(temp3[0], temp2[0], 1e-3f);
-			Assert::AreEqual(temp3[1], temp2[1], 1e-3f);
-			Assert::AreEqual(temp3[2], temp2[2], 1e-3f);
+			Assert::AreEqual(temp3[0], test2.getH()[0], 1e-3f);
+			Assert::AreEqual(temp3[1], test2.getH()[1], 1e-3f);
+			Assert::AreEqual(temp3[2], test2.getH()[2], 1e-3f);
 
-			Assert::AreEqual(temp3[3], temp2[3], 1e-3f);
-			Assert::AreEqual(temp3[4], temp2[4], 1e-3f);
-			Assert::AreEqual(temp3[5], temp2[5], 1e-3f);
+			Assert::AreEqual(temp3[3], test2.getH()[3], 1e-3f);
+			Assert::AreEqual(temp3[4], test2.getH()[4], 1e-3f);
+			Assert::AreEqual(temp3[5], test2.getH()[5], 1e-3f);
 
-			Assert::AreEqual(temp3[6], temp2[6], 1e-3f);
-			Assert::AreEqual(temp3[7], temp2[7], 1e-3f);
-			Assert::AreEqual(temp3[8], temp2[8], 1e-3f);
+			Assert::AreEqual(temp3[6], test2.getH()[6], 1e-3f);
+			Assert::AreEqual(temp3[7], test2.getH()[7], 1e-3f);
+			Assert::AreEqual(temp3[8], test2.getH()[8], 1e-3f);
 		}
 
 
@@ -150,20 +150,20 @@ namespace TestDriver
 			test2.setH(temp2);
 
 			Rotation test3 = test1.mul(test2);
-			test3.getH(temp4);
+			
 
 
-			Assert::AreEqual(temp3[0], temp4[0], 1e-3f);
-			Assert::AreEqual(temp3[1], temp4[1], 1e-3f);
-			Assert::AreEqual(temp3[2], temp4[2], 1e-3f);
+			Assert::AreEqual(temp3[0], test3.getH()[0], 1e-3f);
+			Assert::AreEqual(temp3[1], test3.getH()[1], 1e-3f);
+			Assert::AreEqual(temp3[2], test3.getH()[2], 1e-3f);
 
-			Assert::AreEqual(temp3[3], temp4[3], 1e-3f);
-			Assert::AreEqual(temp3[4], temp4[4], 1e-3f);
-			Assert::AreEqual(temp3[5], temp4[5], 1e-3f);
+			Assert::AreEqual(temp3[3], test3.getH()[3], 1e-3f);
+			Assert::AreEqual(temp3[4], test3.getH()[4], 1e-3f);
+			Assert::AreEqual(temp3[5], test3.getH()[5], 1e-3f);
 
-			Assert::AreEqual(temp3[6], temp4[6], 1e-3f);
-			Assert::AreEqual(temp3[7], temp4[7], 1e-3f);
-			Assert::AreEqual(temp3[8], temp4[8], 1e-3f);
+			Assert::AreEqual(temp3[6], test3.getH()[6], 1e-3f);
+			Assert::AreEqual(temp3[7], test3.getH()[7], 1e-3f);
+			Assert::AreEqual(temp3[8], test3.getH()[8], 1e-3f);
 		}
 
 		[TestMethod]
@@ -183,19 +183,19 @@ namespace TestDriver
 
 			Rotation test1;
 			test1.initRoll(roll);
-			test1.getH(temp2);
+			
 
-			Assert::AreEqual(temp3[0], temp2[0], 1e-3f);
-			Assert::AreEqual(temp3[1], temp2[1], 1e-3f);
-			Assert::AreEqual(temp3[2], temp2[2], 1e-3f);
+			Assert::AreEqual(temp3[0], test1.getH()[0], 1e-3f);
+			Assert::AreEqual(temp3[1], test1.getH()[1], 1e-3f);
+			Assert::AreEqual(temp3[2], test1.getH()[2], 1e-3f);
 
-			Assert::AreEqual(temp3[3], temp2[3], 1e-3f);
-			Assert::AreEqual(temp3[4], temp2[4], 1e-3f);
-			Assert::AreEqual(temp3[5], temp2[5], 1e-3f);
+			Assert::AreEqual(temp3[3], test1.getH()[3], 1e-3f);
+			Assert::AreEqual(temp3[4], test1.getH()[4], 1e-3f);
+			Assert::AreEqual(temp3[5], test1.getH()[5], 1e-3f);
 
-			Assert::AreEqual(temp3[6], temp2[6], 1e-3f);
-			Assert::AreEqual(temp3[7], temp2[7], 1e-3f);
-			Assert::AreEqual(temp3[8], temp2[8], 1e-3f);
+			Assert::AreEqual(temp3[6], test1.getH()[6], 1e-3f);
+			Assert::AreEqual(temp3[7], test1.getH()[7], 1e-3f);
+			Assert::AreEqual(temp3[8], test1.getH()[8], 1e-3f);
 		}
 
 		[TestMethod]
@@ -215,19 +215,19 @@ namespace TestDriver
 
 			Rotation test1;
 			test1.initPitch(pitch);
-			test1.getH(temp2);
+			
 
-			Assert::AreEqual(temp3[0], temp2[0], 1e-3f);
-			Assert::AreEqual(temp3[1], temp2[1], 1e-3f);
-			Assert::AreEqual(temp3[2], temp2[2], 1e-3f);
+			Assert::AreEqual(temp3[0], test1.getH()[0], 1e-3f);
+			Assert::AreEqual(temp3[1], test1.getH()[1], 1e-3f);
+			Assert::AreEqual(temp3[2], test1.getH()[2], 1e-3f);
 
-			Assert::AreEqual(temp3[3], temp2[3], 1e-3f);
-			Assert::AreEqual(temp3[4], temp2[4], 1e-3f);
-			Assert::AreEqual(temp3[5], temp2[5], 1e-3f);
+			Assert::AreEqual(temp3[3], test1.getH()[3], 1e-3f);
+			Assert::AreEqual(temp3[4], test1.getH()[4], 1e-3f);
+			Assert::AreEqual(temp3[5], test1.getH()[5], 1e-3f);
 
-			Assert::AreEqual(temp3[6], temp2[6], 1e-3f);
-			Assert::AreEqual(temp3[7], temp2[7], 1e-3f);
-			Assert::AreEqual(temp3[8], temp2[8], 1e-3f);
+			Assert::AreEqual(temp3[6], test1.getH()[6], 1e-3f);
+			Assert::AreEqual(temp3[7], test1.getH()[7], 1e-3f);
+			Assert::AreEqual(temp3[8], test1.getH()[8], 1e-3f);
 		}
 
 		[TestMethod]
@@ -248,19 +248,19 @@ namespace TestDriver
 
 			Rotation test1;
 			test1.initYaw(yaw);
-			test1.getH(temp2);
+			
 
-			Assert::AreEqual(temp3[0], temp2[0], 1e-3f);
-			Assert::AreEqual(temp3[1], temp2[1], 1e-3f);
-			Assert::AreEqual(temp3[2], temp2[2], 1e-3f);
+			Assert::AreEqual(temp3[0], test1.getH()[0], 1e-3f);
+			Assert::AreEqual(temp3[1], test1.getH()[1], 1e-3f);
+			Assert::AreEqual(temp3[2], test1.getH()[2], 1e-3f);
 
-			Assert::AreEqual(temp3[3], temp2[3], 1e-3f);
-			Assert::AreEqual(temp3[4], temp2[4], 1e-3f);
-			Assert::AreEqual(temp3[5], temp2[5], 1e-3f);
+			Assert::AreEqual(temp3[3], test1.getH()[3], 1e-3f);
+			Assert::AreEqual(temp3[4], test1.getH()[4], 1e-3f);
+			Assert::AreEqual(temp3[5], test1.getH()[5], 1e-3f);
 
-			Assert::AreEqual(temp3[6], temp2[6], 1e-3f);
-			Assert::AreEqual(temp3[7], temp2[7], 1e-3f);
-			Assert::AreEqual(temp3[8], temp2[8], 1e-3f);
+			Assert::AreEqual(temp3[6], test1.getH()[6], 1e-3f);
+			Assert::AreEqual(temp3[7], test1.getH()[7], 1e-3f);
+			Assert::AreEqual(temp3[8], test1.getH()[8], 1e-3f);
 
 		}
 
@@ -288,19 +288,19 @@ namespace TestDriver
 			test3.initYaw(yaw);
 			Rotation test4 = test1.mul(test2);
 			Rotation test5 = test4.mul(test3);				
-			test5.getH(temp2);
+			
 
-			Assert::AreEqual(temp3[0], temp2[0], 1e-3f);
-			Assert::AreEqual(temp3[1], temp2[1], 1e-3f);
-			Assert::AreEqual(temp3[2], temp2[2], 1e-3f);
+			Assert::AreEqual(temp3[0], test5.getH()[0], 1e-3f);
+			Assert::AreEqual(temp3[1], test5.getH()[1], 1e-3f);
+			Assert::AreEqual(temp3[2], test5.getH()[2], 1e-3f);
 
-			Assert::AreEqual(temp3[3], temp2[3], 1e-3f);
-			Assert::AreEqual(temp3[4], temp2[4], 1e-3f);
-			Assert::AreEqual(temp3[5], temp2[5], 1e-3f);
+			Assert::AreEqual(temp3[3], test5.getH()[3], 1e-3f);
+			Assert::AreEqual(temp3[4], test5.getH()[4], 1e-3f);
+			Assert::AreEqual(temp3[5], test5.getH()[5], 1e-3f);
 
-			Assert::AreEqual(temp3[6], temp2[6], 1e-3f);
-			Assert::AreEqual(temp3[7], temp2[7], 1e-3f);
-			Assert::AreEqual(temp3[8], temp2[8], 1e-3f);
+			Assert::AreEqual(temp3[6], test5.getH()[6], 1e-3f);
+			Assert::AreEqual(temp3[7], test5.getH()[7], 1e-3f);
+			Assert::AreEqual(temp3[8], test5.getH()[8], 1e-3f);
 
 		}
 

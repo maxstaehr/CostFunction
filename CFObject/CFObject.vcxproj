@@ -213,6 +213,11 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <CudaCompile Include="kernel.cu" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BoundingBox.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="CameraType.h" />
+    <ClInclude Include="EC.h" />
+    <ClInclude Include="ECTestAdapter.h" />
     <ClInclude Include="FObject.h" />
     <ClInclude Include="global.h" />
     <ClInclude Include="HConfig.h" />
@@ -221,8 +226,14 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="Link.h" />
     <ClInclude Include="PCL.h" />
     <ClInclude Include="Rotation.h" />
+    <ClInclude Include="SampleCameraConfiguration.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BoundingBox.cpp" />
+    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="CameraType.cpp" />
+    <ClCompile Include="EC.cpp" />
+    <ClCompile Include="ECTestAdapter.cpp" />
     <ClCompile Include="FObject.cpp" />
     <ClCompile Include="HConfig.cpp" />
     <ClCompile Include="HomogeneTransformation.cpp" />
@@ -230,6 +241,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClCompile Include="Link.cpp" />
     <ClCompile Include="PCL.cpp" />
     <ClCompile Include="Rotation.cpp" />
+    <ClCompile Include="SampleCameraConfiguration.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

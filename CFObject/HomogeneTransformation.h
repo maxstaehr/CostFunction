@@ -4,13 +4,31 @@
 class CFOBJECT_EXPORT HomogeneTransformation
 {
 public:
+	enum DIM_DIR{	XM = 0, XP = 1,
+					YM = 2, YP = 3,
+					ZM = 4, ZP = 5,
+					ROLLM = 6, ROLLP= 7,
+					PITCHM = 8, PITCHP = 9,
+					YAWM = 10, YAWP = 11
+	};
+
 	HomogeneTransformation(void);
-	HomogeneTransformation(HomogeneTransformation& inst);
+	HomogeneTransformation(const float const* h);
+	HomogeneTransformation(const HomogeneTransformation& inst);
+
+
+	void operator=(HomogeneTransformation& rhs );
+
 	~HomogeneTransformation(void);
 
-	void getH(float * res);
+	
 	void setH(const float const* res);
-	float const* const V(void);
+	const float const* getH(void){return H;}
+
+	bool isEqual(HomogeneTransformation& rhs);
+	float getDist(HomogeneTransformation& rhs, DIM_DIR dim);
+	float getDist(HomogeneTransformation& rhs);
+	void tr2rpy(float* rpy);
 
 
 
