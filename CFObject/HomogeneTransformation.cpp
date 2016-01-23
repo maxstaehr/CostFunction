@@ -5,7 +5,7 @@
 
 #define eps_div (1e-7)
 
-HomogeneTransformation::HomogeneTransformation(void)
+HomogeneTransformation::HomogeneTransformation()
 {
 	float temp[16] = EYE_16;
 	memcpy(H, temp, sizeof(float)*16);

@@ -43,7 +43,7 @@ void BoundingBox::operator=(BoundingBox& rhs )
 	zdim = rhs.getZDim();
 }
 
-bool  BoundingBox::isInBoundingBox(const float const * p)
+bool  BoundingBox::isInBoundingBox(const float* p)
 {
 	float x, y, z;
 	bool isInX, isInY, isInZ;

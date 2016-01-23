@@ -6,9 +6,9 @@
 class CFOBJECT_EXPORT PCL 	
 {
 public:
-	PCL(int nV, int nF,  const float const * x, 
-						 const float const * y,
-						 const float const * z,
+	PCL(int nV, int nF,  const float* x, 
+						 const float* y,
+						 const float* z,
 						 const int const * fx, 
 						 const int const * fy,
 						 const int const * fz);

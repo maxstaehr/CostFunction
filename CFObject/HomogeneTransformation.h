@@ -12,18 +12,16 @@ public:
 					YAWM = 10, YAWP = 11
 	};
 
-	HomogeneTransformation(void);
-	HomogeneTransformation(const float const* h);
+	HomogeneTransformation();
+	HomogeneTransformation(const float * h);
 	HomogeneTransformation(const HomogeneTransformation& inst);
-
-
 	void operator=(HomogeneTransformation& rhs );
 
 	~HomogeneTransformation(void);
 
 	
-	void setH(const float const* res);
-	const float const* getH(void){return H;}
+	void setH(const float* res);
+	const float* getH(void){return H;}
 
 	bool isEqual(HomogeneTransformation& rhs);
 	float getDist(HomogeneTransformation& rhs, DIM_DIR dim);

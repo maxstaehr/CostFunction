@@ -160,8 +160,7 @@ namespace TestDriver
 				0.792207329559554, 0.849129305868777, 0.743132468124916, 0.706046088019609,
 				0.959492426392903, 0.933993247757551, 0.392227019534168, 0.031832846377421,
 				0.655740699156587, 0.678735154857773, 0.655477890177557, 0.276922984960890
-			};
-			float temp2[16];
+			};			
 			float temp3[16] = 
 			{
 			   1.072870643907527, 0.881846074808848, 1.389159384428151, -3.071272833251428,
@@ -333,8 +332,7 @@ namespace TestDriver
 				0.792207329559554, 0.849129305868777, 0.743132468124916, 0.706046088019609,
 				0.959492426392903, 0.933993247757551, 0.392227019534168, 0.031832846377421,
 				0.655740699156587, 0.678735154857773, 0.655477890177557, 0.276922984960890
-			};
-			float temp2[16];
+			};			
 			float temp3[16] = 
 			{
 				0.915735525189067, 0.035711678574190, 0.757740130578333, 0.171186687811562,
@@ -400,7 +398,7 @@ namespace TestDriver
 			   1.201314122663400, 0.974506503470718, 0.728238714651490, 0.267669543037837,
 			   1.791074990860224, 1.575147436813857, 1.811265042099493, 1.382116397661908
 			};
-			float temp4[16];
+			
 			
 
 			HomogeneTransformation test1;
@@ -453,7 +451,7 @@ namespace TestDriver
 			float x = 0.0f;
 			float y = 0.0f;
 			float z = 0.0f;
-			float temp2[16];
+			
 
 			HomogeneTransformation test1;
 			test1.init(roll, pitch, yaw, x, y, z);
@@ -497,7 +495,7 @@ namespace TestDriver
 			float x = 0.0f;
 			float y = 0.0f;
 			float z = 0.0f;
-			float temp2[16];
+			
 
 			HomogeneTransformation test1;
 			test1.init(roll, pitch, yaw, x, y, z);
@@ -541,7 +539,7 @@ namespace TestDriver
 			float x = 0.0f;
 			float y = 0.0f;
 			float z = 0.0f;
-			float temp2[16];
+			
 
 			HomogeneTransformation test1;
 			test1.init(roll, pitch, yaw, x, y, z);
@@ -584,7 +582,7 @@ namespace TestDriver
 			float x = 0.0f;
 			float y = 0.0f;
 			float z = 0.0f;
-			float temp2[16];
+			
 
 			HomogeneTransformation test1;
 			test1.init(roll, pitch, yaw, x, y, z);
@@ -629,7 +627,7 @@ namespace TestDriver
 			float y = 0.814723686393179f;
 			float z = 0.814723686393179f;
 
-			float temp2[16];
+			
 
 			HomogeneTransformation test1;
 			test1.init(roll, pitch, yaw, x, y, z);
@@ -881,7 +879,7 @@ namespace TestDriver
 			a.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 
 			HomogeneTransformation b;
-			b.init(0.1, 0.1, 0.1, 0.1, 0.1, 0.1);
+			b.init(0.1f, 0.1f, 0.1f, 0.1f, 0.1f, 0.1f);
 
 			Assert::AreEqual(0.6f,	a.getDist(b));
 			Assert::AreEqual(0.6f,	b.getDist(a));

@@ -16,7 +16,7 @@ public:
 	HomogeneTransformation getH(){return h;}
 	HomogeneTransformation getInvH(){return invh;}
 	
-	bool isInBoundingBox(const float const * p);
+	bool isInBoundingBox(const float* p);
 	float getXDim() {return xdim;}
 	float getYDim() {return ydim;}
 	float getZDim() {return zdim;}

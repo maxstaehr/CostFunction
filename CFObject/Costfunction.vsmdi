@@ -1,6 +1,30 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <TestLists xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <TestList name="ECTest" id="84c16a07-93e7-46a6-b850-59c2de895bd8" parentListId="8c43106b-9dc1-4907-a29f-aa66a61bf5b6">
+    <Description>Testet das euklidische Clustern</Description>
+    <TestLinks>
+      <TestLink id="c3610c7c-53d6-4a3d-90d9-a6927b7b8fd7" name="Test4" storage="debug\defaulttest.dll" type="Microsoft.VisualStudio.TestTools.TestTypes.Unit.UnitTestElement, Microsoft.VisualStudio.QualityTools.Tips.UnitTest.ObjectModel, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+      <TestLink id="b3fbaa33-e36f-674e-7669-a311c55fc782" name="Test1" storage="debug\defaulttest.dll" type="Microsoft.VisualStudio.TestTools.TestTypes.Unit.UnitTestElement, Microsoft.VisualStudio.QualityTools.Tips.UnitTest.ObjectModel, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+      <TestLink id="90acf242-b642-efa4-6725-767bcf1e5e61" name="Test3" storage="debug\defaulttest.dll" type="Microsoft.VisualStudio.TestTools.TestTypes.Unit.UnitTestElement, Microsoft.VisualStudio.QualityTools.Tips.UnitTest.ObjectModel, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+      <TestLink id="43be8240-48ee-cdcf-74e1-2549793e8631" name="Test5" storage="debug\defaulttest.dll" type="Microsoft.VisualStudio.TestTools.TestTypes.Unit.UnitTestElement, Microsoft.VisualStudio.QualityTools.Tips.UnitTest.ObjectModel, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+      <TestLink id="6c7b1b80-48df-8b79-3298-944f824d6434" name="Test2" storage="debug\defaulttest.dll" type="Microsoft.VisualStudio.TestTools.TestTypes.Unit.UnitTestElement, Microsoft.VisualStudio.QualityTools.Tips.UnitTest.ObjectModel, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+    </TestLinks>
+  </TestList>
   <TestList name="Testlisten" id="8c43106b-9dc1-4907-a29f-aa66a61bf5b6">
     <RunConfiguration id="045f01e6-d3a1-42eb-800d-63eb30213d04" name="Lokal" storage="local.testsettings" type="Microsoft.VisualStudio.TestTools.Common.TestRunConfiguration, Microsoft.VisualStudio.QualityTools.Common, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+  </TestList>
+  <TestList name="ClusterTest" id="f94d8e2f-1ef9-466a-8006-dbe706792368" parentListId="8c43106b-9dc1-4907-a29f-aa66a61bf5b6">
+    <Description>Testet die Funktionen für das Cluster</Description>
+    <TestLinks>
+      <TestLink id="ba29eb41-695f-a19f-070e-55d2f757a139" name="TestCalcCentroid2" storage="debug\defaulttest.dll" type="Microsoft.VisualStudio.TestTools.TestTypes.Unit.UnitTestElement, Microsoft.VisualStudio.QualityTools.Tips.UnitTest.ObjectModel, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+      <TestLink id="b03f83d9-2f81-2f4c-4c3d-d5b31c1ed63e" name="TestCalcDist2Model2" storage="debug\defaulttest.dll" type="Microsoft.VisualStudio.TestTools.TestTypes.Unit.UnitTestElement, Microsoft.VisualStudio.QualityTools.Tips.UnitTest.ObjectModel, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+      <TestLink id="6df65a03-0ea5-af59-b104-b55f8afdfe00" name="TestCalcDist2Model" storage="debug\defaulttest.dll" type="Microsoft.VisualStudio.TestTools.TestTypes.Unit.UnitTestElement, Microsoft.VisualStudio.QualityTools.Tips.UnitTest.ObjectModel, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+      <TestLink id="95a40585-c790-8d25-22bb-ea96a3e741db" name="TestCalcDist2Model3" storage="debug\defaulttest.dll" type="Microsoft.VisualStudio.TestTools.TestTypes.Unit.UnitTestElement, Microsoft.VisualStudio.QualityTools.Tips.UnitTest.ObjectModel, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+      <TestLink id="2a9e322b-bafd-d2b3-e694-f9e5d0e52dc2" name="TestCalcCentroid1" storage="debug\defaulttest.dll" type="Microsoft.VisualStudio.TestTools.TestTypes.Unit.UnitTestElement, Microsoft.VisualStudio.QualityTools.Tips.UnitTest.ObjectModel, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+      <TestLink id="c3180403-819f-93b4-3694-7034ce7f2cbc" name="TestConstructor" storage="debug\defaulttest.dll" type="Microsoft.VisualStudio.TestTools.TestTypes.Unit.UnitTestElement, Microsoft.VisualStudio.QualityTools.Tips.UnitTest.ObjectModel, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+      <TestLink id="e6921a05-a2ab-58c6-a72f-6773a902301e" name="TestCopyConstructor" storage="debug\defaulttest.dll" type="Microsoft.VisualStudio.TestTools.TestTypes.Unit.UnitTestElement, Microsoft.VisualStudio.QualityTools.Tips.UnitTest.ObjectModel, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+      <TestLink id="768757b4-ba43-1b73-2d91-7af6d0aa5128" name="TestTransformation" storage="debug\defaulttest.dll" type="Microsoft.VisualStudio.TestTools.TestTypes.Unit.UnitTestElement, Microsoft.VisualStudio.QualityTools.Tips.UnitTest.ObjectModel, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+      <TestLink id="9936e401-e93c-65ae-e7ce-22ebbe1b979b" name="TestEqualOperator" storage="debug\defaulttest.dll" type="Microsoft.VisualStudio.TestTools.TestTypes.Unit.UnitTestElement, Microsoft.VisualStudio.QualityTools.Tips.UnitTest.ObjectModel, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+    </TestLinks>
   </TestList>
 </TestLists>

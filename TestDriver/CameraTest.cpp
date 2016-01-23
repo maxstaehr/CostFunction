@@ -11,6 +11,8 @@ using namespace	Microsoft::VisualStudio::TestTools::UnitTesting;
 #include "../CFObject/Camera.h"
 #include <iostream>
 
+
+
 namespace TestDriver
 {
 	[TestClass]
@@ -257,12 +259,12 @@ namespace TestDriver
 			Assert::IsTrue(cam.getssdx() != NULL);
 			Assert::IsTrue(cam.getssdy() != NULL);
 			Assert::IsTrue(cam.getssdz() != NULL);
-			Assert::AreEqual(FLT_MAX, cam.getdx()[0]);
-			Assert::AreEqual(FLT_MAX, cam.getdy()[0]);		
-			Assert::AreEqual(FLT_MAX, cam.getdz()[0]);
-			Assert::AreEqual(FLT_MAX, cam.getssdx()[0]);		
-			Assert::AreEqual(FLT_MAX, cam.getssdy()[0]);
-			Assert::AreEqual(FLT_MAX, cam.getssdz()[0]);	
+			Assert::IsTrue(FLT_MAX==(cam.getdx()[0]));
+			Assert::IsTrue(FLT_MAX==(cam.getdy()[0]));
+			Assert::IsTrue(FLT_MAX==(cam.getdz()[0]));
+			Assert::IsTrue(FLT_MAX==(cam.getssdx()[0]));
+			Assert::IsTrue(FLT_MAX==(cam.getssdy()[0]));
+			Assert::IsTrue(FLT_MAX==(cam.getssdz()[0]));
 		}
 
 		[TestMethod]
@@ -315,12 +317,13 @@ namespace TestDriver
 			Assert::IsTrue(cam.getssdx() != NULL);
 			Assert::IsTrue(cam.getssdy() != NULL);
 			Assert::IsTrue(cam.getssdz() != NULL);
-			Assert::AreEqual(FLT_MAX, cam.getdx()[0]);
-			Assert::AreEqual(FLT_MAX, cam.getdy()[0]);		
-			Assert::AreEqual(FLT_MAX, cam.getdz()[0]);
-			Assert::AreEqual(FLT_MAX, cam.getssdx()[0]);		
-			Assert::AreEqual(FLT_MAX, cam.getssdy()[0]);
-			Assert::AreEqual(FLT_MAX, cam.getssdz()[0]);	
+			Assert::IsTrue(FLT_MAX==(cam.getdx()[0]));
+			Assert::IsTrue(FLT_MAX==(cam.getdy()[0]));
+			Assert::IsTrue(FLT_MAX==(cam.getdz()[0]));
+			Assert::IsTrue(FLT_MAX==(cam.getssdx()[0]));
+			Assert::IsTrue(FLT_MAX==(cam.getssdy()[0]));
+			Assert::IsTrue(FLT_MAX==(cam.getssdz()[0]));
+
 		}
 		
 		[TestMethod]
@@ -431,12 +434,12 @@ namespace TestDriver
 			Assert::IsTrue(cam.getssdx() != NULL);
 			Assert::IsTrue(cam.getssdy() != NULL);
 			Assert::IsTrue(cam.getssdz() != NULL);
-			Assert::AreEqual(FLT_MAX, cam.getdx()[0]);
-			Assert::AreEqual(FLT_MAX, cam.getdy()[0]);		
-			Assert::AreEqual(FLT_MAX, cam.getdz()[0]);
-			Assert::AreEqual(FLT_MAX, cam.getssdx()[0]);		
-			Assert::AreEqual(FLT_MAX, cam.getssdy()[0]);
-			Assert::AreEqual(FLT_MAX, cam.getssdz()[0]);	
+			Assert::IsTrue(FLT_MAX==cam.getdx()[0]);
+			Assert::IsTrue(FLT_MAX==(cam.getdy()[0]));
+			Assert::IsTrue(FLT_MAX==(cam.getdz()[0]));
+			Assert::IsTrue(FLT_MAX==(cam.getssdx()[0]));
+			Assert::IsTrue(FLT_MAX==(cam.getssdy()[0]));
+			Assert::IsTrue(FLT_MAX==(cam.getssdz()[0]));
 		}
 
 		[TestMethod]

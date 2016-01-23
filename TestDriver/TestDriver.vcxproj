@@ -80,12 +80,15 @@
     <ClCompile Include="BoundingBoxTest.cpp" />
     <ClCompile Include="CameraTest.cpp" />
     <ClCompile Include="CameraTypeTest.cpp" />
+    <ClCompile Include="ClusterTest.cpp" />
     <ClCompile Include="ECTest.cpp" />
     <ClCompile Include="HomogeneTransformationTest.cpp" />
     <ClCompile Include="KinChainTest.cpp" />
     <ClCompile Include="LinkTest.cpp" />
     <ClCompile Include="PCLTest.cpp" />
+    <ClCompile Include="PossibleConfigurationsTest.cpp" />
     <ClCompile Include="RotationTest.cpp" />
+    <ClCompile Include="SATest.cpp" />
     <ClCompile Include="SampleCameraConfigurationTest.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

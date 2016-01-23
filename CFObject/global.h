@@ -4,7 +4,7 @@
 //Die homogenen Transformationen werden in Matlab berechnet. 
 #define N_ELEMENT_T 10
 
-#if defined(CFOBJECT_EXPORT) // inside DLL
+#if defined(CFOBJECT_EXPORT_DEF) // inside DLL
 #   define CFOBJECT_EXPORT   __declspec(dllexport)
 #else // outside DLL
 #   define CFOBJECT_EXPORT   __declspec(dllimport)
@@ -17,3 +17,7 @@
 #define DOF_R (10)
 #define DOF_E (1)
 #define DOF_H (1)
+#define ELLIPSE_PARAM_X (0.1582f)
+#define ELLIPSE_PARAM_Y (0.2488f)
+#define ELLIPSE_PARAM_Z (0.8001f)
+

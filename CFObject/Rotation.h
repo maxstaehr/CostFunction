@@ -11,7 +11,7 @@ public:
 	void initPitch(float w);
 	void initYaw(float w);
 	
-	void setH(const float const* res);
+	void setH(const float* res);
 	float const* const getH(void){return H;}
 
 	~Rotation(void);

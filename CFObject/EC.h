@@ -2,11 +2,16 @@
 
 #include "global.h"
 #include "Camera.h"
+#include "Cluster.h"
 
 #include <set>
+#include <vector>
+
 
 class CFOBJECT_EXPORT EC
 {
+
+	
 public:
 	EC(int maxBufferSize);
 	~EC(void);
@@ -20,10 +25,21 @@ public:
 	const float * const getY(){return y;}
 	const float * const getZ(){return z;}
 
-	std::set<int>&				getP(){return P;}
-	std::set<std::set<int>*>&	getC(){return C;}
-	std::set<int>*				getQ(){return Q;}
-	std::set<int>*				getCi(){return Ci;}
+
+
+	const bool* const getHasProcessed() {return hasProcessed;}
+	
+
+	//std::set<int>&				getP(){return P;}
+	//std::set<std::set<int>*>&	getC(){return C;}
+	Cluster&					getCluster(int i){return clu[i];}
+	int							getNumOfClusters(){return clu.size();}
+
+
+	float						calcDistance(int i1, int i2);
+	void						process(std::set<int>* Q, std::set<int>* P);
+	int							findFirstNotProcessedIndice(std::set<int>* set);
+	bool						hasAllBeenProcessed(std::set<int>* set);
 
 private:
 	int maxSize;
@@ -35,7 +51,9 @@ private:
 
 	std::set<int> P;
 	std::set<std::set<int>*> C;
-	std::set<int>* Q;	
-	std::set<int>* Ci;
+	
+
+
+	std::vector<Cluster> clu;
 };
 

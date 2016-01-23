@@ -87,8 +87,7 @@ namespace TestDriver
 				0.915735525189067, 0.035711678574190, 0.757740130578333, 
 				0.792207329559554, 0.849129305868777, 0.743132468124916, 
 				0.959492426392903, 0.933993247757551, 0.392227019534168, 				
-			};
-			float temp2[9];
+			};			
 			float temp3[9] = 
 			{
 				0.915735525189067, 0.035711678574190, 0.757740130578333, 
@@ -141,7 +140,7 @@ namespace TestDriver
 			   1.504455599903725, 1.611584482132265, 0.896022983483697,
 			   1.067250989942073, 0.935165339997611, 0.935979485556798
 			};
-			float temp4[9];
+			
 
 			Rotation test1;
 			test1.setH(temp1);
@@ -179,7 +178,7 @@ namespace TestDriver
 			float roll = 0.814723686393179;
 			float pitch = 0.0f;
 			float yaw = 0.0f;
-			float temp2[9];
+		
 
 			Rotation test1;
 			test1.initRoll(roll);
@@ -211,7 +210,7 @@ namespace TestDriver
 			float roll = 0.0f;
 			float pitch = 0.814723686393179f;
 			float yaw = 0.0f;
-			float temp2[9];
+			
 
 			Rotation test1;
 			test1.initPitch(pitch);
@@ -244,7 +243,7 @@ namespace TestDriver
 			float roll = 0.0f;
 			float pitch = 0.0f;
 			float yaw = 0.814723686393179f;
-			float temp2[9];
+			
 
 			Rotation test1;
 			test1.initYaw(yaw);
@@ -277,7 +276,7 @@ namespace TestDriver
 			float roll = 0.814723686393179f;
 			float pitch = 0.814723686393179f;
 			float yaw = 0.814723686393179f;
-			float temp2[9];
+			
 
 
 			Rotation test1;

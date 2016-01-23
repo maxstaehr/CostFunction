@@ -6,6 +6,9 @@
 
 class CFOBJECT_EXPORT Camera
 {
+
+	friend class ECTestAdapter;
+	friend class ECTest;
 public:
 	Camera(CameraType& camType);
 	~Camera(void);
@@ -13,6 +16,9 @@ public:
 	const float const* getx(){return x;}
 	const float const* gety(){return y;}	
 	const float const* getz(){return z;}	
+
+
+
 	const float const* getssx(){return ssx;}
 	const float const* getssy(){return ssy;}
 	const float const* getssz(){return ssz;}
@@ -23,11 +29,17 @@ public:
 	const float const* getdy(){return dy;}
 	const float const* getdz(){return dz;}
 
+	float* setdx(){return dx;}
+	float* setdy(){return dy;}
+	float* setdz(){return dz;}
+
 	const float const* getssdx(){return ssdx;}
 	const float const* getssdy(){return ssdy;}
 	const float const* getssdz(){return ssdz;}
+	
 
 	CameraType& getCameraType(){return type;}
+	int getSize(){return type.getnx()*type.getny();}
 	
 	void updateCameraPos(HomogeneTransformation h);
 	void raytrace(PCL& pcl);
