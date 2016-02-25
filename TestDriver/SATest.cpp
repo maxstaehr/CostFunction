@@ -23,11 +23,8 @@ namespace TestDriver
 			int base = 3;
 			int exp = 6;
 
-			int value = base;
-			for(int i=0; i<exp; i++)
-			{
-				value *= base;
-			}
+
+			int value = (int)pow(3.0,6.0);
 			
 			HomogeneTransformation kinChain[1];
 			HomogeneTransformation *relative = new HomogeneTransformation[value];
@@ -50,34 +47,413 @@ namespace TestDriver
 									pitchr = pitch*da;
 									yawr = yaw*da;
 									relative[ii].init(rollr, pitchr, yawr, xr, yr, zr);
-									ii++;
 									index[ii] = 0;
+									ii++;
+									
 								}
 						
 			int n = 1;
-			SampleCameraConfiguration sC(kinChain, relative, index, n);
+			SampleCameraConfiguration sC(kinChain, relative, index, n, value);
 
 			SA test(sC);
 
 			
-			HomogeneTransformation start, current, minus, plus;			
+			HomogeneTransformation start, current, minus, plus;		
+			HomogeneTransformation currentExpected, minusExpected, plusExpected;
 			bool ret;
-			test.setCurrentTransformation(start);
+			SA::STATE state;
 
-			ret = test.nextIteration(DBL_MAX-2,DBL_MAX-1);
+			test.setCurrentTransformation(start);
+			
 			current = test.getCurrentTransformation();
 			minus = test.getNextEvalMinus();
 			plus = test.getNextEvalPlus();
-			Assert::IsFalse(ret);	
-			Assert::IsTrue(current.isEqual(relative[364]);
-			Assert::IsTrue(minus.isEqual(relative[364]);
-			Assert::IsTrue(plus.isEqual(relative[607]);
 
+			currentExpected = sC.getInitialH(364);
+			minusExpected = sC.getInitialH(121);
+			plusExpected = sC.getInitialH(607);
+						
+			Assert::IsTrue(current.isEqual(currentExpected));
+			Assert::IsTrue(minus.isEqual(minusExpected));
+			Assert::IsTrue(plus.isEqual(plusExpected));
 
+/***************************************************************/						
+			ret = test.nextIteration(0.99, 0.98);
 
-			//ret = test.nextIteration(DBL_MAX-1,DBL_MAX-1, finish_m, finish_p);
-			//Assert::IsFalse(ret);	
-			////Assert::IsTrue(finish.isEqual(relative[607]);
+			state = test.getState();
+			current = test.getCurrentTransformation();
+			minus = test.getNextEvalMinus();
+			plus = test.getNextEvalPlus();
+
+			currentExpected = sC.getInitialH(607);
+			minusExpected = sC.getInitialH(526);
+			plusExpected = sC.getInitialH(688);						
+
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+			Assert::IsTrue(current.isEqual(currentExpected));
+			Assert::IsTrue(minus.isEqual(minusExpected));
+			Assert::IsTrue(plus.isEqual(plusExpected));
+/***************************************************************/
+			ret = test.nextIteration(0.97, 0.96);
+			state = test.getState();
+			current = test.getCurrentTransformation();
+			minus = test.getNextEvalMinus();
+			plus = test.getNextEvalPlus();
+
+			currentExpected = sC.getInitialH(688);
+			minusExpected = sC.getInitialH(661);
+			plusExpected = sC.getInitialH(715);						
+
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+			Assert::IsTrue(current.isEqual(currentExpected));
+			Assert::IsTrue(minus.isEqual(minusExpected));
+			Assert::IsTrue(plus.isEqual(plusExpected));
+
+/***************************************************************/
+			ret = test.nextIteration(0.95, 0.94);
+			state = test.getState();
+			current = test.getCurrentTransformation();
+			minus = test.getNextEvalMinus();
+			plus = test.getNextEvalPlus();
+
+			currentExpected = sC.getInitialH(715);
+			minusExpected = sC.getInitialH(706);
+			plusExpected = sC.getInitialH(724);						
+
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+			Assert::IsTrue(current.isEqual(currentExpected));
+			Assert::IsTrue(minus.isEqual(minusExpected));
+			Assert::IsTrue(plus.isEqual(plusExpected));
+/***************************************************************/
+			ret = test.nextIteration(0.93, 0.92);
+			state = test.getState();
+			current = test.getCurrentTransformation();
+			minus = test.getNextEvalMinus();
+			plus = test.getNextEvalPlus();
+
+			currentExpected = sC.getInitialH(724);
+			minusExpected = sC.getInitialH(721);
+			plusExpected = sC.getInitialH(727);						
+
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+			Assert::IsTrue(current.isEqual(currentExpected));
+			Assert::IsTrue(minus.isEqual(minusExpected));
+			Assert::IsTrue(plus.isEqual(plusExpected));
+/***************************************************************/
+			ret = test.nextIteration(0.91, 0.90);
+			state = test.getState();	
+			current = test.getCurrentTransformation();
+			minus = test.getNextEvalMinus();
+			plus = test.getNextEvalPlus();
+
+			currentExpected = sC.getInitialH(727);
+			minusExpected = sC.getInitialH(726);
+			plusExpected = sC.getInitialH(728);						
+
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+			Assert::IsTrue(current.isEqual(currentExpected));
+			Assert::IsTrue(minus.isEqual(minusExpected));
+			Assert::IsTrue(plus.isEqual(plusExpected));
+/***************************************************************/
+			ret = test.nextIteration(0.89, 0.88);
+			state = test.getState();
+			current = test.getCurrentTransformation();
+			minus = test.getNextEvalMinus();
+			plus = test.getNextEvalPlus();
+
+			currentExpected = sC.getInitialH(728);
+			minusExpected = sC.getInitialH(485);
+			plusExpected = sC.getInitialH(728);	
+
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+			Assert::IsTrue(current.isEqual(currentExpected));
+			Assert::IsTrue(minus.isEqual(minusExpected));
+			Assert::IsTrue(plus.isEqual(plusExpected));
+
 		}
+
+		[TestMethod]
+		void TestMethod2()
+		{
+
+			int base = 3;
+			int exp = 6;
+
+
+			int value = (int)pow(3.0,6.0);
+			
+			HomogeneTransformation kinChain[1];
+			HomogeneTransformation *relative = new HomogeneTransformation[value];
+			int *index = new int[value];
+
+			float da = M_PI/4;
+			float xr, yr, zr, rollr, pitchr, yawr;
+			int ii =0;
+			for(int x=-1;x<2; x++)
+				for(int y=-1; y<2; y++)
+					for(int z=-1; z<2; z++)
+						for(int roll=-1; roll<2; roll++)
+							for(int pitch=-1; pitch<2; pitch++)
+								for(int yaw=-1; yaw<2; yaw++)
+								{
+									xr = x;
+									yr = y;
+									zr = z;
+									rollr = roll*da;
+									pitchr = pitch*da;
+									yawr = yaw*da;
+									relative[ii].init(rollr, pitchr, yawr, xr, yr, zr);
+									index[ii] = 0;
+									ii++;
+									
+								}
+						
+			int n = 1;
+			HomogeneTransformation start, current, minus, plus;		
+			HomogeneTransformation currentExpected, minusExpected, plusExpected;
+			SA::STATE state;
+			bool ret;
+
+			SampleCameraConfiguration sC(kinChain, relative, index, n, value);
+			SA test(sC);
+
+			
+
+
+			test.setCurrentTransformation(start);
+
+			ret = test.nextIteration(1.0, 1.0);
+			state = test.getState();
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+			
+			ret = test.nextIteration(1.0, 1.0);
+			state = test.getState();
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+
+			ret = test.nextIteration(1.0, 1.0);
+			state = test.getState();
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+
+			ret = test.nextIteration(1.0, 1.0);
+			state = test.getState();
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+
+			ret = test.nextIteration(1.0, 1.0);
+			state = test.getState();
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+
+			ret = test.nextIteration(1.0, 1.0);
+			state = test.getState();
+			Assert::IsTrue(state==SA::STATE::RJ);
+			Assert::IsTrue(ret);
+		}
+
+
+		[TestMethod]
+		void TestMethod3()
+		{
+
+			int base = 3;
+			int exp = 6;
+
+
+			int value = (int)pow(3.0,6.0);
+			
+			HomogeneTransformation kinChain[1];
+			HomogeneTransformation *relative = new HomogeneTransformation[value];
+			int *index = new int[value];
+
+			float da = M_PI/4;
+			float xr, yr, zr, rollr, pitchr, yawr;
+			int ii =0;
+			for(int x=-1;x<2; x++)
+				for(int y=-1; y<2; y++)
+					for(int z=-1; z<2; z++)
+						for(int roll=-1; roll<2; roll++)
+							for(int pitch=-1; pitch<2; pitch++)
+								for(int yaw=-1; yaw<2; yaw++)
+								{
+									xr = x;
+									yr = y;
+									zr = z;
+									rollr = roll*da;
+									pitchr = pitch*da;
+									yawr = yaw*da;
+									relative[ii].init(rollr, pitchr, yawr, xr, yr, zr);
+									index[ii] = 0;
+									ii++;
+									
+								}
+						
+			int n = 1;
+			HomogeneTransformation start, current, minus, plus;		
+			HomogeneTransformation currentExpected, minusExpected, plusExpected;
+			SA::STATE state;
+			bool ret;
+
+			SampleCameraConfiguration sC(kinChain, relative, index, n, value);
+			SA test(sC);
+
+			
+
+
+			test.setCurrentTransformation(start);
+
+			ret = test.nextIteration(1.0, 1.0);
+			state = test.getState();
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+			
+			ret = test.nextIteration(1.0, 1.0);
+			state = test.getState();
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+
+			ret = test.nextIteration(1.0, 1.0);
+			state = test.getState();
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+
+			ret = test.nextIteration(1.0, 1.0);
+			state = test.getState();
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+
+			ret = test.nextIteration(1.0, 1.0);
+			state = test.getState();
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+
+			ret = test.nextIteration(1.0, 1.0);
+			state = test.getState();
+			Assert::IsTrue(state==SA::STATE::RJ);
+			Assert::IsTrue(ret);
+
+			ret = test.nextIteration(1.0, 1.0);
+			state = test.getState();
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+			
+			ret = test.nextIteration(1.0, 1.0);
+			state = test.getState();
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+
+			ret = test.nextIteration(1.0, 1.0);
+			state = test.getState();
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+
+			ret = test.nextIteration(1.0, 1.0);
+			state = test.getState();
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+
+			ret = test.nextIteration(1.0, 1.0);
+			state = test.getState();
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+
+			ret = test.nextIteration(1.0, 1.0);
+			state = test.getState();
+			Assert::IsTrue(state==SA::STATE::HC);
+			Assert::IsTrue(ret);
+
+			ret = test.nextIteration(1.0, 1.0);
+			state = test.getState();
+			Assert::IsTrue(state==SA::STATE::RJ);
+			Assert::IsTrue(ret);
+		}
+
+		[TestMethod]
+		void TestMethod4()
+		{
+
+			int base = 3;
+			int exp = 6;
+
+
+			int value = (int)pow(3.0,6.0);
+			
+			HomogeneTransformation kinChain[1];
+			HomogeneTransformation *relative = new HomogeneTransformation[value];
+			int *index = new int[value];
+
+			float da = M_PI/4;
+			float xr, yr, zr, rollr, pitchr, yawr;
+			int ii =0;
+			for(int x=-1;x<2; x++)
+				for(int y=-1; y<2; y++)
+					for(int z=-1; z<2; z++)
+						for(int roll=-1; roll<2; roll++)
+							for(int pitch=-1; pitch<2; pitch++)
+								for(int yaw=-1; yaw<2; yaw++)
+								{
+									xr = x;
+									yr = y;
+									zr = z;
+									rollr = roll*da;
+									pitchr = pitch*da;
+									yawr = yaw*da;
+									relative[ii].init(rollr, pitchr, yawr, xr, yr, zr);
+									index[ii] = 0;
+									ii++;
+									
+								}
+						
+			int n = 1;
+			HomogeneTransformation start, current, minus, plus;		
+			HomogeneTransformation currentExpected, minusExpected, plusExpected;
+			SA::STATE state;
+			bool ret;
+
+			SampleCameraConfiguration sC(kinChain, relative, index, n, value);
+			SA test(sC);
+
+			
+
+
+			test.setCurrentTransformation(start);
+			
+	
+
+			ret = true;
+			int ite = 1;
+			do
+			{
+				ret = test.nextIteration(1.0, 1.0);
+				state = test.getState();
+				if(!ret)
+				{
+					break;
+				}
+
+
+				if((ite+1)%7==0)
+				{
+					Assert::IsTrue(state==SA::STATE::RJ);
+				}else
+				{
+					Assert::IsTrue(state==SA::STATE::HC);
+				}				
+				ite++;
+			}
+			while(true);
+			
+			Assert::IsTrue(state==SA::STATE::FI);
+		}
+
+
 	};
 }

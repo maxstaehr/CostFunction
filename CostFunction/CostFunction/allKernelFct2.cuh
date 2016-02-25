@@ -873,8 +873,8 @@ namespace cuda_calc2{
        return false;
 	}
     
-	   return true;
-	}
+	return true;
+}
 	__global__ void raytraceBox(float* camPos_H, float* camRot_H, float* camRayX, float* camRayY, float* camRayZ, int nRays,
 						   float* bb_H, float* bb_D, int nBB, bool* bb_intersect)
 	{

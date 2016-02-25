@@ -8,11 +8,13 @@
 HomogeneTransformation::HomogeneTransformation()
 {
 	float temp[16] = EYE_16;
+	//this->H = new float[16];
 	memcpy(H, temp, sizeof(float)*16);
 }
 
 HomogeneTransformation::HomogeneTransformation(const float const* temp)
 {
+	//this->H = new float[16];
 	memcpy(H, temp, sizeof(float)*16);
 }
 
@@ -50,84 +52,84 @@ float HomogeneTransformation::getDist(HomogeneTransformation& rhs, DIM_DIR dim)
 	{
 		case DIM_DIR::XP:
 			ret = rhs.getH()[3] - H[3];
-			if(ret < 0)
+			if(ret <= 0)
 			{
 				ret = FLT_MAX;
 			}			
 			break;
 		case DIM_DIR::XM:
 			ret = rhs.getH()[3] - H[3];
-			if(ret > 0)
+			if(ret >= 0)
 			{
 				ret = FLT_MAX;
 			}	
 			break;
 		case DIM_DIR::YP:
 			ret = rhs.getH()[7] - H[7];
-			if(ret < 0)
+			if(ret <= 0)
 			{
 				ret = FLT_MAX;
 			}			
 			break;			
 		case DIM_DIR::YM:
 			ret = rhs.getH()[7] - H[7];
-			if(ret > 0)
+			if(ret >= 0)
 			{
 				ret = FLT_MAX;
 			}				
 			break;
 		case DIM_DIR::ZP:
 			ret = rhs.getH()[11] - H[11];
-			if(ret < 0)
+			if(ret <= 0)
 			{
 				ret = FLT_MAX;
 			}			
 			break;	
 		case DIM_DIR::ZM:
 			ret = rhs.getH()[11] - H[11];
-			if(ret > 0)
+			if(ret >= 0)
 			{
 				ret = FLT_MAX;
 			}				
 			break;
 		case DIM_DIR::ROLLP:
 			ret = b_rpy[0] - a_rpy[0];
-			if(ret < 0)
+			if(ret <= 0)
 			{
 				ret = FLT_MAX;
 			}			
 			break;			
 		case DIM_DIR::ROLLM:
 			ret = b_rpy[0] - a_rpy[0];
-			if(ret > 0)
+			if(ret >= 0)
 			{
 				ret = FLT_MAX;
 			}	
 			break;
 		case DIM_DIR::PITCHP:
 			ret = b_rpy[1] - a_rpy[1];
-			if(ret < 0)
+			if(ret <= 0)
 			{
 				ret = FLT_MAX;
 			}			
 			break;			
 		case DIM_DIR::PITCHM:
 			ret = b_rpy[1] - a_rpy[1];
-			if(ret > 0)
+			if(ret >= 0)
 			{
 				ret = FLT_MAX;
 			}	
 			break;
 		case DIM_DIR::YAWP:
 			ret = b_rpy[2] - a_rpy[2];
-			if(ret < 0)
+			if(ret <= 0)
 			{
 				ret = FLT_MAX;
 			}			
 			break;			
 		case DIM_DIR::YAWM:
 			ret = b_rpy[2] - a_rpy[2];
-			if(ret > 0)
+			if(ret >= 0)
 			{
 				ret = FLT_MAX;
 			}	
@@ -169,12 +171,14 @@ bool HomogeneTransformation::isEqual(HomogeneTransformation& rhs)
 
 HomogeneTransformation::HomogeneTransformation(const HomogeneTransformation& inst)
 {
+	//this->H = new float[16];
 	memcpy(H, inst.H, sizeof(float)*16);
 }
 
 
 HomogeneTransformation::~HomogeneTransformation(void)
 {
+	//delete this->H;
 }
 
 

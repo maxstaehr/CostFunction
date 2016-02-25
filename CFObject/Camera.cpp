@@ -3,6 +3,8 @@
 #include <string>
 #include <algorithm>
 #include <float.h>
+#include <assert.h>
+#include <cmath>
 
 //local algorithmic helper functions
 int triangle_intersection		( const float*   V1,  // Triangle vertices
@@ -14,6 +16,7 @@ int triangle_intersection		( const float*   V1,  // Triangle vertices
 float DOT(const float *a, const float *b);
 void CROSS(float* r, const float *a, const float *b );
 void SUB(float* r, const float *a, const float *b );
+bool intersectBox(float* origin, float* direction, float* vmin, float* vmax);
 #define EPSILON (1e-5)
 //
 
@@ -83,9 +86,9 @@ void Camera::updateCameraPos(HomogeneTransformation trans)
 	int n = type.getnx() * type.getny();
 	for(int i=0; i<n; i++)
 	{
-		xb = x[i];
-		yb = y[i];
-		zb = z[i];
+		xb = type.getx()[i];
+		yb = type.gety()[i];
+		zb = type.getz()[i];
 
 		x[i] = xb*trans.getH()[0] + yb*trans.getH()[1] + zb*trans.getH()[2];
 		y[i] = xb*trans.getH()[4] + yb*trans.getH()[5] + zb*trans.getH()[6];
@@ -95,9 +98,9 @@ void Camera::updateCameraPos(HomogeneTransformation trans)
 	n = type.getssnx() * type.getssny();
 	for(int i=0; i<n; i++)
 	{
-		xb = ssx[i];
-		yb = ssy[i];
-		zb = ssz[i];
+		xb = type.getssx()[i];
+		yb = type.getssy()[i];
+		zb = type.getssz()[i];
 
 		ssx[i] = xb*trans.getH()[0] + yb*trans.getH()[1] + zb*trans.getH()[2];
 		ssy[i] = xb*trans.getH()[4] + yb*trans.getH()[5] + zb*trans.getH()[6];
@@ -105,7 +108,62 @@ void Camera::updateCameraPos(HomogeneTransformation trans)
 	}
 }
 
+void Camera::raytrace(Link& link)
+{
+	assert(link.getnPCL() == link.getnBB());
+	BoundingBox box;
+	for(int i=0;i<link.getnPCL(); i++)
+	{		
+		if(hitBox(link.getBB()[i]))
+		{
+			raytrace(link.getPCL()[i]);
+		}
+	}
+}
 
+bool Camera::hitBox(BoundingBox& box)
+{
+	HomogeneTransformation boxh = box.getH().inv();
+	HomogeneTransformation hr = boxh.mul(h);
+
+	int n = type.getssnx() * type.getssny();
+	float origin[3];
+	float direction[3];
+	float vmin[3];
+	float vmax[3];
+
+	origin[0] = hr.getH()[3];
+	origin[1] = hr.getH()[7];
+	origin[2] = hr.getH()[11];
+
+	vmin[0] = .0f;
+	vmin[1] = .0f;
+	vmin[2] = .0f;
+
+	vmax[0] = box.getXDim();
+	vmax[1] = box.getYDim();
+	vmax[2] = box.getZDim();
+
+	float xb, yb, zb;
+	
+	for(int i=0; i<n; i++)
+	{
+		xb = type.getssx()[i];
+		yb = type.getssy()[i];
+		zb = type.getssz()[i];
+
+		direction[0] = xb*hr.getH()[0] + yb*hr.getH()[1] + zb*hr.getH()[2];
+		direction[1] = xb*hr.getH()[4] + yb*hr.getH()[5] + zb*hr.getH()[6];
+		direction[2] = xb*hr.getH()[8] + yb*hr.getH()[9] + zb*hr.getH()[10];
+
+
+		if(intersectBox(origin, direction, vmin, vmax))
+		{
+			return true;
+		}
+	}
+	return false;
+}
 
 
 void Camera::raytrace(PCL& pcl)
@@ -279,3 +337,126 @@ void SUB(float* r, const float *a, const float *b )
 	  r[1] =   a[1] - b[1];
 	  r[2] =   a[2] - b[2];
 }
+
+bool intersectBox(float* origin, float* direction, float* vmin, float* vmax)
+ {
+	 float tmin = -FLT_MAX, tmax = FLT_MAX;
+	 bool hitPx = true, hitPy = true, hitPz = true;
+	using namespace std;
+
+    if (direction[0] != 0.0) {
+		float tx1 = (vmin[0] - origin[0])/direction[0];
+        float tx2 = (vmax[0] - origin[0])/direction[0];
+ 
+        tmin = max(tmin, min(tx1, tx2));
+        tmax = min(tmax, max(tx1, tx2));
+    }else
+	{
+		if (origin[0] >= vmin[0] && origin[0] <= vmin[0])
+		{
+			hitPx = true;
+		}else{
+			hitPx = false;
+		}
+	}
+
+ 
+    if (direction[1] != 0.0) {
+        float ty1 = (vmin[1] - origin[1])/direction[1];
+        float ty2 = (vmax[1] - origin[1])/direction[1];
+ 
+        tmin = max(tmin, min(ty1, ty2));
+        tmax = min(tmax, max(ty1, ty2));
+    }else
+	{
+		if (origin[1] >= vmin[1] && origin[1] <= vmin[1])
+		{
+			hitPy = true;
+		}else{
+			hitPy = false;
+		}
+	}
+
+	if (direction[2] != 0.0) {
+        float tz1 = (vmin[2] - origin[2])/direction[2];
+        float tz2 = (vmax[2] - origin[2])/direction[2];
+ 
+        tmin = max(tmin, min(tz1, tz2));
+        tmax = min(tmax, max(tz1, tz2));
+    }else
+	{
+		if (origin[2] >= vmin[2] && origin[2] <= vmin[2])
+		{
+			hitPz = true;
+		}else{
+			hitPz = false;
+		}
+	}
+ 
+    return tmax >= tmin && hitPx && hitPy && hitPz;
+}
+//
+//bool intersectBox(float* origin, float* direction, float* vmin, float* vmax)
+//{
+//
+//	float tmin, tmax, tymin, tymax, tzmin, tzmax;
+//	bool flag;
+//	if (direction[0] >= 0) 
+//	{
+//		tmin = (vmin[0] - origin[0]) / direction[0];
+//		tmax = (vmax[0] - origin[0]) / direction[0];
+//	}
+//	else
+//	{
+//		tmin = (vmax[0] - origin[0]) / direction[0];
+//		tmax = (vmin[0] - origin[0]) / direction[0];
+//	}
+//  
+//	if (direction[1] >= 0) 
+//	{
+//		tymin = (vmin[1] - origin[1]) / direction[1];
+//		tymax = (vmax[1] - origin[1]) / direction[1];
+//	}
+//	else
+//	{
+//		tymin = (vmax[1] - origin[1]) / direction[1];
+//		tymax = (vmin[1] - origin[1]) / direction[1];
+//	}
+//    
+//
+//	if ( (tmin > tymax) || (tymin > tmax) )
+//	{
+//		return false;
+//	}
+//       
+//	if (tymin > tmin)
+//	{
+//		tmin = tymin;
+//	}
+//    
+//    
+//	if (tymax < tmax)
+//	{
+//		tmax = tymax;
+//	}
+//    
+//    
+//	if (direction[2] >= 0)
+//	{
+//		tzmin = (vmin[2] - origin[2]) / direction[2];
+//		tzmax = (vmax[2] - origin[2]) / direction[2];
+//	}
+//	else
+//	{
+//		tzmin = (vmax[2] - origin[2]) / direction[2];
+//		tzmax = (vmin[2] - origin[2]) / direction[2];
+//	}
+//
+//
+//	if ((tmin > tzmax) || (tzmin > tmax))
+//	{
+//		return false;
+//	}
+//    
+//	return true;
+//}

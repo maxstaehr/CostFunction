@@ -42,7 +42,7 @@ private:
 	double prob;
 	float meanDist;
 
-	float centroid[3];
+	float *centroid;
 	
 };
 

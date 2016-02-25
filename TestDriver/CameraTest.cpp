@@ -573,5 +573,408 @@ namespace TestDriver
 			Assert::AreEqual(0.25f, cam.getssdy()[0], 1e-3f);
 			Assert::AreEqual(0.5f, cam.getssdz()[0], 1e-3f);	
 		}
+
+
+		[TestMethod]
+		void TestRaytraceLink1()
+		{
+
+			int nx = 1; 
+			int ny = 1;
+			int ssnx = 1;
+			int ssny = 1;
+
+			float x[] = {1};
+			float y[] = {0};
+			float z[] = {2};
+
+			float ssx[] = {1};
+			float ssy[] = {0};
+			float ssz[] = {2};
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+			Camera cam(camType);
+
+			int nV = 3;
+			int nF = 2;
+			float xpcl[] = {1, 1, 1, 1};
+			float ypcl[] = {0, 1, 1, 0};
+			float zpcl[] = {0, 0, 1, 1};
+			int fx[] = {0, 0};
+			int fy[] = {1, 2};
+			int fz[] = {2, 3};
+			PCL pcl(nV, nF, xpcl, ypcl, zpcl, fx, fy, fz);
+			
+			HomogeneTransformation trans;
+			trans.init(0, 0, 0, 0, 0, 0);	
+			BoundingBox bb(trans, 1, 1, 1);
+
+			Link link;
+			link.addBB(bb);
+			link.addPCL(pcl);
+
+
+			cam.updateCameraPos(trans);
+			cam.raytrace(link);
+
+			Assert::IsTrue(cam.getd() != NULL);
+			Assert::IsTrue(cam.getssd() != NULL);
+
+			Assert::AreEqual(FLT_MAX, cam.getd()[0]);
+			Assert::AreEqual(FLT_MAX, cam.getssd()[0]);		
+
+
+			Assert::IsTrue(cam.getdx() != NULL);
+			Assert::IsTrue(cam.getdy() != NULL);
+			Assert::IsTrue(cam.getdz() != NULL);
+			Assert::IsTrue(cam.getssdx() != NULL);
+			Assert::IsTrue(cam.getssdy() != NULL);
+			Assert::IsTrue(cam.getssdz() != NULL);
+			Assert::IsTrue(FLT_MAX==(cam.getdx()[0]));
+			Assert::IsTrue(FLT_MAX==(cam.getdy()[0]));
+			Assert::IsTrue(FLT_MAX==(cam.getdz()[0]));
+			Assert::IsTrue(FLT_MAX==(cam.getssdx()[0]));
+			Assert::IsTrue(FLT_MAX==(cam.getssdy()[0]));
+			Assert::IsTrue(FLT_MAX==(cam.getssdz()[0]));
+
+		}
+
+		[TestMethod]
+		void TestRaytraceLink2()
+		{
+
+			int nx = 1; 
+			int ny = 1;
+			int ssnx = 1;
+			int ssny = 1;
+
+			float x[] = {1};
+			float y[] = {0};
+			float z[] = {0};
+
+			float ssx[] = {1};
+			float ssy[] = {0};
+			float ssz[] = {0};
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+			Camera cam(camType);
+
+			int nV = 3;
+			int nF = 2;
+			float xpcl[] = {1, 1, 1, 1};
+			float ypcl[] = {0, 1, 1, 0};
+			float zpcl[] = {0, 0, 1, 1};
+			int fx[] = {0, 0};
+			int fy[] = {1, 2};
+			int fz[] = {2, 3};
+			PCL pcl(nV, nF, xpcl, ypcl, zpcl, fx, fy, fz);
+			
+			HomogeneTransformation trans;
+			trans.init(0, 0, 0, 0, 0, 0);	
+			BoundingBox bb(trans, 1, 1, 1);
+
+			Link link;
+			link.addBB(bb);
+			link.addPCL(pcl);
+
+
+			cam.updateCameraPos(trans);
+			cam.raytrace(link);
+
+			Assert::IsTrue(cam.getd() != NULL);
+			Assert::IsTrue(cam.getssd() != NULL);
+
+			Assert::AreEqual(1.0f, cam.getd()[0], 1e-5f);
+			Assert::AreEqual(1.0f, cam.getssd()[0], 1e-5f);		
+
+
+			Assert::IsTrue(cam.getdx() != NULL);
+			Assert::IsTrue(cam.getdy() != NULL);
+			Assert::IsTrue(cam.getdz() != NULL);
+			Assert::IsTrue(cam.getssdx() != NULL);
+			Assert::IsTrue(cam.getssdy() != NULL);
+			Assert::IsTrue(cam.getssdz() != NULL);
+			Assert::AreEqual(1.0f, cam.getdx()[0], 1e-3f);
+			Assert::AreEqual(0.0f, cam.getdy()[0], 1e-3f);		
+			Assert::AreEqual(0.0f, cam.getdz()[0], 1e-3f);
+			Assert::AreEqual(1.0f, cam.getssdx()[0], 1e-3f);		
+			Assert::AreEqual(0.0f, cam.getssdy()[0], 1e-3f);
+			Assert::AreEqual(0.0f, cam.getssdz()[0], 1e-3f);	
+
+		}
+
+
+		[TestMethod]
+		void TestRaytraceLink3()
+		{
+
+			int nx = 1; 
+			int ny = 1;
+			int ssnx = 1;
+			int ssny = 1;
+
+			float x[] = {1};
+			float y[] = {0};
+			float z[] = {0};
+
+			float ssx[] = {1};
+			float ssy[] = {0};
+			float ssz[] = {0};
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+			Camera cam(camType);
+
+			int nV = 3;
+			int nF = 2;
+			float xpcl[] = {1, 1, 1, 1};
+			float ypcl[] = {0, 1, 1, 0};
+			float zpcl[] = {0, 0, 1, 1};
+			int fx[] = {0, 0};
+			int fy[] = {1, 2};
+			int fz[] = {2, 3};
+			PCL pcl(nV, nF, xpcl, ypcl, zpcl, fx, fy, fz);
+			
+			HomogeneTransformation trans;
+			trans.init(0, 0, 0, 0, 0, 0);	
+			BoundingBox bb(trans, 1, 1, 1);
+
+			Link link;
+			link.addBB(bb);
+			link.addPCL(pcl);
+
+
+			cam.updateCameraPos(trans);
+			cam.raytrace(link);
+
+			Assert::IsTrue(cam.getd() != NULL);
+			Assert::IsTrue(cam.getssd() != NULL);
+
+			Assert::AreEqual(1.0f, cam.getd()[0], 1e-5f);
+			Assert::AreEqual(1.0f, cam.getssd()[0], 1e-5f);		
+
+
+			Assert::IsTrue(cam.getdx() != NULL);
+			Assert::IsTrue(cam.getdy() != NULL);
+			Assert::IsTrue(cam.getdz() != NULL);
+			Assert::IsTrue(cam.getssdx() != NULL);
+			Assert::IsTrue(cam.getssdy() != NULL);
+			Assert::IsTrue(cam.getssdz() != NULL);
+			Assert::AreEqual(1.0f, cam.getdx()[0], 1e-3f);
+			Assert::AreEqual(0.0f, cam.getdy()[0], 1e-3f);		
+			Assert::AreEqual(0.0f, cam.getdz()[0], 1e-3f);
+			Assert::AreEqual(1.0f, cam.getssdx()[0], 1e-3f);		
+			Assert::AreEqual(0.0f, cam.getssdy()[0], 1e-3f);
+			Assert::AreEqual(0.0f, cam.getssdz()[0], 1e-3f);	
+
+		}
+
+
+		[TestMethod]
+		void TestHitBox1()
+		{
+			int nx = 1; 
+			int ny = 1;
+			int ssnx = 1;
+			int ssny = 1;
+
+			float x[] = {1};
+			float y[] = {0};
+			float z[] = {0};
+
+			float ssx[] = {1};
+			float ssy[] = {0};
+			float ssz[] = {0};
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+			Camera cam(camType);
+			
+			HomogeneTransformation trans;
+			trans.init(0, 0, 0, 0, 0, 2);	
+			BoundingBox bb(trans, 1, 1, 1);	
+			cam.updateCameraPos(trans);			
+			Assert::IsTrue(cam.hitBox(bb));
+
+		}
+
+		[TestMethod]
+		void TestHitBox3()
+		{
+			int nx = 1; 
+			int ny = 1;
+			int ssnx = 1;
+			int ssny = 1;
+
+			float x[] = {1};
+			float y[] = {0};
+			float z[] = {0};
+
+			float ssx[] = {1};
+			float ssy[] = {0};
+			float ssz[] = {0};
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+			Camera cam(camType);
+			
+			HomogeneTransformation trans1;
+			trans1.init(0, 0, 0, 0, 0, 0);	
+			BoundingBox bb(trans1, 1, 1, 1);	
+
+			HomogeneTransformation trans2;
+			trans2.init(0, 0, 0, 0, 0, 2);	
+			cam.updateCameraPos(trans2);			
+			Assert::IsFalse(cam.hitBox(bb));
+
+		}
+
+
+		[TestMethod]
+		void TestHitBox2()
+		{
+			int nx = 1; 
+			int ny = 1;
+			int ssnx = 1;
+			int ssny = 1;
+
+			float x[] = {1};
+			float y[] = {0};
+			float z[] = {0};
+
+			float ssx[] = {1};
+			float ssy[] = {0};
+			float ssz[] = {0};
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+			Camera cam(camType);
+			
+			HomogeneTransformation trans;
+			trans.init(0, 0, 0, 0, 0, 0);	
+			BoundingBox bb(trans, 1, 1, 1);	
+			cam.updateCameraPos(trans);			
+			Assert::IsTrue(cam.hitBox(bb));
+
+		}
+
+		[TestMethod]
+		void TestHitBox4()
+		{
+			int nx = 1; 
+			int ny = 1;
+			int ssnx = 1;
+			int ssny = 1;
+
+			float x[] = {1};
+			float y[] = {0};
+			float z[] = {0};
+
+			float ssx[] = {1};
+			float ssy[] = {0};
+			float ssz[] = {0};
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+			Camera cam(camType);
+			
+			HomogeneTransformation trans1;
+			trans1.init(0, 0, 0, 0, 0, 0);	
+			BoundingBox bb(trans1, 1, 1, 1);	
+
+			HomogeneTransformation trans2;
+			trans2.init(0, -M_PI/2.0, 0, -1e-5f, 0, 0);	
+			cam.updateCameraPos(trans2);			
+			Assert::IsFalse(cam.hitBox(bb));
+
+		}
+
+
+		[TestMethod]
+		void TestHitBox5()
+		{
+			int nx = 1; 
+			int ny = 1;
+			int ssnx = 1;
+			int ssny = 1;
+
+			float x[] = {1};
+			float y[] = {0};
+			float z[] = {0};
+
+			float ssx[] = {1};
+			float ssy[] = {0};
+			float ssz[] = {0};
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+			Camera cam(camType);
+			
+			HomogeneTransformation trans1;
+			trans1.init(0, 0, 0, 0, 0, 0);	
+			BoundingBox bb(trans1, 1, 1, 1);	
+
+			HomogeneTransformation trans2;
+			trans2.init(0, -M_PI/2.0, 0, 1+1e-5f, 0, 0);	
+			cam.updateCameraPos(trans2);			
+			Assert::IsFalse(cam.hitBox(bb));
+
+		}
+
+		[TestMethod]
+		void TestHitBox6()
+		{
+			int nx = 1; 
+			int ny = 1;
+			int ssnx = 1;
+			int ssny = 1;
+
+			float x[] = {1};
+			float y[] = {0};
+			float z[] = {0};
+
+			float ssx[] = {1};
+			float ssy[] = {0};
+			float ssz[] = {0};
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+			Camera cam(camType);
+			
+			HomogeneTransformation trans1;
+			trans1.init(0, 0, 0, 2, 0, 0);	
+			BoundingBox bb(trans1, 1, 1, 1);	
+
+			HomogeneTransformation trans2;
+			trans2.init(0, 0, 0, 1, 0, 0);	
+			cam.updateCameraPos(trans2);			
+			Assert::IsTrue(cam.hitBox(bb));
+
+		}
+
+		[TestMethod]
+		void TestHitBox7()
+		{
+			int nx = 1; 
+			int ny = 1;
+			int ssnx = 1;
+			int ssny = 1;
+
+			float x[] = {1};
+			float y[] = {0};
+			float z[] = {0};
+
+			float ssx[] = {1};
+			float ssy[] = {0};
+			float ssz[] = {0};
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+			Camera cam(camType);
+			
+			HomogeneTransformation trans1;
+			trans1.init(0, 0, 0, 2, 1e-3, 1e-3);	
+			BoundingBox bb(trans1, 1, 1, 1);	
+
+			HomogeneTransformation trans2;
+			trans2.init(0, 0, 0, 1, 0, 0);	
+			cam.updateCameraPos(trans2);			
+			Assert::IsFalse(cam.hitBox(bb));
+
+		}
+
+	
 	};
 }

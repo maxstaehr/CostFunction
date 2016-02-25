@@ -8,11 +8,12 @@ double calculateWeightOfDetection(int w);
 
 Cluster::Cluster():x(NULL), y(NULL), z(NULL), maxSize(0), prob(0.0), meanDist(0.0f)
 {
-	
+	this->centroid = new float[3];
 }
 
 Cluster::Cluster(const Cluster& rhs)
 {
+	this->centroid = new float[3];
 	maxSize = rhs.maxSize;
 	x = new float[maxSize];
 	y = new float[maxSize];
@@ -44,6 +45,7 @@ void Cluster::setZ(int i, float v)
 
 Cluster::Cluster(int size)
 {
+	this->centroid = new float[3];
 	maxSize = size;
 	this->x = new float[size];
 	this->y = new float[size];
@@ -69,6 +71,7 @@ void Cluster::operator=(const Cluster& rhs )
 
 Cluster::~Cluster(void)
 {
+	delete centroid;
 	if(x != NULL)
 		delete x;
 	if(y != NULL)

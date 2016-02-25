@@ -7,12 +7,12 @@
 class CFOBJECT_EXPORT Search
 {
 public:
-	Search(const SampleCameraConfiguration& sampleConfig);
+	Search(SampleCameraConfiguration& sampleConfig);
 	~Search(void);
 
 	virtual bool nextIteration(double cost_m, double cost_p) = 0;
 
-	void setCurrentTransformation(HomogeneTransformation h){currentTrans = h;}
+	virtual void setCurrentTransformation(HomogeneTransformation h) = 0;
 	HomogeneTransformation getCurrentTransformation(){return currentTrans;}
 	HomogeneTransformation getNextEvalMinus(){return nextEvalMinus;}
 	HomogeneTransformation getNextEvalPlus(){return nextEvalPlus;}
@@ -20,9 +20,9 @@ public:
 
 	double getCurrenCosts(){return currentCosts;}
 
-private:
+protected:
 	double currentCosts;
-	const SampleCameraConfiguration& sampleConfig;
+	SampleCameraConfiguration& sampleConfig;
 	HomogeneTransformation currentTrans;
 	HomogeneTransformation nextEvalMinus;
 	HomogeneTransformation nextEvalPlus;

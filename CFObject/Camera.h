@@ -3,6 +3,7 @@
 #include "global.h"
 #include "CameraType.h"
 #include "HomogeneTransformation.h"
+#include "Link.h"
 
 class CFOBJECT_EXPORT Camera
 {
@@ -43,10 +44,14 @@ public:
 	
 	void updateCameraPos(HomogeneTransformation h);
 	void raytrace(PCL& pcl);
+	bool hitBox(BoundingBox& box);
+	void raytrace(Link& link);
 
 private:
 	CameraType& type;
 	HomogeneTransformation h;
+	Link cameraLink;
+
 	float* x;
 	float* y;
 	float* z;

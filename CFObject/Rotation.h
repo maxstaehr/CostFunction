@@ -17,6 +17,6 @@ public:
 	~Rotation(void);
 
 private: 
-	float H[9];
+	float *H;
 };
 

@@ -9,14 +9,15 @@ public:
 
 
 
-	SampleCameraConfiguration( HomogeneTransformation * kinChainH,  HomogeneTransformation * relativeH, const int const *i, int n);
+	SampleCameraConfiguration( HomogeneTransformation * kinChainH,  HomogeneTransformation * relativeH, const int const *i, int nLink, int nRelative);
 	void updateConfigurations(const float const* H);
 	HomogeneTransformation findNN(HomogeneTransformation h, HomogeneTransformation::DIM_DIR dim);
 
 	HomogeneTransformation getInitialH(int i);
 	HomogeneTransformation getCurrentH(int i);
 	HomogeneTransformation getRelativeH(int i);
-	int getN(){return n;}
+	int getNLink(){return nLink;}
+	int getNRelative(){return nRelative;}
 	const int const* getIndex(){return index;}
 
 	~SampleCameraConfiguration(void);
@@ -26,7 +27,8 @@ private:
 	HomogeneTransformation* currentH;
 	HomogeneTransformation* relativH;
 	int* index;
-	int n;
+	int nLink;
+	int nRelative;
 
 
 };

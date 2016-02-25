@@ -37,10 +37,10 @@ namespace TestDriver
 			HomogeneTransformation a3[1];
 			a3[0] = H3;
 
-			SampleCameraConfiguration test(a1, a2, index, n);
+			SampleCameraConfiguration test(a1, a2, index, 1, 1);
 			
 			Assert::IsTrue(test.getIndex()		!= NULL);
-			Assert::IsTrue(test.getN()			!= 0);
+			Assert::IsTrue(test.getNLink()			!= 0);
 			
 			for(int i=0; i<16; i++)
 			{					
@@ -84,10 +84,10 @@ namespace TestDriver
 			int n = 1;
 
 
-			SampleCameraConfiguration test(a1, a2, index, n);
+			SampleCameraConfiguration test(a1, a2, index, 1, 1);
 			
 			Assert::IsTrue(test.getIndex()		!= NULL);
-			Assert::IsTrue(test.getN()			!= 0);
+			Assert::IsTrue(test.getNLink()			!= 0);
 			
 			for(int i=0; i<16; i++)
 			{					
@@ -130,7 +130,9 @@ namespace TestDriver
 			int index[] = {0};
 			int n = 1;
 
-			SampleCameraConfiguration test(kinChain, relative, index, n);
+			int nLink = 1;
+			int nRelative = 1;
+			SampleCameraConfiguration test(kinChain, relative, index, nLink, nRelative);
 
 			HomogeneTransformation S = kinChainH1.mul(relativeH1);
 			HomogeneTransformation result = test.findNN(S, HomogeneTransformation::DIM_DIR::XP);
@@ -174,7 +176,9 @@ namespace TestDriver
 			int index[] = {0, 0, 0};
 			int n = 3;
 
-			SampleCameraConfiguration test(kinChain, relative, index, n);
+			int nLink = 1;
+			int nRelative = 3;
+			SampleCameraConfiguration test(kinChain, relative, index, nLink, nRelative);
 
 			HomogeneTransformation S = kinChainH1.mul(relativeH4);
 			HomogeneTransformation R = kinChainH1.mul(relativeH1);
@@ -192,12 +196,12 @@ namespace TestDriver
 		{
 			float roll, pitch, yaw, x, y, z;
 			HomogeneTransformation kinChainH1; 
-			roll = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-			pitch = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-			yaw = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-			x = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-			y = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-			z = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			//roll = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			//pitch = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			//yaw = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			//x = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			//y = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			//z = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
 			kinChainH1.init(roll, pitch, yaw, x, y, z);
 			HomogeneTransformation kinChain[1];
 			kinChain[0] = kinChainH1;
@@ -220,10 +224,12 @@ namespace TestDriver
 
 
 
-			int index[] = {0};
+			int index[] = {0, 0, 0};
 			int n = 1;
 
-			SampleCameraConfiguration test(kinChain, relative, index, n);
+			int nLink = 1;
+			int nRelative = 3;
+			SampleCameraConfiguration test(kinChain, relative, index, nLink, nRelative);
 
 			HomogeneTransformation S = kinChainH1.mul(relativeH4);
 			HomogeneTransformation R = kinChainH1.mul(relativeH4);
@@ -269,7 +275,9 @@ namespace TestDriver
 			int index[] = {0, 0, 0};
 			int n = 3;
 
-			SampleCameraConfiguration test(kinChain, relative, index, n);
+			int nLink = 1;
+			int nRelative = 3;
+			SampleCameraConfiguration test(kinChain, relative, index, nLink, nRelative);
 
 			HomogeneTransformation S = kinChainH1.mul(relativeH4);
 			HomogeneTransformation R = kinChainH1.mul(relativeH1);
@@ -315,10 +323,12 @@ namespace TestDriver
 			int index[] = {0, 0, 0};
 			int n = 3;
 
-			SampleCameraConfiguration test(kinChain, relative, index, n);
+			int nLink = 1;
+			int nRelative = 3;
+			SampleCameraConfiguration test(kinChain, relative, index, nLink, nRelative);
 
 			HomogeneTransformation S = kinChainH1.mul(relativeH4);
-			HomogeneTransformation R = kinChainH1.mul(relativeH2);
+			HomogeneTransformation R = kinChainH1.mul(relativeH3);
 
 			HomogeneTransformation result = test.findNN(S, HomogeneTransformation::DIM_DIR::XM);
 
@@ -361,7 +371,9 @@ namespace TestDriver
 			int index[] = {0, 0, 0};
 			int n = 3;
 
-			SampleCameraConfiguration test(kinChain, relative, index, n);
+			int nLink = 1;
+			int nRelative = 3;
+			SampleCameraConfiguration test(kinChain, relative, index, nLink, nRelative);
 
 			HomogeneTransformation S = kinChainH1.mul(relativeH4);
 			HomogeneTransformation R = kinChainH1.mul(relativeH4);
@@ -407,7 +419,9 @@ namespace TestDriver
 			int index[] = {0, 0, 0};
 			int n = 3;
 
-			SampleCameraConfiguration test(kinChain, relative, index, n);
+			int nLink = 1;
+			int nRelative = 3;
+			SampleCameraConfiguration test(kinChain, relative, index, nLink, nRelative);
 
 			HomogeneTransformation S = kinChainH1.mul(relativeH4);
 			HomogeneTransformation R = kinChainH1.mul(relativeH1);
@@ -453,10 +467,12 @@ namespace TestDriver
 			int index[] = {0, 0, 0};
 			int n = 3;
 
-			SampleCameraConfiguration test(kinChain, relative, index, n);
+			int nLink = 1;
+			int nRelative = 3;
+			SampleCameraConfiguration test(kinChain, relative, index, nLink, nRelative);
 
 			HomogeneTransformation S = kinChainH1.mul(relativeH4);
-			HomogeneTransformation R = kinChainH1.mul(relativeH2);
+			HomogeneTransformation R = kinChainH1.mul(relativeH3);
 
 			HomogeneTransformation result = test.findNN(S, HomogeneTransformation::DIM_DIR::YM);
 
@@ -499,7 +515,9 @@ namespace TestDriver
 			int index[] = {0, 0, 0};
 			int n = 3;
 
-			SampleCameraConfiguration test(kinChain, relative, index, n);
+			int nLink = 1;
+			int nRelative = 3;
+			SampleCameraConfiguration test(kinChain, relative, index, nLink, nRelative);
 
 			HomogeneTransformation S = kinChainH1.mul(relativeH4);
 			HomogeneTransformation R = kinChainH1.mul(relativeH4);
@@ -545,7 +563,9 @@ namespace TestDriver
 			int index[] = {0, 0, 0};
 			int n = 3;
 
-			SampleCameraConfiguration test(kinChain, relative, index, n);
+			int nLink = 1;
+			int nRelative = 3;
+			SampleCameraConfiguration test(kinChain, relative, index, nLink, nRelative);
 
 			HomogeneTransformation S = kinChainH1.mul(relativeH4);
 			HomogeneTransformation R = kinChainH1.mul(relativeH1);
@@ -591,7 +611,9 @@ namespace TestDriver
 			int index[] = {0, 0, 0};
 			int n = 3;
 
-			SampleCameraConfiguration test(kinChain, relative, index, n);
+			int nLink = 1;
+			int nRelative = 3;
+			SampleCameraConfiguration test(kinChain, relative, index, nLink, nRelative);
 
 			HomogeneTransformation S = kinChainH1.mul(relativeH4);
 			HomogeneTransformation R = kinChainH1.mul(relativeH2);
@@ -637,7 +659,9 @@ namespace TestDriver
 			int index[] = {0, 0, 0};
 			int n = 3;
 
-			SampleCameraConfiguration test(kinChain, relative, index, n);
+			int nLink = 1;
+			int nRelative = 3;
+			SampleCameraConfiguration test(kinChain, relative, index, nLink, nRelative);
 
 			HomogeneTransformation S = kinChainH1.mul(relativeH4);
 			HomogeneTransformation R = kinChainH1.mul(relativeH4);
@@ -685,8 +709,9 @@ namespace TestDriver
 
 			int index[] = {0, 0, 0};
 			int n = 3;
-
-			SampleCameraConfiguration test(kinChain, relative, index, n);
+			int nLink = 1;
+			int nRelative = 3;
+			SampleCameraConfiguration test(kinChain, relative, index, nLink, nRelative);
 
 			HomogeneTransformation S = kinChainH1.mul(relativeH4);
 			HomogeneTransformation R = kinChainH1.mul(relativeH1);
@@ -704,12 +729,12 @@ namespace TestDriver
 		{
 			float roll, pitch, yaw, x, y, z;
 			HomogeneTransformation kinChainH1; 
-			roll = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-			pitch = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-			yaw = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-			x = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-			y = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-			z = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			//roll = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			//pitch = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			//yaw = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			//x = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			//y = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			//z = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
 			kinChainH1.init(roll, pitch, yaw, x, y, z);
 			HomogeneTransformation kinChain[1];
 			kinChain[0] = kinChainH1;
@@ -719,9 +744,10 @@ namespace TestDriver
 			HomogeneTransformation relativeH1;
 			relativeH1.init(0.1, 0, 0, 0, 0, 0.2);
 			HomogeneTransformation relativeH2;
-			relativeH2.init(0.1, 0, 0, 0, 0, 0.1);
+			relativeH2.init(0.1, 0, 0, 0, 0, 0.11);
 			HomogeneTransformation relativeH3;
 			relativeH3.init(0.1, 0, 0, 0, 0, 0.2);
+
 			HomogeneTransformation relativeH4;
 			relativeH4.init(0.1, 0, 0, 0, 0, 0.1);
 
@@ -732,10 +758,12 @@ namespace TestDriver
 			int index[] = {0, 0, 0};
 			int n = 3;
 
-			SampleCameraConfiguration test(kinChain, relative, index, n);
+			int nLink = 1;
+			int nRelative = 3;
+			SampleCameraConfiguration test(kinChain, relative, index, nLink, nRelative);
 
 			HomogeneTransformation S = kinChainH1.mul(relativeH4);
-			HomogeneTransformation R = kinChainH1.mul(relativeH2);
+			HomogeneTransformation R = kinChainH1.mul(relativeH4);
 
 			HomogeneTransformation result = test.findNN(S, HomogeneTransformation::DIM_DIR::ROLLM);
 
@@ -750,12 +778,12 @@ namespace TestDriver
 		{
 			float roll, pitch, yaw, x, y, z;
 			HomogeneTransformation kinChainH1; 
-			//roll = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-			//pitch = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-			//yaw = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-			//x = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-			//y = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-			//z = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			roll = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			pitch = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			yaw = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			x = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			y = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+			z = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
 			kinChainH1.init(roll, pitch, yaw, x, y, z);
 			HomogeneTransformation kinChain[1];
 			kinChain[0] = kinChainH1;
@@ -776,9 +804,10 @@ namespace TestDriver
 			relative[2] = relativeH3;
 
 			int index[] = {0, 0, 0};
-			int n = 3;
 
-			SampleCameraConfiguration test(kinChain, relative, index, n);
+			int nLink = 1;
+			int nRelative = 3;
+			SampleCameraConfiguration test(kinChain, relative, index, nLink, nRelative);
 
 			HomogeneTransformation S = kinChainH1.mul(relativeH4);
 			HomogeneTransformation R = kinChainH1.mul(relativeH1);

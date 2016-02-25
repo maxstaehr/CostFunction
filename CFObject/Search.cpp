@@ -1,7 +1,7 @@
 #include "Search.h"
+#include <float.h>
 
-
-Search::Search(const SampleCameraConfiguration& config):sampleConfig(config), currentCosts(0),currentTrans(HomogeneTransformation()), 
+Search::Search(SampleCameraConfiguration& config):sampleConfig(config), currentCosts(1.0),currentTrans(HomogeneTransformation()), 
 	nextEvalMinus(HomogeneTransformation()), nextEvalPlus(HomogeneTransformation())
 {
 

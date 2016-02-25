@@ -682,11 +682,11 @@ namespace TestDriver
 			HomogeneTransformation b;
 			b.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 
-			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::XP));
-			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::XP));
+			Assert::AreEqual(FLT_MAX,	a.getDist(b, HomogeneTransformation::DIM_DIR::XP));
+			Assert::AreEqual(FLT_MAX,	b.getDist(a, HomogeneTransformation::DIM_DIR::XP));
 
-			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::XM));
-			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::XM));
+			Assert::AreEqual(FLT_MAX,	a.getDist(b, HomogeneTransformation::DIM_DIR::XM));
+			Assert::AreEqual(FLT_MAX,	b.getDist(a, HomogeneTransformation::DIM_DIR::XM));
 
 		}
 
@@ -718,11 +718,11 @@ namespace TestDriver
 			HomogeneTransformation b;
 			b.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 
-			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::YP));
-			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::YP));
+			Assert::AreEqual(FLT_MAX,	a.getDist(b, HomogeneTransformation::DIM_DIR::YP));
+			Assert::AreEqual(FLT_MAX,	b.getDist(a, HomogeneTransformation::DIM_DIR::YP));
 
-			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::YM));
-			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::YM));
+			Assert::AreEqual(FLT_MAX,	a.getDist(b, HomogeneTransformation::DIM_DIR::YM));
+			Assert::AreEqual(FLT_MAX,	b.getDist(a, HomogeneTransformation::DIM_DIR::YM));
 
 		}
 
@@ -754,11 +754,11 @@ namespace TestDriver
 			HomogeneTransformation b;
 			b.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 
-			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::ZP));
-			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::ZP));
+			Assert::AreEqual(FLT_MAX,	a.getDist(b, HomogeneTransformation::DIM_DIR::ZP));
+			Assert::AreEqual(FLT_MAX,	b.getDist(a, HomogeneTransformation::DIM_DIR::ZP));
 
-			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::ZM));
-			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::ZM));
+			Assert::AreEqual(FLT_MAX,	a.getDist(b, HomogeneTransformation::DIM_DIR::ZM));
+			Assert::AreEqual(FLT_MAX,	b.getDist(a, HomogeneTransformation::DIM_DIR::ZM));
 
 		}
 
@@ -790,11 +790,11 @@ namespace TestDriver
 			HomogeneTransformation b;
 			b.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 
-			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::ROLLP));
-			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::ROLLP));
+			Assert::AreEqual(FLT_MAX,	a.getDist(b, HomogeneTransformation::DIM_DIR::ROLLP));
+			Assert::AreEqual(FLT_MAX,	b.getDist(a, HomogeneTransformation::DIM_DIR::ROLLP));
 
-			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::ROLLM));
-			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::ROLLM));
+			Assert::AreEqual(FLT_MAX,	a.getDist(b, HomogeneTransformation::DIM_DIR::ROLLM));
+			Assert::AreEqual(FLT_MAX,	b.getDist(a, HomogeneTransformation::DIM_DIR::ROLLM));
 
 		}
 
@@ -826,11 +826,11 @@ namespace TestDriver
 			HomogeneTransformation b;
 			b.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 
-			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::PITCHP));
-			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::PITCHP));
+			Assert::AreEqual(FLT_MAX,	a.getDist(b, HomogeneTransformation::DIM_DIR::PITCHP));
+			Assert::AreEqual(FLT_MAX,	b.getDist(a, HomogeneTransformation::DIM_DIR::PITCHP));
 
-			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::PITCHM));
-			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::PITCHM));
+			Assert::AreEqual(FLT_MAX,	a.getDist(b, HomogeneTransformation::DIM_DIR::PITCHM));
+			Assert::AreEqual(FLT_MAX,	b.getDist(a, HomogeneTransformation::DIM_DIR::PITCHM));
 
 		}
 
@@ -862,11 +862,11 @@ namespace TestDriver
 			HomogeneTransformation b;
 			b.init(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 
-			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::YAWP));
-			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::YAWP));
+			Assert::AreEqual(FLT_MAX,	a.getDist(b, HomogeneTransformation::DIM_DIR::YAWP));
+			Assert::AreEqual(FLT_MAX,	b.getDist(a, HomogeneTransformation::DIM_DIR::YAWP));
 
-			Assert::AreEqual(0.0f,	a.getDist(b, HomogeneTransformation::DIM_DIR::YAWM));
-			Assert::AreEqual(0.0f,	b.getDist(a, HomogeneTransformation::DIM_DIR::YAWM));
+			Assert::AreEqual(FLT_MAX,	a.getDist(b, HomogeneTransformation::DIM_DIR::YAWM));
+			Assert::AreEqual(FLT_MAX,	b.getDist(a, HomogeneTransformation::DIM_DIR::YAWM));
 
 		}
 

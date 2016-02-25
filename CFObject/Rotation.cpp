@@ -5,12 +5,14 @@
 Rotation::Rotation(void)
 {
 	float temp[9] = EYE_9;
+	this->H = new float[9];
 	memcpy(H, temp, sizeof(float)*9);
 }
 
 
 Rotation::Rotation(Rotation& inst)
 {
+	this->H = new float[9];
 	memcpy(H, inst.H, sizeof(float)*9);
 }
 
@@ -94,6 +96,7 @@ void Rotation::setH(const float const* res)
 
 Rotation::~Rotation(void)
 {
+	delete H;
 }
 
 
