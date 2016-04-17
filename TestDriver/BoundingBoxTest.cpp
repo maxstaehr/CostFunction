@@ -108,6 +108,7 @@ namespace TestDriver
 		{
 			HomogeneTransformation trans;
 			BoundingBox bb(trans, 1, 2, 3);
+#define M_PI (3.14159265359)
 			trans.init(M_PI/2.0, 0 , 0, 0, 0, 0);
 			bb.setH(trans);
 

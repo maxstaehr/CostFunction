@@ -23,44 +23,121 @@ bool intersectBox(float* origin, float* direction, float* vmin, float* vmax);
 Camera::Camera(CameraType& camType):type(camType)
 {
 
+	int nRays = type.getnx() * type.getny();
+	int nSSRays = type.getssnx() * type.getssny();
 
-	this->x = new float[type.getnx() * type.getny()];
-	this->y = new float[type.getnx() * type.getny()];
-	this->z = new float[type.getnx() * type.getny()];
-	memcpy(this->x, type.getx(), type.getnx()*type.getny()*sizeof(float));
-	memcpy(this->y, type.gety(), type.getnx()*type.getny()*sizeof(float));
-	memcpy(this->z, type.getz(), type.getnx()*type.getny()*sizeof(float));
-	
+	this->x = new float[nRays];
+	this->y = new float[nRays];
+	this->z = new float[nRays];
+	this->d = new float[nRays];
+	this->dx = new float[nRays];
+	this->dy = new float[nRays];
+	this->dz = new float[nRays];
 
-	this->ssx = new float[type.getssnx() * type.getssny()];
-	this->ssy = new float[type.getssnx() * type.getssny()];
-	this->ssz = new float[type.getssnx() * type.getssny()];
-	memcpy(this->ssx, type.getssx(), type.getssnx() * type.getssny()*sizeof(float));
-	memcpy(this->ssy, type.getssy(), type.getssnx() * type.getssny()*sizeof(float));
-	memcpy(this->ssz, type.getssz(), type.getssnx() * type.getssny()*sizeof(float));
 
-	this->d = new float[type.getnx() * type.getny()];
-	this->ssd = new float[type.getssnx() * type.getssny()];
-
-	for(int ray=0; ray<type.getnx() * type.getny(); ray++)
+	memcpy(this->x, type.getx(), nRays*sizeof(float));
+	memcpy(this->y, type.gety(), nRays*sizeof(float));
+	memcpy(this->z, type.getz(), nRays*sizeof(float));
+	for(int ray=0; ray<nRays; ray++)
 	{
 		this->d[ray] = FLT_MAX;
-	}
-
-	for(int ray=0; ray<type.getssnx() * type.getssny(); ray++)
-	{
-		this->ssd[ray] = FLT_MAX;
+		this->dx[ray] = FLT_MAX;
+		this->dy[ray] = FLT_MAX;
+		this->dz[ray] = FLT_MAX;
 	}
 	
-	this->dx = new float[type.getnx() * type.getny()];
-	this->dy = new float[type.getnx() * type.getny()];
-	this->dz = new float[type.getnx() * type.getny()];
 
-	this->ssdx = new float[type.getssnx() * type.getssny()];
-	this->ssdy = new float[type.getssnx() * type.getssny()];
-	this->ssdz = new float[type.getssnx() * type.getssny()];
+	this->ssx = new float[nSSRays];
+	this->ssy = new float[nSSRays];
+	this->ssz = new float[nSSRays];
+	this->ssd = new float[nSSRays];
+	this->ssdx = new float[nSSRays];
+	this->ssdy = new float[nSSRays];
+	this->ssdz = new float[nSSRays];
+
+	memcpy(this->ssx, type.getssx(), nSSRays*sizeof(float));
+	memcpy(this->ssy, type.getssy(), nSSRays*sizeof(float));
+	memcpy(this->ssz, type.getssz(), nSSRays*sizeof(float));
+
+	for(int ray=0; ray<nSSRays; ray++)
+	{
+		this->ssd[ray] = FLT_MAX;
+		this->ssdx[ray] = FLT_MAX;
+		this->ssdy[ray] = FLT_MAX;
+		this->ssdz[ray] = FLT_MAX;
+	}
+
+
+
+	
+
+
+
+
+
+
+	cameraLink = type.getLink();
 }
 
+void Camera::saveCurrentState(std::ofstream* outbin)
+{
+	outbin->write((char*)h.getH(),NELEM_H*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	int nRays = type.getnx() * type.getny();
+	outbin->write((char*)&nRays,sizeof(int));
+	if (!outbin) std::cerr << "error";
+
+	int nSSRays = type.getssnx() * type.getssny();
+	outbin->write((char*)&nSSRays,sizeof(int));
+	if (!outbin) std::cerr << "error";
+		
+	outbin->write((char*)x,nRays*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin->write((char*)y,nRays*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin->write((char*)z,nRays*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin->write((char*)d,nRays*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin->write((char*)dx,nRays*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin->write((char*)dy,nRays*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin->write((char*)dz,nRays*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+
+	outbin->write((char*)ssx,nSSRays*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin->write((char*)ssy,nSSRays*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin->write((char*)ssz,nSSRays*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin->write((char*)ssd,nSSRays*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin->write((char*)ssdx,nSSRays*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin->write((char*)ssdy,nSSRays*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin->write((char*)ssdz,nSSRays*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	cameraLink.getPCL()[0].savePCL(outbin);
+	cameraLink.getBB()[0].saveBB(outbin);
+}
 
 Camera::~Camera(void)
 {
@@ -106,18 +183,75 @@ void Camera::updateCameraPos(HomogeneTransformation trans)
 		ssy[i] = xb*trans.getH()[4] + yb*trans.getH()[5] + zb*trans.getH()[6];
 		ssz[i] = xb*trans.getH()[8] + yb*trans.getH()[9] + zb*trans.getH()[10];
 	}
+
+	cameraLink = type.getLink();
+	cameraLink.setH(trans);
+
+	for(int ray=0; ray<type.getnx() * type.getny(); ray++)
+	{
+		this->d[ray] = FLT_MAX;
+		this->dx[ray] = FLT_MAX;
+		this->dy[ray] = FLT_MAX;
+		this->dz[ray] = FLT_MAX;
+	}
+
+	for(int ray=0; ray<type.getssnx() * type.getssny(); ray++)
+	{
+		this->ssd[ray] = FLT_MAX;
+		this->ssdx[ray] = FLT_MAX;
+		this->ssdy[ray] = FLT_MAX;
+		this->ssdz[ray] = FLT_MAX;
+	}
 }
 
 void Camera::raytrace(Link& link)
 {
-	assert(link.getnPCL() == link.getnBB());
-	BoundingBox box;
+	assert(link.getnPCL() == link.getnBB());	
 	for(int i=0;i<link.getnPCL(); i++)
 	{		
 		if(hitBox(link.getBB()[i]))
 		{
 			raytrace(link.getPCL()[i]);
 		}
+	}
+}
+
+void Camera::checkinBB(Link& link)
+{
+	assert(link.getnPCL() == link.getnBB());
+	int nRays = type.getnx()*type.getny();
+	int nSSRays = type.getssnx()*type.getssny();
+	float p[3];
+	for(int i=0; i<link.getnBB(); i++)
+	{
+		for(int ray=0; ray<nRays; ray++)
+		{
+			p[0] = dx[ray];
+			p[1] = dy[ray];
+			p[2] = dz[ray];
+			if(link.getBB()[i].isInBoundingBox(p))
+			{
+				d[ray] = FLT_MAX;
+				dx[ray] = FLT_MAX;
+				dy[ray] = FLT_MAX;
+				dz[ray] = FLT_MAX;
+			}
+		}
+
+		for(int ray=0; ray<nSSRays; ray++)
+		{
+			p[0] = ssdx[ray];
+			p[1] = ssdy[ray];
+			p[2] = ssdz[ray];
+			if(link.getBB()[i].isInBoundingBox(p))
+			{
+				ssd[ray] = FLT_MAX;
+				ssdx[ray] = FLT_MAX;
+				ssdy[ray] = FLT_MAX;
+				ssdz[ray] = FLT_MAX;
+			}
+		}
+
 	}
 }
 

@@ -83,8 +83,10 @@
     <ClCompile Include="ClusterTest.cpp" />
     <ClCompile Include="ECTest.cpp" />
     <ClCompile Include="HomogeneTransformationTest.cpp" />
+    <ClCompile Include="InnerLoopTest.cpp" />
     <ClCompile Include="KinChainTest.cpp" />
     <ClCompile Include="LinkTest.cpp" />
+    <ClCompile Include="OuterLoopTest.cpp" />
     <ClCompile Include="PCLTest.cpp" />
     <ClCompile Include="PossibleConfigurationsTest.cpp" />
     <ClCompile Include="RotationTest.cpp" />

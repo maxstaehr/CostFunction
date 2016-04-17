@@ -30,6 +30,35 @@ PCL::PCL(int nV, int nF,  const float const * x,
 	memcpy(this->fy, fy, sizeof(int)*nF);
 	memcpy(this->fz, fz, sizeof(int)*nF);
 }
+
+void PCL::savePCL(std::ofstream* outbin)
+{
+	
+	outbin->write((char*)&nV,sizeof(int));
+	if (!outbin) std::cerr << "error";
+
+	outbin->write((char*)&nF,sizeof(int));
+	if (!outbin) std::cerr << "error";
+
+	outbin->write((char*)x,sizeof(float)*nV);
+	if (!outbin) std::cerr << "error";
+
+	outbin->write((char*)y,sizeof(float)*nV);
+	if (!outbin) std::cerr << "error";
+
+	outbin->write((char*)z,sizeof(float)*nV);
+	if (!outbin) std::cerr << "error";
+
+	outbin->write((char*)fx,sizeof(float)*nF);
+	if (!outbin) std::cerr << "error";
+
+	outbin->write((char*)fy,sizeof(float)*nF);
+	if (!outbin) std::cerr << "error";
+
+	outbin->write((char*)fz,sizeof(float)*nF);
+	if (!outbin) std::cerr << "error";
+
+}
 PCL::PCL():nV(0), nF(0), x(NULL), y(NULL), z(NULL), fx(NULL), fy(NULL), fz(NULL)
 {
 

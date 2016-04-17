@@ -65,7 +65,8 @@ namespace TestDriver
 			float z[] = {0, 0, FLT_MAX};
 			int nx = 3;
 			int ny = 1;
-			CameraType type(nx, ny, x, y, z, nx, ny, x, y, z);
+	
+			CameraType type(nx, ny, x, y, z, nx, ny, x, y, z, Link());
 			Camera cam(type);
 			for(int i=0; i<nx*ny; i++)
 			{
@@ -139,7 +140,8 @@ namespace TestDriver
 			float z[] = {0, 2.0, FLT_MAX};
 			int nx = 3;
 			int ny = 1;
-			CameraType type(nx, ny, x, y, z, nx, ny, x, y, z);
+
+			CameraType type(nx, ny, x, y, z, nx, ny, x, y, z, Link());
 			Camera cam(type);
 			for(int i=0; i<nx*ny; i++)
 			{
@@ -213,7 +215,8 @@ namespace TestDriver
 			float z[] = {0, 2.0, 0.1, 2.1, FLT_MAX};
 			int nx = 5;
 			int ny = 1;
-			CameraType type(nx, ny, x, y, z, nx, ny, x, y, z);
+			
+			CameraType type(nx, ny, x, y, z, nx, ny, x, y, z, Link());
 			Camera cam(type);
 			for(int i=0; i<nx*ny; i++)
 			{

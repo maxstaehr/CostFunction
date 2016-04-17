@@ -215,6 +215,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
   <ItemGroup>
     <ClInclude Include="BoundingBox.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="CameraSetup.h" />
     <ClInclude Include="CameraType.h" />
     <ClInclude Include="Cluster.h" />
     <ClInclude Include="EC.h" />
@@ -223,8 +224,11 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="global.h" />
     <ClInclude Include="HConfig.h" />
     <ClInclude Include="HomogeneTransformation.h" />
+    <ClInclude Include="InnerLoop.h" />
+    <ClInclude Include="CFIO.h" />
     <ClInclude Include="KinChain.h" />
     <ClInclude Include="Link.h" />
+    <ClInclude Include="OuterLoop.h" />
     <ClInclude Include="PCL.h" />
     <ClInclude Include="PossibleConfigurations.h" />
     <ClInclude Include="Rotation.h" />
@@ -236,6 +240,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
   <ItemGroup>
     <ClCompile Include="BoundingBox.cpp" />
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="CameraSetup.cpp" />
     <ClCompile Include="CameraType.cpp" />
     <ClCompile Include="Cluster.cpp" />
     <ClCompile Include="EC.cpp" />
@@ -243,8 +248,11 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClCompile Include="FObject.cpp" />
     <ClCompile Include="HConfig.cpp" />
     <ClCompile Include="HomogeneTransformation.cpp" />
+    <ClCompile Include="InnerLoop.cpp" />
+    <ClCompile Include="CFIO.cpp" />
     <ClCompile Include="KinChain.cpp" />
     <ClCompile Include="Link.cpp" />
+    <ClCompile Include="OuterLoop.cpp" />
     <ClCompile Include="PCL.cpp" />
     <ClCompile Include="PossibleConfigurations.cpp" />
     <ClCompile Include="Rotation.cpp" />

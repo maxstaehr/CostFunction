@@ -2,6 +2,8 @@
 #include "global.h"
 
 #include "HomogeneTransformation.h"
+#include <fstream>
+#include <iostream>
 
 class CFOBJECT_EXPORT BoundingBox
 {
@@ -22,6 +24,7 @@ public:
 	float getZDim() {return zdim;}
 
 	void transform(HomogeneTransformation h);
+	void saveBB(std::ofstream* outbin);
 	~BoundingBox(void);
 
 private:

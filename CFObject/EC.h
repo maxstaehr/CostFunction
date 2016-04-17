@@ -32,7 +32,8 @@ public:
 
 	//std::set<int>&				getP(){return P;}
 	//std::set<std::set<int>*>&	getC(){return C;}
-	Cluster&					getCluster(int i){return clu[i];}
+	Cluster					    getCluster(int i){return clu[i];}
+	Cluster						getLargestCluster();
 	int							getNumOfClusters(){return clu.size();}
 
 

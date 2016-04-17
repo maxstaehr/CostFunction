@@ -36,7 +36,8 @@ bool ECTestAdapter::test2()
 	float z[] = {0, 0, FLT_MAX};
 	int nx = 3;
 	int ny = 1;
-	CameraType type(nx, ny, x, y, z, nx, ny, x, y, z);
+
+	CameraType type(nx, ny, x, y, z, nx, ny, x, y, z, Link());
 	Camera cam(type);
 	for(int i=0; i<nx*ny; i++)
 	{
@@ -80,7 +81,8 @@ bool ECTestAdapter::test3()
 	float z[] = {0, 0, FLT_MAX};
 	int nx = 3;
 	int ny = 1;
-	CameraType type(nx, ny, x, y, z, nx, ny, x, y, z);
+
+	CameraType type(nx, ny, x, y, z, nx, ny, x, y, z, Link());
 	Camera cam(type);
 	for(int i=0; i<nx*ny; i++)
 	{
@@ -138,7 +140,8 @@ bool ECTestAdapter::test4()
 	float z[] = {0, 0, FLT_MAX};
 	int nx = 3;
 	int ny = 1;
-	CameraType type(nx, ny, x, y, z, nx, ny, x, y, z);
+
+	CameraType type(nx, ny, x, y, z, nx, ny, x, y, z, Link());
 	Camera cam(type);
 	for(int i=0; i<nx*ny; i++)
 	{
@@ -196,7 +199,8 @@ bool ECTestAdapter::test5()
 	float z[] = {0, 0, FLT_MAX};
 	int nx = 3;
 	int ny = 1;
-	CameraType type(nx, ny, x, y, z, nx, ny, x, y, z);
+
+	CameraType type(nx, ny, x, y, z, nx, ny, x, y, z, Link());
 	Camera cam(type);
 	for(int i=0; i<nx*ny; i++)
 	{
@@ -287,7 +291,8 @@ bool ECTestAdapter::test6()
 	float z[] = {0, 0, FLT_MAX};
 	int nx = 3;
 	int ny = 1;
-	CameraType type(nx, ny, x, y, z, nx, ny, x, y, z);
+
+	CameraType type(nx, ny, x, y, z, nx, ny, x, y, z, Link());
 	Camera cam(type);
 	for(int i=0; i<nx*ny; i++)
 	{

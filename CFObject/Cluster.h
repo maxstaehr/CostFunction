@@ -13,6 +13,8 @@ public:
 	Cluster(int size);
 	~Cluster(void);
 
+	void saveCluster(const char* fN);
+
 	void setX(int i, float value);
 	void setY(int i, float value);
 	void setZ(int i, float value);
@@ -42,7 +44,7 @@ private:
 	double prob;
 	float meanDist;
 
-	float *centroid;
+	float centroid[3];
 	
 };
 

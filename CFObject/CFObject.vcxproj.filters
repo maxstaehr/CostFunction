@@ -1,0 +1,64 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="BoundingBox.cpp" />
+    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="CameraType.cpp" />
+    <ClCompile Include="Cluster.cpp" />
+    <ClCompile Include="EC.cpp" />
+    <ClCompile Include="ECTestAdapter.cpp" />
+    <ClCompile Include="FObject.cpp" />
+    <ClCompile Include="HConfig.cpp" />
+    <ClCompile Include="HomogeneTransformation.cpp" />
+    <ClCompile Include="KinChain.cpp" />
+    <ClCompile Include="Link.cpp" />
+    <ClCompile Include="PCL.cpp" />
+    <ClCompile Include="PossibleConfigurations.cpp" />
+    <ClCompile Include="Rotation.cpp" />
+    <ClCompile Include="SA.cpp" />
+    <ClCompile Include="SampleCameraConfiguration.cpp" />
+    <ClCompile Include="Search.cpp" />
+    <ClCompile Include="Transformation2D.cpp" />
+    <ClCompile Include="InnerLoop.cpp">
+      <Filter>Loop</Filter>
+    </ClCompile>
+    <ClCompile Include="OuterLoop.cpp" />
+    <ClCompile Include="CFIO.cpp" />
+    <ClCompile Include="CameraSetup.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="BoundingBox.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="CameraType.h" />
+    <ClInclude Include="Cluster.h" />
+    <ClInclude Include="EC.h" />
+    <ClInclude Include="ECTestAdapter.h" />
+    <ClInclude Include="FObject.h" />
+    <ClInclude Include="global.h" />
+    <ClInclude Include="HConfig.h" />
+    <ClInclude Include="HomogeneTransformation.h" />
+    <ClInclude Include="KinChain.h" />
+    <ClInclude Include="Link.h" />
+    <ClInclude Include="PCL.h" />
+    <ClInclude Include="PossibleConfigurations.h" />
+    <ClInclude Include="Rotation.h" />
+    <ClInclude Include="SA.h" />
+    <ClInclude Include="SampleCameraConfiguration.h" />
+    <ClInclude Include="Search.h" />
+    <ClInclude Include="Transformation2D.h" />
+    <ClInclude Include="InnerLoop.h">
+      <Filter>Loop</Filter>
+    </ClInclude>
+    <ClInclude Include="OuterLoop.h" />
+    <ClInclude Include="CFIO.h" />
+    <ClInclude Include="CameraSetup.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="kernel.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Loop">
+      <UniqueIdentifier>{d89053fb-0bfb-4ae2-b172-1c6b4a3e6428}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

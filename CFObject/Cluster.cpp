@@ -1,5 +1,6 @@
 #include "Cluster.h"
 
+#include <fstream>
 #include <iostream>
 #include <assert.h>
 
@@ -8,12 +9,15 @@ double calculateWeightOfDetection(int w);
 
 Cluster::Cluster():x(NULL), y(NULL), z(NULL), maxSize(0), prob(0.0), meanDist(0.0f)
 {
-	this->centroid = new float[3];
+	
+	centroid[0] = 0;
+	centroid[1] = 0;
+	centroid[2] = 0;
 }
 
 Cluster::Cluster(const Cluster& rhs)
 {
-	this->centroid = new float[3];
+	
 	maxSize = rhs.maxSize;
 	x = new float[maxSize];
 	y = new float[maxSize];
@@ -45,7 +49,7 @@ void Cluster::setZ(int i, float v)
 
 Cluster::Cluster(int size)
 {
-	this->centroid = new float[3];
+	
 	maxSize = size;
 	this->x = new float[size];
 	this->y = new float[size];
@@ -71,7 +75,6 @@ void Cluster::operator=(const Cluster& rhs )
 
 Cluster::~Cluster(void)
 {
-	delete centroid;
 	if(x != NULL)
 		delete x;
 	if(y != NULL)
@@ -109,6 +112,33 @@ void Cluster::calculateCentroid()
 	centroid[1] /= (float)maxSize;
 	centroid[2] /= (float)maxSize;
 }
+
+void Cluster::saveCluster(const char* fN)
+{
+
+	std::ofstream outbin(fN, std::ofstream::binary );
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)&maxSize,sizeof(int));
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)x,maxSize*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)y,maxSize*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)z,maxSize*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin.write((char*)centroid,3*sizeof(float));
+	if (!outbin) std::cerr << "error";
+
+	outbin.close();
+	
+}
+
+
 
 void Cluster::calculate()
 {

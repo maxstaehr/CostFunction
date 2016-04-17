@@ -2,6 +2,8 @@
 #include "global.h"
 #include "Rotation.h"
 #include "HomogeneTransformation.h"
+#include <iostream>
+#include <fstream>
 
 class CFOBJECT_EXPORT PCL 	
 {
@@ -28,6 +30,7 @@ public:
 
 	void rotate(Rotation rot);
 	void transform(HomogeneTransformation trans);
+	void savePCL(std::ofstream* outbin);
 
 private:
 	int nV;

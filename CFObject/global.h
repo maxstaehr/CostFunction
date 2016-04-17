@@ -2,7 +2,7 @@
 //Anzahl der Links, die ich in dieser Roboterversion verwende
 //Die Anzahnl der Gelenke könnte auch anders sein, wenn man einen anderen Roboter verwendet
 //Die homogenen Transformationen werden in Matlab berechnet. 
-#define N_ELEMENT_T 10
+
 
 #if defined(CFOBJECT_EXPORT_DEF) // inside DLL
 #   define CFOBJECT_EXPORT   __declspec(dllexport)
@@ -21,3 +21,4 @@
 #define ELLIPSE_PARAM_Y (0.2488f)
 #define ELLIPSE_PARAM_Z (0.8001f)
 
+#define N_COEFFS 4

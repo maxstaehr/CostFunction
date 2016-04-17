@@ -5,11 +5,18 @@
 
 #include "Transformation2D.h"
 #include "Cluster.h"
+#include "CFIO.h"
 
 class CFOBJECT_EXPORT PossibleConfigurations
 {
 public:
+	PossibleConfigurations();
 	PossibleConfigurations(Transformation2D* hs, int size);
+	PossibleConfigurations(PossibleConfigurations& inst);
+	PossibleConfigurations(CFIO::SAMPLE_HUMAN_POSITIONS* pcl);
+
+	void saveState(const char* name);
+	void operator=(PossibleConfigurations& rhs );
 
 	const Transformation2D* getHS()					{return hs;}
 	int getSize()									{return size;}

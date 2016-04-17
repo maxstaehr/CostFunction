@@ -4,6 +4,8 @@
 #include "CameraType.h"
 #include "HomogeneTransformation.h"
 #include "Link.h"
+#include <iostream>
+#include <fstream>
 
 class CFOBJECT_EXPORT Camera
 {
@@ -12,6 +14,7 @@ class CFOBJECT_EXPORT Camera
 	friend class ECTest;
 public:
 	Camera(CameraType& camType);
+	void saveCurrentState(std::ofstream* stream);
 	~Camera(void);
 
 	const float const* getx(){return x;}
@@ -37,15 +40,21 @@ public:
 	const float const* getssdx(){return ssdx;}
 	const float const* getssdy(){return ssdy;}
 	const float const* getssdz(){return ssdz;}
+
+	Link getLink(){return cameraLink;}
 	
 
 	CameraType& getCameraType(){return type;}
+
 	int getSize(){return type.getnx()*type.getny();}
+	int getNRays(){return type.getnx()*type.getny();}
+	int getNSSRays(){return type.getssnx()*type.getssny();}
 	
 	void updateCameraPos(HomogeneTransformation h);
 	void raytrace(PCL& pcl);
 	bool hitBox(BoundingBox& box);
 	void raytrace(Link& link);
+	void checkinBB(Link& link);
 
 private:
 	CameraType& type;

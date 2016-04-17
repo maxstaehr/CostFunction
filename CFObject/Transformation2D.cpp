@@ -9,6 +9,8 @@ Transformation2D::Transformation2D()
 	R[1] = 0.0f;
 	R[2] = 0.0f;
 	R[3] = 1.0f;
+	v[0] = 0;
+	v[1] = 0;
 }
 
 Transformation2D::Transformation2D(float w, float x, float y)
@@ -21,6 +23,7 @@ Transformation2D::Transformation2D(float w, float x, float y)
 	R[3] = ct;
 	v[0] = x;
 	v[1] = y;
+
 }
 
 

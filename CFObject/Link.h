@@ -10,6 +10,11 @@ class CFOBJECT_EXPORT Link
 {
 public:
 	Link(void);
+
+	
+	Link(Link& inst);
+	void operator=(Link& rhs );
+
 	~Link(void);
 
 

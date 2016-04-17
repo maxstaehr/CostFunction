@@ -62,6 +62,20 @@ void EC::reset()
 	C.clear();
 	clu.clear();
 }
+Cluster EC::getLargestCluster()
+{
+	int maxSize = 0;
+	int index = 0;
+	for(int i=0; i<clu.size(); i++)
+	{
+		if(clu[i].getMaxSize()>maxSize)
+		{
+			index = i;
+		}
+	}
+	return clu[index];
+}
+
 void EC::addDepthData(Camera& cam)
 {
 	int j=P.size();

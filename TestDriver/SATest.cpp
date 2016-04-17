@@ -26,7 +26,7 @@ namespace TestDriver
 
 			int value = (int)pow(3.0,6.0);
 			
-			HomogeneTransformation kinChain[1];
+			Link kinChain[1];
 			HomogeneTransformation *relative = new HomogeneTransformation[value];
 			int *index = new int[value];
 
@@ -188,7 +188,7 @@ namespace TestDriver
 
 			int value = (int)pow(3.0,6.0);
 			
-			HomogeneTransformation kinChain[1];
+			Link kinChain[1];
 			HomogeneTransformation *relative = new HomogeneTransformation[value];
 			int *index = new int[value];
 
@@ -270,7 +270,7 @@ namespace TestDriver
 
 			int value = (int)pow(3.0,6.0);
 			
-			HomogeneTransformation kinChain[1];
+			Link kinChain[1];
 			HomogeneTransformation *relative = new HomogeneTransformation[value];
 			int *index = new int[value];
 
@@ -386,7 +386,7 @@ namespace TestDriver
 
 			int value = (int)pow(3.0,6.0);
 			
-			HomogeneTransformation kinChain[1];
+			Link kinChain[1];
 			HomogeneTransformation *relative = new HomogeneTransformation[value];
 			int *index = new int[value];
 

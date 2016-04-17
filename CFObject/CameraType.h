@@ -1,7 +1,8 @@
 #pragma once
 
 #include "global.h"
-#include "PCL.h"
+#include "Link.h"
+#include "CFIO.h"
 
 
 class CFOBJECT_EXPORT CameraType
@@ -16,7 +17,9 @@ public:
 			int ssny,
 			const float const* ssx,
 			const float const* ssy,
-			const float const* ssz);
+			const float const* ssz, 
+			Link link);
+	CameraType(CFIO::SAMPLE_CAMERA*);
 
 	int getnx(){return nx;}
 	int getny(){return ny;}
@@ -29,6 +32,8 @@ public:
 	const float const* getssx(){return ssx;}
 	const float const* getssy(){return ssy;}
 	const float const* getssz(){return ssz;}
+
+	Link getLink(){return link;};
 
 
 
@@ -48,5 +53,9 @@ private:
 	float* ssx;
 	float* ssy;
 	float* ssz;
+	Link link;
+
+
+
 };
 

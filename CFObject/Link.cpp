@@ -5,6 +5,47 @@ Link::Link(void):nPCL(0), pcl(NULL), nBB(0), bbl(NULL)
 {
 }
 
+Link::Link(Link& inst)
+{
+	H = inst.H;
+	nPCL = inst.nPCL;
+	nBB = inst.nBB;
+
+
+	pcl = new PCL[nPCL];
+	for(int i=0; i<nPCL; i++)
+	{
+		pcl[i] = inst.pcl[i];
+	}
+	bbl = new BoundingBox[nBB];
+	for(int i=0; i<nBB; i++)
+	{
+		bbl[i] = inst.bbl[i];
+	}
+}
+void Link::operator=(Link& inst )
+{
+	H = inst.H;
+	nPCL = inst.nPCL;
+	nBB = inst.nBB;
+
+	if(pcl != NULL)
+	{
+		delete [] pcl;
+		delete [] bbl;
+	}
+	pcl = new PCL[nPCL];
+	for(int i=0; i<nPCL; i++)
+	{
+		pcl[i] = inst.pcl[i];
+	}
+	bbl = new BoundingBox[nBB];
+	for(int i=0; i<nBB; i++)
+	{
+		bbl[i] = inst.bbl[i];
+	}
+}
+
 
 Link::~Link(void)
 {

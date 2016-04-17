@@ -33,7 +33,8 @@ namespace TestDriver
 			float ssx[] = {4};
 			float ssy[] = {5};			
 			float ssz[] = {6};			
-			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
 			Camera cam(camType);
 
 			Assert::AreEqual(nx, cam.getCameraType().getnx());
@@ -81,7 +82,7 @@ namespace TestDriver
 			trans.init(0, 0, M_PI/2.0, 2, 2, 2);			
 			
 
-			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
 			Camera cam(camType);
 
 			Assert::AreEqual(nx, cam.getCameraType().getnx());
@@ -170,7 +171,8 @@ namespace TestDriver
 			int fz[] = {2};
 			PCL pcl(nV, nF, xpcl, ypcl, zpcl, fx, fy, fz);
 			
-			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
 			Camera cam(camType);
 			cam.raytrace(pcl);
 
@@ -237,7 +239,8 @@ namespace TestDriver
 			int fz[] = {2};
 			PCL pcl(nV, nF, xpcl, ypcl, zpcl, fx, fy, fz);
 			
-			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
 			Camera cam(camType);
 			
 
@@ -294,7 +297,8 @@ namespace TestDriver
 			int fz[] = {2};
 			PCL pcl(nV, nF, xpcl, ypcl, zpcl, fx, fy, fz);
 			
-			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
 			Camera cam(camType);
 			
 
@@ -353,7 +357,7 @@ namespace TestDriver
 			int fz[] = {2};
 			PCL pcl(nV, nF, xpcl, ypcl, zpcl, fx, fy, fz);
 			
-			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
 			Camera cam(camType);
 			
 
@@ -412,7 +416,7 @@ namespace TestDriver
 			int fz[] = {2};
 			PCL pcl(nV, nF, xpcl, ypcl, zpcl, fx, fy, fz);
 			
-			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
 			Camera cam(camType);
 			
 
@@ -477,7 +481,8 @@ namespace TestDriver
 			PCL pcl1(nV, nF, xpcl1, ypcl1, zpcl1, fx, fy, fz);
 			PCL pcl2(nV, nF, xpcl2, ypcl2, zpcl2, fx, fy, fz);
 			
-			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
 			Camera cam(camType);
 			
 
@@ -543,7 +548,9 @@ namespace TestDriver
 			PCL pcl1(nV, nF, xpcl1, ypcl1, zpcl1, fx, fy, fz);
 			PCL pcl2(nV, nF, xpcl2, ypcl2, zpcl2, fx, fy, fz);
 			
-			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+			BoundingBox bb;
+			PCL pclbb;
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
 			Camera cam(camType);
 			
 
@@ -592,7 +599,8 @@ namespace TestDriver
 			float ssy[] = {0};
 			float ssz[] = {2};
 
-			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
 			Camera cam(camType);
 
 			int nV = 3;
@@ -656,7 +664,8 @@ namespace TestDriver
 			float ssy[] = {0};
 			float ssz[] = {0};
 
-			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
 			Camera cam(camType);
 
 			int nV = 3;
@@ -721,7 +730,8 @@ namespace TestDriver
 			float ssy[] = {0};
 			float ssz[] = {0};
 
-			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
 			Camera cam(camType);
 
 			int nV = 3;
@@ -785,7 +795,8 @@ namespace TestDriver
 			float ssy[] = {0};
 			float ssz[] = {0};
 
-			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
 			Camera cam(camType);
 			
 			HomogeneTransformation trans;
@@ -812,7 +823,8 @@ namespace TestDriver
 			float ssy[] = {0};
 			float ssz[] = {0};
 
-			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
 			Camera cam(camType);
 			
 			HomogeneTransformation trans1;
@@ -843,7 +855,8 @@ namespace TestDriver
 			float ssy[] = {0};
 			float ssz[] = {0};
 
-			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
 			Camera cam(camType);
 			
 			HomogeneTransformation trans;
@@ -870,7 +883,9 @@ namespace TestDriver
 			float ssy[] = {0};
 			float ssz[] = {0};
 
-			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+			BoundingBox cambb;
+			PCL campcl;
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
 			Camera cam(camType);
 			
 			HomogeneTransformation trans1;
@@ -901,7 +916,9 @@ namespace TestDriver
 			float ssy[] = {0};
 			float ssz[] = {0};
 
-			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+			BoundingBox cambb;
+			PCL campcl;
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
 			Camera cam(camType);
 			
 			HomogeneTransformation trans1;
@@ -931,7 +948,8 @@ namespace TestDriver
 			float ssy[] = {0};
 			float ssz[] = {0};
 
-			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
 			Camera cam(camType);
 			
 			HomogeneTransformation trans1;
@@ -961,7 +979,8 @@ namespace TestDriver
 			float ssy[] = {0};
 			float ssz[] = {0};
 
-			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz);
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
 			Camera cam(camType);
 			
 			HomogeneTransformation trans1;
@@ -972,6 +991,96 @@ namespace TestDriver
 			trans2.init(0, 0, 0, 1, 0, 0);	
 			cam.updateCameraPos(trans2);			
 			Assert::IsFalse(cam.hitBox(bb));
+
+		}
+
+
+		[TestMethod]
+		void TestCameraLink()
+		{
+
+			int nV = 3;
+			int nF = 1;
+
+			float xpcl[] = {0, 0, 1};
+			float ypcl[] = {0, 1, 0};
+			float zpcl[] = {0, 0, 0};
+
+			float xr[] = {2, 1, 2};
+			float yr[] = {2, 2, 3};
+			float zr[] = {2, 2, 2};
+
+
+			int fx[] = {0};
+			int fy[] = {0};
+			int fz[] = {0};
+
+			PCL pcl(nV, nF, xpcl, ypcl, zpcl, fx, fy, fz);
+			HomogeneTransformation trans;
+			BoundingBox bbpcl(trans, 0, 1, 1);
+			Link link;
+			link.addPCL(pcl);
+			link.addBB(bbpcl);
+
+
+			int nx = 1; 
+			int ny = 1;
+			int ssnx = 1;
+			int ssny = 1;
+
+			float x[] = {1};
+			float y[] = {0};
+			float z[] = {0};
+
+			float ssx[] = {1};
+			float ssy[] = {0};
+			float ssz[] = {0};
+
+
+			CameraType camType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, link);
+			Camera cam(camType);
+			
+			HomogeneTransformation trans1;
+			trans1.init(0, 0, 0, 2, 1e-3, 1e-3);	
+			BoundingBox bb(trans1, 1, 1, 1);	
+
+			HomogeneTransformation trans2;
+			trans2.init(0, 0, 0, 1, 0, 0);	
+			cam.updateCameraPos(trans2);			
+			Assert::IsFalse(cam.hitBox(bb));
+
+			PCL pclresult = cam.getLink().getPCL()[0];
+			for(int i=0; i<3; i++)
+			{
+				
+				Assert::AreEqual(xpcl[i]+1.0f, pclresult.getx()[i], 1e-5f);
+				Assert::AreEqual(ypcl[i], pclresult.gety()[i], 1e-5f);
+				Assert::AreEqual(zpcl[i], pclresult.getz()[i], 1e-5f);
+			}
+			
+
+			BoundingBox bbresult = cam.getLink().getBB()[0];
+			
+			Assert::AreEqual(bbresult.getH().getH()[0], 1.0f, 1e-5f);
+			Assert::AreEqual(bbresult.getH().getH()[1], 0.0f, 1e-5f);
+			Assert::AreEqual(bbresult.getH().getH()[2], 0.0f, 1e-5f);
+			Assert::AreEqual(bbresult.getH().getH()[3], 1.0f, 1e-5f);
+
+			Assert::AreEqual(bbresult.getH().getH()[4], 0.0f, 1e-5f);
+			Assert::AreEqual(bbresult.getH().getH()[5], 1.0f, 1e-5f);
+			Assert::AreEqual(bbresult.getH().getH()[6], 0.0f, 1e-5f);
+			Assert::AreEqual(bbresult.getH().getH()[7], 0.0f, 1e-5f);
+
+			Assert::AreEqual(bbresult.getH().getH()[8], 0.0f, 1e-5f);
+			Assert::AreEqual(bbresult.getH().getH()[9], 0.0f, 1e-5f);
+			Assert::AreEqual(bbresult.getH().getH()[10], 1.0f, 1e-5f);
+			Assert::AreEqual(bbresult.getH().getH()[11], 0.0f, 1e-5f);
+
+			Assert::AreEqual(bbresult.getH().getH()[12], 0.0f, 1e-5f);
+			Assert::AreEqual(bbresult.getH().getH()[13], 0.0f, 1e-5f);
+			Assert::AreEqual(bbresult.getH().getH()[14], 0.0f, 1e-5f);
+			Assert::AreEqual(bbresult.getH().getH()[15], 1.0f, 1e-5f);
+
 
 		}
 
