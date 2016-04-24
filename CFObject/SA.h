@@ -26,10 +26,11 @@ public:
 		FI
 	};
 
-	SA(SampleCameraConfiguration& sampleConfig);
+	SA(SampleCameraConfiguration* sampleConfig, int n);
 	~SA(void);
+
 	bool nextIteration(double cost_m, double cost_p);
-	void setCurrentTransformation(HomogeneTransformation h);
+	void setCurrentTransformation(HomogeneTransformation h, int i);
 	enum STATE getState(){return state;}
 
 
@@ -37,10 +38,10 @@ public:
 private:
 
 	void nextDim();
-	bool localMinima[6];
+	bool* localMinima;
 
 	STATE state;
-	EVAL_DIM currentDim;
+	EVAL_DIM* currentDim;
 	double T;
 	double alpha;
 	double minThres;
@@ -50,6 +51,8 @@ private:
 	void setLocalMinima();
 	void performRandomJump();
 	void setNextTransformations();
+	void resetDim();
+	int currentSampleIndex;
 	
 	
 };

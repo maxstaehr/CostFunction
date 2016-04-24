@@ -1,4 +1,5 @@
-sceneNumber = 3;
+clear all;
+sceneNumber = 0;
 str = strcat('currentSzene_scene', num2str(sceneNumber), '.bin');
 kinChainFileName = strcat('currentSzene_scene', num2str(sceneNumber), '.bin');
 cameraSamplePointsFileName = strcat('currentSzeneSamplePoints_scene', num2str(sceneNumber), '.bin');
@@ -175,3 +176,4 @@ Centriod(1,:) = fread(fileId, 3, 'single');
 fclose(fileId);
 plot3(C(:,1),C(:,2),C(:,3), 'og');
 plot3(Centriod(:,1),Centriod(:,2),Centriod(:,3), 'ok', 'MarkerSize', 10);
+visualizeHumanProb;

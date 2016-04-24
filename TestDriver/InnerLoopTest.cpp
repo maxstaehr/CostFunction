@@ -19,248 +19,71 @@ namespace TestDriver
 		[TestMethod]
 		void TestConstructor()
 		{
-//CameraType
-			int nx = 1; 
-			int ny = 1;
-			float x[] = {1};
-			float y[] = {0};
-			float z[] = {0};
+			CFIO::LINK humanPCL;
+			const char* fileNameHuman = "C:\\ra\\GitHub\\CostFunction\\TestData\\human.bin";
+			CFIO::loadLink(&humanPCL, fileNameHuman);
 
-			int ssnx = 1;
-			int ssny = 1;
-			float ssx[] = {0};
-			float ssy[] = {0};
-			float ssz[] = {0};				
+			CFIO::LINK envPCL;
+			const char* fileNameEnv = "C:\\ra\\GitHub\\CostFunction\\TestData\\environment_scene1.bin";
+			CFIO::loadLink(&envPCL, fileNameEnv);
 			
-			CameraType* camTypes[1];
-			camTypes[0] = new CameraType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
+			CFIO::LINK robotPCL;
+			const char* fileNameRobot = "C:\\ra\\GitHub\\CostFunction\\TestData\\robot_short.bin2";			
+			CFIO::loadLink(&robotPCL, fileNameRobot);
 
-//Kinchain test
-			float eye[] = EYE_16;			
-			int nPos = 1;
-			KinChain kinChain(nPos, 1);
+			CFIO::SAMPLE_POSITIONS samplePositions;
+			const char* fileSamplePositions = "C:\\ra\\GitHub\\CostFunction\\TestData\\samplePositionsS4.bin";			
+			CFIO::loadSamplePositions(&samplePositions, fileSamplePositions);
 
-			float *temp1 = new float[NELEM_H*DOF_E*nPos];
-			float *temp2 = new float[NELEM_H*DOF_R*nPos];
-			float *temp3 = new float[NELEM_H*DOF_H*nPos];
-			for(int pos = 0; pos<nPos; pos++)
+			CFIO::POSSIBLE_CAMERA_TYPES possibleTypes;
+			const char* fileSampleCameraTypes = "C:\\ra\\GitHub\\CostFunction\\TestData\\sampleCamera.bin";
+			CFIO::loadSampleCamera(&possibleTypes, fileSampleCameraTypes);
+
+			CameraType** pType = new CameraType*[possibleTypes.nCameraTypes];
+			CFIO::SAMPLE_CAMERA* pC;
+			for(int i=0; i<possibleTypes.nCameraTypes; i++)
 			{
-				for(int h=0; h<DOF_E; h++)
-				{
-					for(int patteri=0; patteri<NELEM_H; patteri++)
-					{
-						temp1[pos*DOF_E*NELEM_H + h*NELEM_H + patteri] = eye[patteri];
-					}
-				}
+				pType[i] = new CameraType(&(possibleTypes.possibleCameraTypes[i]));
 			}
 
-			for(int pos = 0; pos<nPos; pos++)
-			{
-				for(int h=0; h<DOF_R; h++)
-				{
-					for(int patteri=0; patteri<NELEM_H; patteri++)
-					{
-						temp2[pos*DOF_R*NELEM_H + h*NELEM_H + patteri] = eye[patteri];
-					}
-				}
-			}
+			CFIO::SAMPLE_HUMAN_POSITIONS sampleHumanPos;
+			CFIO::loadSampleHumanPositions(&sampleHumanPos, "C:\\ra\\GitHub\\CostFunction\\TestData\\sampleFitting.bin");
+			PossibleConfigurations possibleHumanConfigs(&sampleHumanPos);
 
-			for(int pos = 0; pos<nPos; pos++)
-			{
-				for(int h=0; h<DOF_H; h++)
-				{
-					for(int patteri=0; patteri<NELEM_H; patteri++)
-					{
-						temp3[pos*DOF_H*NELEM_H + h*NELEM_H + patteri] = eye[patteri];
-					}
-				}
-			}
+			KinChain test(samplePositions.nP, samplePositions.nS);
+			test.addHumanPCL(&humanPCL);
+			test.addEnvPCL(&envPCL);
+			test.addRobotPCL(&robotPCL);
 
-			kinChain.setEnvPos(temp1);
-			kinChain.setRobotPos(temp2);
-			kinChain.setHumanPos(temp3);
-			kinChain.setPosIndex(0);
+			test.setRobotPos(samplePositions.qr);
+			test.setHumanPos(samplePositions.qh);
+			test.setEnvPos(samplePositions.qe);
 
-//Sample Configuration
-			int index[] = {0};			
-			HomogeneTransformation relative[1];		
-			SampleCameraConfiguration sampleConfiguration(kinChain.getRobotLinks(), relative, index, DOF_R, 1);
-//PossibleConfigs
-			Transformation2D transform2D[1];
-			PossibleConfigurations possibleConfigs(transform2D, 1);
+			test.setPosIndex(0);
 
-//InnerLoop
-			InnerLoop innerLoop(1, camTypes[0], kinChain, sampleConfiguration, possibleConfigs);
+			CFIO::SAMPLE_CAMERA_POSITIONS cameraPos;
+			const char* fileSampleCameraPositions = "C:\\ra\\GitHub\\CostFunction\\TestData\\samplePoints.bin";
+			CFIO::loadCameraPos(&cameraPos, fileSampleCameraPositions);
+			SampleCameraConfiguration sampleConfig(test.getRobotLinks(), &cameraPos, test.getNRobotLinks());
 
-//free all the memory
-			delete camTypes[0];
+			CFIO::SAMPLE_CAMERA_POSITIONS cameraPosEnv;
+			const char* fileSampleCameraPositionsEnv = "C:\\ra\\GitHub\\CostFunction\\TestData\\samplePointsEnv.bin";
+			CFIO::loadCameraPos(&cameraPosEnv, fileSampleCameraPositionsEnv);
+			SampleCameraConfiguration sampleConfigEnv(test.getEnvLinks(), &cameraPosEnv, test.getNEnvLinks());
+
+
+			HomogeneTransformation initCameraPos[2];
+			initCameraPos[0] = sampleConfig.getCurrentH(0);
+			initCameraPos[1] = sampleConfigEnv.getCurrentH(1);
+			double maxProb[2];
+			CameraSetup cameraSetup(pType, possibleTypes.nCameraTypes);
+			bool isEnv[2];
+			isEnv[0] = true;
+			isEnv[1] = false;
+			cameraSetup.init(2, isEnv);
 			
-		}
-
-		[TestMethod]
-		void TestRun1()
-		{
-//CameraType
-			int nx = 1; 
-			int ny = 1;
-			float x[] = {1};
-			float y[] = {0};
-			float z[] = {0};
-
-			int ssnx = 1;
-			int ssny = 1;
-			float ssx[] = {0};
-			float ssy[] = {0};
-			float ssz[] = {0};				
-			
-			CameraType* camTypes[1];
-			HomogeneTransformation trans[1];
-			camTypes[0] = new CameraType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
-
-//Kinchain test
-			float eye[] = EYE_16;			
-			int nPos = 1;
-			KinChain kinChain(nPos, 1);
-
-			float *temp1 = new float[NELEM_H*DOF_E*nPos];
-			float *temp2 = new float[NELEM_H*DOF_R*nPos];
-			float *temp3 = new float[NELEM_H*DOF_H*nPos];
-			for(int pos = 0; pos<nPos; pos++)
-			{
-				for(int h=0; h<DOF_E; h++)
-				{
-					for(int patteri=0; patteri<NELEM_H; patteri++)
-					{
-						temp1[pos*DOF_E*NELEM_H + h*NELEM_H + patteri] = eye[patteri];
-					}
-				}
-			}
-
-			for(int pos = 0; pos<nPos; pos++)
-			{
-				for(int h=0; h<DOF_R; h++)
-				{
-					for(int patteri=0; patteri<NELEM_H; patteri++)
-					{
-						temp2[pos*DOF_R*NELEM_H + h*NELEM_H + patteri] = eye[patteri];
-					}
-				}
-			}
-
-			for(int pos = 0; pos<nPos; pos++)
-			{
-				for(int h=0; h<DOF_H; h++)
-				{
-					for(int patteri=0; patteri<NELEM_H; patteri++)
-					{
-						temp3[pos*DOF_H*NELEM_H + h*NELEM_H + patteri] = eye[patteri];
-					}
-				}
-			}
-
-			kinChain.setEnvPos(temp1);
-			kinChain.setRobotPos(temp2);
-			kinChain.setHumanPos(temp3);
-			kinChain.setPosIndex(0);
-
-//Sample Configuration
-			int index[] = {0};			
-			HomogeneTransformation relative[1];		
-			SampleCameraConfiguration sampleConfiguration(kinChain.getRobotLinks(), relative, index, DOF_R, 1);
-//PossibleConfigs
-			Transformation2D transform2D[1];
-			PossibleConfigurations possibleConfigs(transform2D, 1);
-
-//InnerLoop
-			InnerLoop innerLoop(1, camTypes[0], kinChain, sampleConfiguration, possibleConfigs);
-			double prob = innerLoop.evaluatePositions(trans);
-
-//free all the memory
-			delete camTypes[0];
-			
-		}
-
-
-		[TestMethod]
-		void TestRun2()
-		{
-//CameraType
-			int nx = 1; 
-			int ny = 1;
-			float x[] = {1};
-			float y[] = {0};
-			float z[] = {0};
-
-			int ssnx = 1;
-			int ssny = 1;
-			float ssx[] = {0};
-			float ssy[] = {0};
-			float ssz[] = {0};				
-			
-			CameraType* camTypes[1];
-			HomogeneTransformation trans[1];
-			camTypes[0] = new CameraType(nx, ny, x, y, z, ssnx, ssny, ssx, ssy,ssz, Link());
-
-//Kinchain test
-			float eye[] = EYE_16;			
-			int nPos = 1;
-			KinChain kinChain(nPos, 1);
-
-			float *temp1 = new float[NELEM_H*DOF_E*nPos];
-			float *temp2 = new float[NELEM_H*DOF_R*nPos];
-			float *temp3 = new float[NELEM_H*DOF_H*nPos];
-			for(int pos = 0; pos<nPos; pos++)
-			{
-				for(int h=0; h<DOF_E; h++)
-				{
-					for(int patteri=0; patteri<NELEM_H; patteri++)
-					{
-						temp1[pos*DOF_E*NELEM_H + h*NELEM_H + patteri] = eye[patteri];
-					}
-				}
-			}
-
-			for(int pos = 0; pos<nPos; pos++)
-			{
-				for(int h=0; h<DOF_R; h++)
-				{
-					for(int patteri=0; patteri<NELEM_H; patteri++)
-					{
-						temp2[pos*DOF_R*NELEM_H + h*NELEM_H + patteri] = eye[patteri];
-					}
-				}
-			}
-
-			for(int pos = 0; pos<nPos; pos++)
-			{
-				for(int h=0; h<DOF_H; h++)
-				{
-					for(int patteri=0; patteri<NELEM_H; patteri++)
-					{
-						temp3[pos*DOF_H*NELEM_H + h*NELEM_H + patteri] = eye[patteri];
-					}
-				}
-			}
-
-			kinChain.setEnvPos(temp1);
-			kinChain.setRobotPos(temp2);
-			kinChain.setHumanPos(temp3);
-			kinChain.setPosIndex(0);
-
-//Sample Configuration
-			int index[] = {0};			
-			HomogeneTransformation relative[1];		
-			SampleCameraConfiguration sampleConfiguration(kinChain.getRobotLinks(), relative, index, DOF_R, 1);
-//PossibleConfigs
-			Transformation2D transform2D[1];
-			PossibleConfigurations possibleConfigs(transform2D, 1);
-
-//InnerLoop
-			InnerLoop innerLoop(1, camTypes[0], kinChain, sampleConfiguration, possibleConfigs);
-			double prob = innerLoop.evaluatePositions(trans);
-
-//free all the memory
-			delete camTypes[0];
+			InnerLoop innerloop(&cameraSetup,  test,  sampleConfig, sampleConfigEnv, possibleHumanConfigs,	true, "C:\\ra\\GitHub\\CostFunction\\TestData\\");
+			innerloop.evaluatePositions(initCameraPos);
 			
 		}
 

@@ -8,13 +8,15 @@
 #include "SampleCameraConfiguration.h"
 #include "EC.h"
 #include "PossibleConfigurations.h"
+#include "CameraSetup.h"
 
 
 
 class CFOBJECT_EXPORT InnerLoop
 {
 public: 
-	InnerLoop(int nCameras, CameraType* const types, KinChain kinchain,  SampleCameraConfiguration sampleconfiguration, PossibleConfigurations possibleConfigs);
+	InnerLoop(CameraSetup* pCameraSetup,  KinChain kinchain,  SampleCameraConfiguration sampleconfiguration,SampleCameraConfiguration sampleConfigEnv,  PossibleConfigurations possibleConfigs,
+		bool dbg, const char* path);
 	
 
 	double evaluatePositions(HomogeneTransformation* const cameraConfigurations);
@@ -25,16 +27,14 @@ public:
 
 private:
 
-	Camera** cameraSetup;
-	int nCameras;
-
+	CameraSetup* cameraSetup;	
+	EC* ec;
 
 	KinChain kinChain;
 	SampleCameraConfiguration sampleConfig;
+	SampleCameraConfiguration sampleConfigEnv;
 	PossibleConfigurations possibleConfig;
-
-	EC* ec;
-	
-
+	bool debug;
+	std::string path;
 };
 

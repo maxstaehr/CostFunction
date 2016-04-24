@@ -1,6 +1,7 @@
-sceneNumber = 3;
+% sceneNumber = 41;
 
-fileId = fopen('sampleHumanState_scene2.bin');
+str = strcat('sampleHumanState_scene', num2str(sceneNumber), '.bin');
+fileId = fopen(str);
 
 
 nPoints = fread(fileId, 1, 'int32');
@@ -57,6 +58,6 @@ for i=1:numel(Xgrid)
     
     
 end
-close all;figure; hold on;
+figure; hold on;
 surf(Xgrid,Ygrid,Z);
 

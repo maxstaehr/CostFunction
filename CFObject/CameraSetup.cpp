@@ -102,9 +102,15 @@ void CameraSetup::raytrace(KinChain& kinChain)
 		}
 }
 
-void CameraSetup::init(int nCamera)
+void CameraSetup::init(int nCamera, bool* isEnv)
 {
 	this->nCamera = nCamera;
+	this->isEnv = new bool[nCamera];
+	for(int i=0; i<nCamera; i++)
+	{
+		this->isEnv[i] = isEnv[i];
+	}
+
 	pCamera= new Camera*[nCamera];
 	for(int i=0; i<nCamera; i++)
 	{

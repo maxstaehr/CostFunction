@@ -61,7 +61,7 @@ void Link::setH(HomogeneTransformation H)
 	this->H = H;
 	for(int i=0; i<nPCL; i++)
 	{
-		pcl[i].transform(H);		
+		pcl[i].transform(H);
 	}
 	
 	for(int i=0; i<nBB; i++)

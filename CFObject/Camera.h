@@ -73,6 +73,7 @@ private:
 	float* dx;
 	float* dy;
 	float* dz;
+	bool* hasBoxhit;
 
 	float* ssdx;
 	float* ssdy;

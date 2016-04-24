@@ -217,6 +217,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CameraSetup.h" />
     <ClInclude Include="CameraType.h" />
+    <ClInclude Include="CE.h" />
     <ClInclude Include="Cluster.h" />
     <ClInclude Include="EC.h" />
     <ClInclude Include="ECTestAdapter.h" />
@@ -242,6 +243,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CameraSetup.cpp" />
     <ClCompile Include="CameraType.cpp" />
+    <ClCompile Include="CE.cpp" />
     <ClCompile Include="Cluster.cpp" />
     <ClCompile Include="EC.cpp" />
     <ClCompile Include="ECTestAdapter.cpp" />

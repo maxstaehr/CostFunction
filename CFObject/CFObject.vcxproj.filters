@@ -25,6 +25,7 @@
     <ClCompile Include="OuterLoop.cpp" />
     <ClCompile Include="CFIO.cpp" />
     <ClCompile Include="CameraSetup.cpp" />
+    <ClCompile Include="CE.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BoundingBox.h" />
@@ -52,6 +53,7 @@
     <ClInclude Include="OuterLoop.h" />
     <ClInclude Include="CFIO.h" />
     <ClInclude Include="CameraSetup.h" />
+    <ClInclude Include="CE.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="kernel.cu" />

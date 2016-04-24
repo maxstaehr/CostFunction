@@ -1,8 +1,17 @@
 #include "SA.h"
 #include <algorithm>
+#include <stdlib.h>     /* srand, rand */
+#include <time.h>       /* time */
 
-SA::SA(SampleCameraConfiguration& sampleConfig):Search(sampleConfig), currentDim(EVAL_DIM::X), state(STATE::HC), T(1.0), alpha(0.9), minThres(0.1)
+SA::SA(SampleCameraConfiguration* sampleConfig, int n):Search(sampleConfig, n), state(STATE::HC), T(1.0), alpha(0.9), minThres(0.1),currentSampleIndex(0)
 {
+	srand (time(NULL));
+	currentDim = new EVAL_DIM[n];
+	for(int i=0; i<n; i++)
+	{
+		currentDim[i] = EVAL_DIM::X;
+	}
+	localMinima = new bool[6*n];
 	resetLocalMinima();
 }
 
@@ -10,50 +19,51 @@ SA::SA(SampleCameraConfiguration& sampleConfig):Search(sampleConfig), currentDim
 
 SA::~SA(void)
 {
-
-
+	delete currentDim;
+	delete localMinima;
 }
 
-void SA::setCurrentTransformation(HomogeneTransformation h)
+void SA::setCurrentTransformation(HomogeneTransformation h, int i)
 {
-	currentTrans = h;
-	currentDim = EVAL_DIM::X;
+	currentTrans[i] = h;
+	currentDim[i] = EVAL_DIM::X;
 	HomogeneTransformation::DIM_DIR minusDir, plusDir;
 	minusDir = HomogeneTransformation::DIM_DIR::XM;
 	plusDir = HomogeneTransformation::DIM_DIR::XP;
-	nextEvalMinus = sampleConfig.findNN(currentTrans, minusDir);
-	nextEvalPlus = sampleConfig.findNN(currentTrans,  plusDir);
+	nextEvalMinus = sampleConfig[i].findNN(currentTrans[i], minusDir);
+	nextEvalPlus = sampleConfig[i].findNN(currentTrans[i],  plusDir);
 	resetLocalMinima();
 }
 
 void SA::nextDim()
 {
-	switch(currentDim)
+	switch(currentDim[currentSampleIndex])
 	{
 	case EVAL_DIM::X:
-		currentDim = EVAL_DIM::Y;
+		currentDim[currentSampleIndex] = EVAL_DIM::Y;
 		break;
 	case EVAL_DIM::Y:
-		currentDim = EVAL_DIM::Z;
+		currentDim[currentSampleIndex] = EVAL_DIM::Z;
 		break;
 	case EVAL_DIM::Z:
-		currentDim = EVAL_DIM::ROLL;
+		currentDim[currentSampleIndex] = EVAL_DIM::ROLL;
 		break;
 	case EVAL_DIM::ROLL:
-		currentDim = EVAL_DIM::PITCH;
+		currentDim[currentSampleIndex] = EVAL_DIM::PITCH;
 		break;
 	case EVAL_DIM::PITCH:
-		currentDim = EVAL_DIM::YAW;
+		currentDim[currentSampleIndex] = EVAL_DIM::YAW;
 		break;
 	case EVAL_DIM::YAW:
-		currentDim = EVAL_DIM::X;
+		currentDim[currentSampleIndex] = EVAL_DIM::X;
+		currentSampleIndex = (currentSampleIndex+1)%n;
 		break;
 	};
 }
 
 void SA::resetLocalMinima()
 {
-	for(int i=0; i<6; i++)
+	for(int i=0; i<n*6; i++)
 	{
 		localMinima[i] = false;
 	}
@@ -61,35 +71,36 @@ void SA::resetLocalMinima()
 bool SA::isLocalMinimaReached()
 {
 	bool ret = true;
-	for(int i=0; i<6; i++)
+	for(int i=0; i<n*6; i++)
 	{
 		ret &= localMinima[i];
 	}
 	return ret;
+	return true;
 }
 
 void SA::setLocalMinima()
 {
 	int index = -1;
-	switch(currentDim)
+	switch(currentDim[currentSampleIndex])
 	{
 	case EVAL_DIM::X:
-		index = 0;
+		index = currentSampleIndex*6+0;
 		break;
 	case EVAL_DIM::Y:
-		index = 1;
+		index = currentSampleIndex*6+1;
 		break;
 	case EVAL_DIM::Z:
-		index = 2;
+		index = currentSampleIndex*6+2;
 		break;
 	case EVAL_DIM::ROLL:
-		index = 3;
+		index = currentSampleIndex*6+3;
 		break;
 	case EVAL_DIM::PITCH:
-		index = 4;
+		index = currentSampleIndex*6+4;
 		break;
 	case EVAL_DIM::YAW:
-		index = 5;
+		index = currentSampleIndex*6+5;
 		break;
 	};
 	localMinima[index] = true;
@@ -98,7 +109,7 @@ void SA::setLocalMinima()
 void SA::setNextTransformations()
 {
 		HomogeneTransformation::DIM_DIR minusDir, plusDir;
-		switch(currentDim)
+		switch(currentDim[currentSampleIndex])
 		{
 		case EVAL_DIM::X:
 			minusDir = HomogeneTransformation::DIM_DIR::XM;
@@ -126,13 +137,25 @@ void SA::setNextTransformations()
 			break;
 		};
 
-		nextEvalMinus = sampleConfig.findNN(currentTrans, minusDir);
-		nextEvalPlus = sampleConfig.findNN(currentTrans,  plusDir);	
+		nextEvalMinus = sampleConfig[currentSampleIndex].findNN(currentTrans[currentSampleIndex], minusDir);
+		nextEvalPlus = sampleConfig[currentSampleIndex].findNN(currentTrans[currentSampleIndex],  plusDir);	
 }
 
 
 void SA::performRandomJump()
 {
+	for(int i=0; i<n; i++)
+	{
+		currentTrans[i] = sampleConfig[i].getRandom();
+	}
+}
+
+void SA::resetDim()
+{
+	for(int i=0; i<n; i++)
+	{
+		currentDim[i] = SA::EVAL_DIM::X;
+	}
 }
 
 #define e (2.7182818284590452353602874713526624977572)
@@ -155,12 +178,12 @@ bool SA::nextIteration(double cost_m, double cost_p)
 			if(cost_m < cost_p)
 			{
 				//setting minus to current
-				this->currentTrans = this->nextEvalMinus;
+				this->currentTrans[currentSampleIndex] = this->nextEvalMinus;
 				currentCosts = cost_m;
 			}else
 			{
 				//setting plus to current
-				this->currentTrans = this->nextEvalPlus;
+				this->currentTrans[currentSampleIndex]  = this->nextEvalPlus;
 				currentCosts = cost_p;
 			}
 		}
@@ -185,7 +208,8 @@ bool SA::nextIteration(double cost_m, double cost_p)
 		
 		if(prop <= newprop)		
 		{
-			currentDim = SA::EVAL_DIM::X;
+			
+			resetDim();
 			setNextTransformations();
 			state = STATE::HC;
 			T *= alpha;
@@ -204,5 +228,5 @@ bool SA::nextIteration(double cost_m, double cost_p)
 	{
 		return true;
 	}
-
+	
 }

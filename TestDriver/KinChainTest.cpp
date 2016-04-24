@@ -540,7 +540,10 @@ namespace TestDriver
 
 
 			CameraSetup cameraSetup(pType, possibleTypes.nCameraTypes);
-			cameraSetup.init(2);
+			bool isEnv[2];
+			isEnv[0] = false;
+			isEnv[1] = false;
+			cameraSetup.init(2, isEnv);
 			cameraSetup.getCamera(0)->updateCameraPos(sampleConfig.getCurrentH(0));
 			cameraSetup.getCamera(1)->updateCameraPos(sampleConfig.getCurrentH(1));
 			cameraSetup.raytrace(test);
@@ -635,7 +638,10 @@ namespace TestDriver
 
 
 			CameraSetup cameraSetup(pType, possibleTypes.nCameraTypes);
-			cameraSetup.init(2);
+			bool isEnv[2];
+			isEnv[0] = false;
+			isEnv[1] = false;
+			cameraSetup.init(2, isEnv);
 			cameraSetup.getCamera(0)->updateCameraPos(sampleConfig.getCurrentH(0));
 			cameraSetup.getCamera(1)->updateCameraPos(sampleConfig.getCurrentH(1));
 			cameraSetup.raytrace(test);
@@ -670,6 +676,267 @@ namespace TestDriver
 			CFIO::clearCameraPos(&cameraPos);
 
 
+		}
+
+
+		[TestMethod]
+		void TestSaveSzene4()
+		{
+			CFIO::LINK humanPCL;
+			const char* fileNameHuman = "C:\\ra\\GitHub\\CostFunction\\TestData\\human.bin";
+			CFIO::loadLink(&humanPCL, fileNameHuman);
+
+			CFIO::LINK envPCL;
+			const char* fileNameEnv = "C:\\ra\\GitHub\\CostFunction\\TestData\\environment_scene4.bin";
+			CFIO::loadLink(&envPCL, fileNameEnv);
+			
+			CFIO::LINK robotPCL;
+			const char* fileNameRobot = "C:\\ra\\GitHub\\CostFunction\\TestData\\robot_short.bin2";			
+			CFIO::loadLink(&robotPCL, fileNameRobot);
+
+			CFIO::SAMPLE_POSITIONS samplePositions;
+			const char* fileSamplePositions = "C:\\ra\\GitHub\\CostFunction\\TestData\\samplePositionsS4.bin";			
+			CFIO::loadSamplePositions(&samplePositions, fileSamplePositions);
+
+			CFIO::POSSIBLE_CAMERA_TYPES possibleTypes;
+			const char* fileSampleCameraTypes = "C:\\ra\\GitHub\\CostFunction\\TestData\\sampleCamera.bin";
+			CFIO::loadSampleCamera(&possibleTypes, fileSampleCameraTypes);
+
+			CameraType** pType = new CameraType*[possibleTypes.nCameraTypes];
+			CFIO::SAMPLE_CAMERA* pC;
+			for(int i=0; i<possibleTypes.nCameraTypes; i++)
+			{
+				pType[i] = new CameraType(&(possibleTypes.possibleCameraTypes[i]));
+			}
+
+			CFIO::SAMPLE_HUMAN_POSITIONS sampleHumanPos;
+			CFIO::loadSampleHumanPositions(&sampleHumanPos, "C:\\ra\\GitHub\\CostFunction\\TestData\\sampleFitting.bin");
+			PossibleConfigurations possibleHumanConfigs(&sampleHumanPos);
+
+			KinChain test(samplePositions.nP, samplePositions.nS);
+			test.addHumanPCL(&humanPCL);
+			test.addEnvPCL(&envPCL);
+			test.addRobotPCL(&robotPCL);
+
+			test.setRobotPos(samplePositions.qr);
+			test.setHumanPos(samplePositions.qh);
+			test.setEnvPos(samplePositions.qe);
+
+			test.setPosIndex(0);
+
+			CFIO::SAMPLE_CAMERA_POSITIONS cameraPos;
+			const char* fileSampleCameraPositions = "C:\\ra\\GitHub\\CostFunction\\TestData\\samplePoints.bin";
+			CFIO::loadCameraPos(&cameraPos, fileSampleCameraPositions);
+			SampleCameraConfiguration sampleConfig(test.getRobotLinks(), &cameraPos, test.getNRobotLinks());
+
+
+			HomogeneTransformation initCameraPos[2];
+			initCameraPos[0] = sampleConfig.getCurrentH(0);
+			initCameraPos[1] = sampleConfig.getCurrentH(1);
+			double maxProb[2];
+			CameraSetup cameraSetup(pType, possibleTypes.nCameraTypes);
+			bool isEnv[2];
+			isEnv[0] = false;
+			isEnv[1] = false;
+			cameraSetup.init(2, isEnv);
+			EC ec(cameraSetup.getNRays());
+			Cluster	cluster;
+
+			//first position
+			test.setPosIndex(0);			
+			cameraSetup.getCamera(0)->updateCameraPos(sampleConfig.findNewCameraPos(test.getRobotLinks(), initCameraPos[0]));
+			cameraSetup.getCamera(1)->updateCameraPos(sampleConfig.findNewCameraPos(test.getRobotLinks(), initCameraPos[1]));
+			cameraSetup.raytrace(test);			
+			ec.reset();
+			for(int camIndex = 0; camIndex<cameraSetup.getNCamera(); camIndex++)
+			{
+				ec.addDepthData(*cameraSetup.getCamera(camIndex));
+			}
+			ec.cluster();
+
+			if(ec.getNumOfClusters() > 0)
+			{
+				cluster = ec.getLargestCluster();
+				cluster.calculateCentroid();
+
+				possibleHumanConfigs.findBestFit(cluster);
+				maxProb[0] = possibleHumanConfigs.getMaxProb();
+			}else
+			{
+				cluster = Cluster();
+			}
+			
+			possibleHumanConfigs.saveState("C:\\ra\\GitHub\\CostFunction\\TestData\\sampleHumanState_scene41.bin");
+			cluster.saveCluster("C:\\ra\\GitHub\\CostFunction\\TestData\\cluster_scene41.bin");
+			cameraSetup.saveCameraSetup("C:\\ra\\GitHub\\CostFunction\\TestData\\cameraSetup_scene41.bin");
+			test.saveCurrentSzene("C:\\ra\\GitHub\\CostFunction\\TestData\\currentSzene_scene41.bin");
+			sampleConfig.saveCurrentSzene("C:\\ra\\GitHub\\CostFunction\\TestData\\currentSzeneSamplePoints_scene41.bin");
+
+
+			//second position
+			test.setPosIndex(1);			
+			cameraSetup.getCamera(0)->updateCameraPos(sampleConfig.findNewCameraPos(test.getRobotLinks(), initCameraPos[0]));
+			cameraSetup.getCamera(1)->updateCameraPos(sampleConfig.findNewCameraPos(test.getRobotLinks(), initCameraPos[1]));
+			cameraSetup.raytrace(test);
+			ec.reset();
+			for(int camIndex = 0; camIndex<cameraSetup.getNCamera(); camIndex++)
+			{
+				ec.addDepthData(*cameraSetup.getCamera(camIndex));
+			}
+			ec.cluster();			
+			if(ec.getNumOfClusters() > 0)
+			{
+				cluster = ec.getLargestCluster();
+				cluster.calculateCentroid();
+
+				possibleHumanConfigs.findBestFit(cluster);
+				maxProb[0] = possibleHumanConfigs.getMaxProb();
+			}else
+			{
+				cluster = Cluster();
+			}
+			
+			possibleHumanConfigs.saveState("C:\\ra\\GitHub\\CostFunction\\TestData\\sampleHumanState_scene42.bin");
+			cluster.saveCluster("C:\\ra\\GitHub\\CostFunction\\TestData\\cluster_scene42.bin");
+			cameraSetup.saveCameraSetup("C:\\ra\\GitHub\\CostFunction\\TestData\\cameraSetup_scene42.bin");
+			test.saveCurrentSzene("C:\\ra\\GitHub\\CostFunction\\TestData\\currentSzene_scene42.bin");
+			sampleConfig.saveCurrentSzene("C:\\ra\\GitHub\\CostFunction\\TestData\\currentSzeneSamplePoints_scene42.bin");
+
+			CFIO::clearPCL(&humanPCL);
+			CFIO::clearCameraPos(&cameraPos);
+		}
+
+
+		[TestMethod]
+		void TestSaveSzene5()
+		{
+			CFIO::LINK humanPCL;
+			const char* fileNameHuman = "C:\\ra\\GitHub\\CostFunction\\TestData\\human.bin";
+			CFIO::loadLink(&humanPCL, fileNameHuman);
+
+			CFIO::LINK envPCL;
+			const char* fileNameEnv = "C:\\ra\\GitHub\\CostFunction\\TestData\\environment_scene1.bin";
+			CFIO::loadLink(&envPCL, fileNameEnv);
+			
+			CFIO::LINK robotPCL;
+			const char* fileNameRobot = "C:\\ra\\GitHub\\CostFunction\\TestData\\robot_short.bin2";			
+			CFIO::loadLink(&robotPCL, fileNameRobot);
+
+			CFIO::SAMPLE_POSITIONS samplePositions;
+			const char* fileSamplePositions = "C:\\ra\\GitHub\\CostFunction\\TestData\\samplePositionsS4.bin";			
+			CFIO::loadSamplePositions(&samplePositions, fileSamplePositions);
+
+			CFIO::POSSIBLE_CAMERA_TYPES possibleTypes;
+			const char* fileSampleCameraTypes = "C:\\ra\\GitHub\\CostFunction\\TestData\\sampleCamera.bin";
+			CFIO::loadSampleCamera(&possibleTypes, fileSampleCameraTypes);
+
+			CameraType** pType = new CameraType*[possibleTypes.nCameraTypes];
+			CFIO::SAMPLE_CAMERA* pC;
+			for(int i=0; i<possibleTypes.nCameraTypes; i++)
+			{
+				pType[i] = new CameraType(&(possibleTypes.possibleCameraTypes[i]));
+			}
+
+			CFIO::SAMPLE_HUMAN_POSITIONS sampleHumanPos;
+			CFIO::loadSampleHumanPositions(&sampleHumanPos, "C:\\ra\\GitHub\\CostFunction\\TestData\\sampleFitting.bin");
+			PossibleConfigurations possibleHumanConfigs(&sampleHumanPos);
+
+			KinChain test(samplePositions.nP, samplePositions.nS);
+			test.addHumanPCL(&humanPCL);
+			test.addEnvPCL(&envPCL);
+			test.addRobotPCL(&robotPCL);
+
+			test.setRobotPos(samplePositions.qr);
+			test.setHumanPos(samplePositions.qh);
+			test.setEnvPos(samplePositions.qe);
+
+			test.setPosIndex(0);
+
+			CFIO::SAMPLE_CAMERA_POSITIONS cameraPos;
+			const char* fileSampleCameraPositions = "C:\\ra\\GitHub\\CostFunction\\TestData\\samplePoints.bin";
+			CFIO::loadCameraPos(&cameraPos, fileSampleCameraPositions);
+			SampleCameraConfiguration sampleConfig(test.getRobotLinks(), &cameraPos, test.getNRobotLinks());
+
+			CFIO::SAMPLE_CAMERA_POSITIONS cameraPosEnv;
+			const char* fileSampleCameraPositionsEnv = "C:\\ra\\GitHub\\CostFunction\\TestData\\samplePointsEnv.bin";
+			CFIO::loadCameraPos(&cameraPosEnv, fileSampleCameraPositionsEnv);
+			SampleCameraConfiguration sampleConfigEnv(test.getEnvLinks(), &cameraPosEnv, test.getNEnvLinks());
+
+
+			HomogeneTransformation initCameraPos[2];
+			initCameraPos[0] = sampleConfig.getCurrentH(0);
+			initCameraPos[1] = sampleConfigEnv.getCurrentH(1);
+			double maxProb[2];
+			CameraSetup cameraSetup(pType, possibleTypes.nCameraTypes);
+			bool isEnv[2];
+			isEnv[0] = false;
+			isEnv[1] = false;
+			cameraSetup.init(2, isEnv);
+			EC ec(cameraSetup.getNRays());
+			Cluster	cluster;
+
+			//first position
+			test.setPosIndex(0);			
+			cameraSetup.getCamera(0)->updateCameraPos(sampleConfig.findNewCameraPos(test.getRobotLinks(), initCameraPos[0]));
+			cameraSetup.getCamera(1)->updateCameraPos(sampleConfigEnv.findNewCameraPos(test.getEnvLinks(), initCameraPos[1]));
+			cameraSetup.raytrace(test);			
+			ec.reset();
+			for(int camIndex = 0; camIndex<cameraSetup.getNCamera(); camIndex++)
+			{
+				ec.addDepthData(*cameraSetup.getCamera(camIndex));
+			}
+			ec.cluster();
+
+			if(ec.getNumOfClusters() > 0)
+			{
+				cluster = ec.getLargestCluster();
+				cluster.calculateCentroid();
+
+				possibleHumanConfigs.findBestFit(cluster);
+				maxProb[0] = possibleHumanConfigs.getMaxProb();
+			}else
+			{
+				cluster = Cluster();
+			}
+			
+			possibleHumanConfigs.saveState("C:\\ra\\GitHub\\CostFunction\\TestData\\sampleHumanState_scene51.bin");
+			cluster.saveCluster("C:\\ra\\GitHub\\CostFunction\\TestData\\cluster_scene51.bin");
+			cameraSetup.saveCameraSetup("C:\\ra\\GitHub\\CostFunction\\TestData\\cameraSetup_scene51.bin");
+			test.saveCurrentSzene("C:\\ra\\GitHub\\CostFunction\\TestData\\currentSzene_scene51.bin");
+			sampleConfig.saveCurrentSzene("C:\\ra\\GitHub\\CostFunction\\TestData\\currentSzeneSamplePoints_scene51.bin");
+
+
+			//second position
+			test.setPosIndex(1);			
+			cameraSetup.getCamera(0)->updateCameraPos(sampleConfig.findNewCameraPos(test.getRobotLinks(), initCameraPos[0]));
+			cameraSetup.getCamera(1)->updateCameraPos(sampleConfigEnv.findNewCameraPos(test.getEnvLinks(), initCameraPos[1]));
+			cameraSetup.raytrace(test);
+			ec.reset();
+			for(int camIndex = 0; camIndex<cameraSetup.getNCamera(); camIndex++)
+			{
+				ec.addDepthData(*cameraSetup.getCamera(camIndex));
+			}
+			ec.cluster();			
+			if(ec.getNumOfClusters() > 0)
+			{
+				cluster = ec.getLargestCluster();
+				cluster.calculateCentroid();
+
+				possibleHumanConfigs.findBestFit(cluster);
+				maxProb[0] = possibleHumanConfigs.getMaxProb();
+			}else
+			{
+				cluster = Cluster();
+			}
+			
+			possibleHumanConfigs.saveState("C:\\ra\\GitHub\\CostFunction\\TestData\\sampleHumanState_scene52.bin");
+			cluster.saveCluster("C:\\ra\\GitHub\\CostFunction\\TestData\\cluster_scene52.bin");
+			cameraSetup.saveCameraSetup("C:\\ra\\GitHub\\CostFunction\\TestData\\cameraSetup_scene52.bin");
+			test.saveCurrentSzene("C:\\ra\\GitHub\\CostFunction\\TestData\\currentSzene_scene52.bin");
+			sampleConfig.saveCurrentSzene("C:\\ra\\GitHub\\CostFunction\\TestData\\currentSzeneSamplePoints_scene52.bin");
+
+			CFIO::clearPCL(&humanPCL);
+			CFIO::clearCameraPos(&cameraPos);
 		}
 
 
@@ -733,105 +1000,13 @@ namespace TestDriver
 
 
 			CameraSetup cameraSetup(pType, possibleTypes.nCameraTypes);
-			cameraSetup.init(2);
-			cameraSetup.getCamera(0)->updateCameraPos(sampleConfig.getCurrentH(0));
-			cameraSetup.getCamera(1)->updateCameraPos(sampleConfig.getCurrentH(1));
-			cameraSetup.raytrace(test);
-
-			EC ec(cameraSetup.getNRays());
-			ec.reset();
-			for(int camIndex = 0; camIndex<cameraSetup.getNCamera(); camIndex++)
-			{
-				ec.addDepthData(*cameraSetup.getCamera(camIndex));
-			}
-			ec.cluster();
-			Cluster	cluster;
-			if(ec.getNumOfClusters() > 0)
-			{
-				cluster = ec.getLargestCluster();
-				cluster.calculateCentroid();
-
-				possibleHumanConfigs.findBestFit(cluster);
-				double maxProb = possibleHumanConfigs.getMaxProb();
-			}
-			
-
-			
-
-			possibleHumanConfigs.saveState("C:\\ra\\GitHub\\CostFunction\\TestData\\sampleHumanState_scene3.bin");
-			cluster.saveCluster("C:\\ra\\GitHub\\CostFunction\\TestData\\cluster_scene3.bin");
-			cameraSetup.saveCameraSetup("C:\\ra\\GitHub\\CostFunction\\TestData\\cameraSetup_scene3.bin");
-			test.saveCurrentSzene("C:\\ra\\GitHub\\CostFunction\\TestData\\currentSzene_scene3.bin");
-			sampleConfig.saveCurrentSzene("C:\\ra\\GitHub\\CostFunction\\TestData\\currentSzeneSamplePoints_scene3.bin");
-
-			CFIO::clearPCL(&humanPCL);
-			CFIO::clearCameraPos(&cameraPos);
-
-
-		}
-
-
-		[TestMethod]
-		void TestSaveSzene4()
-		{
-			CFIO::LINK humanPCL;
-			const char* fileNameHuman = "C:\\ra\\GitHub\\CostFunction\\TestData\\human.bin";
-			CFIO::loadLink(&humanPCL, fileNameHuman);
-
-			CFIO::LINK envPCL;
-			const char* fileNameEnv = "C:\\ra\\GitHub\\CostFunction\\TestData\\environment_scene3.bin";
-			CFIO::loadLink(&envPCL, fileNameEnv);
-
-
-			
-			CFIO::LINK robotPCL;
-			const char* fileNameRobot = "C:\\ra\\GitHub\\CostFunction\\TestData\\robot_short.bin2";
-			//const char* fileNameRobot = "C:\\ra\\GitHub\\CostFunction\\TestData\\robotpcl_q0.bin";			
-			CFIO::loadLink(&robotPCL, fileNameRobot);
-			CFIO::SAMPLE_POSITIONS samplePositions;
-			const char* fileSamplePositions = "C:\\ra\\GitHub\\CostFunction\\TestData\\samplePositionsS1.bin";			
-			CFIO::loadSamplePositions(&samplePositions, fileSamplePositions);
+			bool isEnv[2];
+			isEnv[0] = false;
+			isEnv[1] = false;
+			cameraSetup.init(2, isEnv);
 
 
 
-			KinChain test(samplePositions.nP, samplePositions.nS);
-
-			test.addHumanPCL(&humanPCL);
-			test.addEnvPCL(&envPCL);
-			test.addRobotPCL(&robotPCL);
-
-
-
-
-
-			test.setRobotPos(samplePositions.qr);
-			test.setHumanPos(samplePositions.qh);
-			test.setEnvPos(samplePositions.qe);
-			test.setPosIndex(0);
-
-			CFIO::SAMPLE_CAMERA_POSITIONS cameraPos;
-			const char* fileSampleCameraPositions = "C:\\ra\\GitHub\\CostFunction\\TestData\\samplePoints.bin";
-			CFIO::loadCameraPos(&cameraPos, fileSampleCameraPositions);
-			SampleCameraConfiguration sampleConfig(test.getRobotLinks(), &cameraPos, test.getNRobotLinks());
-
-			CFIO::POSSIBLE_CAMERA_TYPES possibleTypes;
-			const char* fileSampleCameraTypes = "C:\\ra\\GitHub\\CostFunction\\TestData\\sampleCamera.bin";
-			CFIO::loadSampleCamera(&possibleTypes, fileSampleCameraTypes);
-
-			CFIO::SAMPLE_HUMAN_POSITIONS sampleHumanPos;
-			CFIO::loadSampleHumanPositions(&sampleHumanPos, "C:\\ra\\GitHub\\CostFunction\\TestData\\sampleFitting.bin");
-			PossibleConfigurations possibleHumanConfigs(&sampleHumanPos);
-
-			CameraType** pType = new CameraType*[possibleTypes.nCameraTypes];
-			CFIO::SAMPLE_CAMERA* pC;
-			for(int i=0; i<possibleTypes.nCameraTypes; i++)
-			{
-				pType[i] = new CameraType(&(possibleTypes.possibleCameraTypes[i]));
-			}
-
-
-			CameraSetup cameraSetup(pType, possibleTypes.nCameraTypes);
-			cameraSetup.init(2);
 			cameraSetup.getCamera(0)->updateCameraPos(sampleConfig.getCurrentH(0));
 			cameraSetup.getCamera(1)->updateCameraPos(sampleConfig.getCurrentH(1));
 			cameraSetup.raytrace(test);

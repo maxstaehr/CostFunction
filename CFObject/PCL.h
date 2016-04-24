@@ -28,6 +28,12 @@ public:
 	const int const * getfy(void){return fy;}
 	const int const * getfz(void){return fz;}
 
+
+	const float const * getix(void){return ix;}
+	const float const * getiy(void){return iy;}
+	const float const * getiz(void){return iz;}
+
+
 	void rotate(Rotation rot);
 	void transform(HomogeneTransformation trans);
 	void savePCL(std::ofstream* outbin);
@@ -35,8 +41,11 @@ public:
 private:
 	int nV;
 	int nF;
-	
 
+	float*	ix;
+	float*	iy;
+	float*	iz;
+		
 	float*	x;
 	float*	y;
 	float*	z;

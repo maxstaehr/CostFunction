@@ -96,6 +96,7 @@ void KinChain::operator=(KinChain& inst )
 		delete hP;
 	}
 	this->nPos = inst.nPos;
+	this->samplesPerPos = inst.samplesPerPos;
 	rP = new float[nPos*samplesPerPos*NELEM_H*DOF_R];
 	eP = new float[nPos*samplesPerPos*NELEM_H*DOF_E];
 	hP = new float[nPos*samplesPerPos*NELEM_H*DOF_H];

@@ -33,6 +33,7 @@ Camera::Camera(CameraType& camType):type(camType)
 	this->dx = new float[nRays];
 	this->dy = new float[nRays];
 	this->dz = new float[nRays];
+	this->hasBoxhit = new bool[nRays];
 
 
 	memcpy(this->x, type.getx(), nRays*sizeof(float));
@@ -44,6 +45,7 @@ Camera::Camera(CameraType& camType):type(camType)
 		this->dx[ray] = FLT_MAX;
 		this->dy[ray] = FLT_MAX;
 		this->dz[ray] = FLT_MAX;
+		this->hasBoxhit[ray] = false;
 	}
 	
 
@@ -147,6 +149,7 @@ Camera::~Camera(void)
 	delete ssx;
 	delete ssy;
 	delete ssz;
+	delete hasBoxhit;
 
 	delete dx;
 	delete dy;
@@ -193,6 +196,7 @@ void Camera::updateCameraPos(HomogeneTransformation trans)
 		this->dx[ray] = FLT_MAX;
 		this->dy[ray] = FLT_MAX;
 		this->dz[ray] = FLT_MAX;
+		this->hasBoxhit[ray] = false;
 	}
 
 	for(int ray=0; ray<type.getssnx() * type.getssny(); ray++)
@@ -260,7 +264,7 @@ bool Camera::hitBox(BoundingBox& box)
 	HomogeneTransformation boxh = box.getH().inv();
 	HomogeneTransformation hr = boxh.mul(h);
 
-	int n = type.getssnx() * type.getssny();
+	int n = type.getnx() * type.getny();
 	float origin[3];
 	float direction[3];
 	float vmin[3];
@@ -279,24 +283,22 @@ bool Camera::hitBox(BoundingBox& box)
 	vmax[2] = box.getZDim();
 
 	float xb, yb, zb;
-	
+	bool ret = false;
 	for(int i=0; i<n; i++)
 	{
-		xb = type.getssx()[i];
-		yb = type.getssy()[i];
-		zb = type.getssz()[i];
+		xb = type.getx()[i];
+		yb = type.gety()[i];
+		zb = type.getz()[i];
 
 		direction[0] = xb*hr.getH()[0] + yb*hr.getH()[1] + zb*hr.getH()[2];
 		direction[1] = xb*hr.getH()[4] + yb*hr.getH()[5] + zb*hr.getH()[6];
 		direction[2] = xb*hr.getH()[8] + yb*hr.getH()[9] + zb*hr.getH()[10];
 
+		hasBoxhit[i] = intersectBox(origin, direction, vmin, vmax);
+		ret |= hasBoxhit[i];
 
-		if(intersectBox(origin, direction, vmin, vmax))
-		{
-			return true;
-		}
 	}
-	return false;
+	return ret;
 }
 
 
@@ -313,6 +315,12 @@ void Camera::raytrace(PCL& pcl)
 	O[2] = h.getH()[11];
 	for(int ray=0; ray<nRays; ray++)
 	{
+
+		if(!hasBoxhit[ray])
+		{
+			continue;
+		}
+
 		D[0] = x[ray];
 		D[1] = y[ray];
 		D[2] = z[ray];
@@ -356,7 +364,7 @@ void Camera::raytrace(PCL& pcl)
 	}
 
 	nRays = type.getssnx()*type.getssny();
-	for(int ray=0; ray<nRays; ray++)
+	/*for(int ray=0; ray<nRays; ray++)
 	{
 		D[0] = ssx[ray];
 		D[1] = ssy[ray];
@@ -399,7 +407,7 @@ void Camera::raytrace(PCL& pcl)
 			ssdy[ray] = FLT_MAX;
 			ssdz[ray] = FLT_MAX;
 		}
-	}
+	}*/
 }
 
 

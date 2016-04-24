@@ -24,6 +24,8 @@ public:
 	HomogeneTransformation getInitialH(int i);
 	HomogeneTransformation getCurrentH(int i);
 	HomogeneTransformation getRelativeH(int i);
+	HomogeneTransformation getRandom();
+
 	int getNLink(){return nLink;}
 	int getNRelative(){return nRelative;}
 	const int const* getIndex(){return index;}

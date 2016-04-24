@@ -24,6 +24,14 @@ SampleCameraConfiguration::SampleCameraConfiguration( Link * kinChainH,  Homogen
 	}
 	
 }
+
+HomogeneTransformation SampleCameraConfiguration::getRandom()
+{
+	int index = rand() % nRelative;
+	return initialH[index];
+}
+
+
 SampleCameraConfiguration::SampleCameraConfiguration(Link* kinChainH, CFIO::SAMPLE_CAMERA_POSITIONS* samplePos, int nLink):
 initialH(NULL),	currentH(NULL), index(NULL), relativH(NULL), nRelative(samplePos->n), nLink(nLink)
 {
