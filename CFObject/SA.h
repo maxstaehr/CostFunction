@@ -9,24 +9,9 @@ class CFOBJECT_EXPORT SA :
 
 public:
 
-	enum EVAL_DIM
-	{
-		X,
-		Y,
-		Z,
-		ROLL,
-		PITCH,
-		YAW
-	};
 
-	enum STATE
-	{
-		HC,
-		RJ,
-		FI
-	};
 
-	SA(SampleCameraConfiguration* sampleConfig, int n);
+	SA(SampleCameraConfiguration* sampleConfig, int n, bool log);
 	~SA(void);
 
 	bool nextIteration(double cost_m, double cost_p);
@@ -40,8 +25,7 @@ private:
 	void nextDim();
 	bool* localMinima;
 
-	STATE state;
-	EVAL_DIM* currentDim;
+
 	double T;
 	double alpha;
 	double minThres;

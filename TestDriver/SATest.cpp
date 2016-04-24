@@ -55,7 +55,7 @@ namespace TestDriver
 			int n = 1;
 			SampleCameraConfiguration sC(kinChain, relative, index, n, value);
 
-			SA test(&sC, 1);
+			SA test(&sC, 1, false);
 
 			
 			HomogeneTransformation start, current, minus, plus;		
@@ -66,8 +66,8 @@ namespace TestDriver
 			test.setCurrentTransformation(start,0);
 			
 			current = test.getCurrentTransformation(0);
-			minus = test.getNextEvalMinus();
-			plus = test.getNextEvalPlus();
+			minus = test.getNextEvalMinus(0);
+			plus = test.getNextEvalPlus(0);
 
 			currentExpected = sC.getInitialH(364);
 			minusExpected = sC.getInitialH(121);
@@ -82,8 +82,8 @@ namespace TestDriver
 
 			state = test.getState();
 			current = test.getCurrentTransformation(0);
-			minus = test.getNextEvalMinus();
-			plus = test.getNextEvalPlus();
+			minus = test.getNextEvalMinus(0);
+			plus = test.getNextEvalPlus(0);
 
 			currentExpected = sC.getInitialH(607);
 			minusExpected = sC.getInitialH(526);
@@ -98,8 +98,8 @@ namespace TestDriver
 			ret = test.nextIteration(0.97, 0.96);
 			state = test.getState();
 			current = test.getCurrentTransformation(0);
-			minus = test.getNextEvalMinus();
-			plus = test.getNextEvalPlus();
+			minus = test.getNextEvalMinus(0);
+			plus = test.getNextEvalPlus(0);
 
 			currentExpected = sC.getInitialH(688);
 			minusExpected = sC.getInitialH(661);
@@ -115,8 +115,8 @@ namespace TestDriver
 			ret = test.nextIteration(0.95, 0.94);
 			state = test.getState();
 			current = test.getCurrentTransformation(0);
-			minus = test.getNextEvalMinus();
-			plus = test.getNextEvalPlus();
+			minus = test.getNextEvalMinus(0);
+			plus = test.getNextEvalPlus(0);
 
 			currentExpected = sC.getInitialH(715);
 			minusExpected = sC.getInitialH(706);
@@ -131,8 +131,8 @@ namespace TestDriver
 			ret = test.nextIteration(0.93, 0.92);
 			state = test.getState();
 			current = test.getCurrentTransformation(0);
-			minus = test.getNextEvalMinus();
-			plus = test.getNextEvalPlus();
+			minus = test.getNextEvalMinus(0);
+			plus = test.getNextEvalPlus(0);
 
 			currentExpected = sC.getInitialH(724);
 			minusExpected = sC.getInitialH(721);
@@ -147,8 +147,8 @@ namespace TestDriver
 			ret = test.nextIteration(0.91, 0.90);
 			state = test.getState();	
 			current = test.getCurrentTransformation(0);
-			minus = test.getNextEvalMinus();
-			plus = test.getNextEvalPlus();
+			minus = test.getNextEvalMinus(0);
+			plus = test.getNextEvalPlus(0);
 
 			currentExpected = sC.getInitialH(727);
 			minusExpected = sC.getInitialH(726);
@@ -163,8 +163,8 @@ namespace TestDriver
 			ret = test.nextIteration(0.89, 0.88);
 			state = test.getState();
 			current = test.getCurrentTransformation(0);
-			minus = test.getNextEvalMinus();
-			plus = test.getNextEvalPlus();
+			minus = test.getNextEvalMinus(0);
+			plus = test.getNextEvalPlus(0);
 
 			currentExpected = sC.getInitialH(728);
 			minusExpected = sC.getInitialH(485);
@@ -221,7 +221,7 @@ namespace TestDriver
 			bool ret;
 
 			SampleCameraConfiguration sC(kinChain, relative, index, n, value);
-			SA test(&sC, 1);
+			SA test(&sC, 1, false);
 
 			
 
@@ -303,7 +303,7 @@ namespace TestDriver
 			bool ret;
 
 			SampleCameraConfiguration sC(kinChain, relative, index, n, value);
-			SA test(&sC, 1);
+			SA test(&sC, 1, false);
 
 			
 
@@ -419,7 +419,7 @@ namespace TestDriver
 			bool ret;
 
 			SampleCameraConfiguration sC(kinChain, relative, index, n, value);
-			SA test(&sC, 1);
+			SA test(&sC, 1, false);
 
 			
 
@@ -503,7 +503,7 @@ namespace TestDriver
 			pSC[0] = sC0;
 			pSC[1] = sC1;
 			int nCameras = 2;
-			SA test(pSC, nCameras);
+			SA test(pSC, nCameras, false);
 
 			
 
@@ -585,7 +585,7 @@ namespace TestDriver
 			{
 				pSC[i] = SampleCameraConfiguration(kinChain, relative, index, n, value);
 			}		
-			SA test(pSC, nCameras);
+			SA test(pSC, nCameras, false);
 
 			
 

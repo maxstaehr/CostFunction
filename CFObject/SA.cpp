@@ -3,14 +3,10 @@
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
 
-SA::SA(SampleCameraConfiguration* sampleConfig, int n):Search(sampleConfig, n), state(STATE::HC), T(1.0), alpha(0.9), minThres(0.1),currentSampleIndex(0)
+SA::SA(SampleCameraConfiguration* sampleConfig, int n, bool log):Search(sampleConfig, n, log),  T(1.0), alpha(0.9), minThres(0.1),currentSampleIndex(0)
 {
 	srand (time(NULL));
-	currentDim = new EVAL_DIM[n];
-	for(int i=0; i<n; i++)
-	{
-		currentDim[i] = EVAL_DIM::X;
-	}
+
 	localMinima = new bool[6*n];
 	resetLocalMinima();
 }
@@ -19,7 +15,7 @@ SA::SA(SampleCameraConfiguration* sampleConfig, int n):Search(sampleConfig, n), 
 
 SA::~SA(void)
 {
-	delete currentDim;
+
 	delete localMinima;
 }
 
@@ -30,8 +26,8 @@ void SA::setCurrentTransformation(HomogeneTransformation h, int i)
 	HomogeneTransformation::DIM_DIR minusDir, plusDir;
 	minusDir = HomogeneTransformation::DIM_DIR::XM;
 	plusDir = HomogeneTransformation::DIM_DIR::XP;
-	nextEvalMinus = sampleConfig[i].findNN(currentTrans[i], minusDir);
-	nextEvalPlus = sampleConfig[i].findNN(currentTrans[i],  plusDir);
+	nextEvalMinus[i] = sampleConfig[i].findNN(currentTrans[i], minusDir);
+	nextEvalPlus[i] = sampleConfig[i].findNN(currentTrans[i],  plusDir);
 	resetLocalMinima();
 }
 
@@ -137,8 +133,8 @@ void SA::setNextTransformations()
 			break;
 		};
 
-		nextEvalMinus = sampleConfig[currentSampleIndex].findNN(currentTrans[currentSampleIndex], minusDir);
-		nextEvalPlus = sampleConfig[currentSampleIndex].findNN(currentTrans[currentSampleIndex],  plusDir);	
+		nextEvalMinus[currentSampleIndex] = sampleConfig[currentSampleIndex].findNN(currentTrans[currentSampleIndex], minusDir);
+		nextEvalPlus[currentSampleIndex] = sampleConfig[currentSampleIndex].findNN(currentTrans[currentSampleIndex],  plusDir);	
 }
 
 
@@ -178,12 +174,12 @@ bool SA::nextIteration(double cost_m, double cost_p)
 			if(cost_m < cost_p)
 			{
 				//setting minus to current
-				this->currentTrans[currentSampleIndex] = this->nextEvalMinus;
+				this->currentTrans[currentSampleIndex] = this->nextEvalMinus[currentSampleIndex];
 				currentCosts = cost_m;
 			}else
 			{
 				//setting plus to current
-				this->currentTrans[currentSampleIndex]  = this->nextEvalPlus;
+				this->currentTrans[currentSampleIndex]  = this->nextEvalPlus[currentSampleIndex];
 				currentCosts = cost_p;
 			}
 		}
@@ -226,6 +222,10 @@ bool SA::nextIteration(double cost_m, double cost_p)
 		return false;
 	}else
 	{
+		if(log)
+		{
+			logging(cost_m, cost_p);
+		}
 		return true;
 	}
 	

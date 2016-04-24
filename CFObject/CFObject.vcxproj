@@ -210,6 +210,8 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <CudaCompile Include="comb_norep_lex.cu" />
+    <CudaCompile Include="comb_rep_lex.cu" />
     <CudaCompile Include="kernel.cu" />
   </ItemGroup>
   <ItemGroup>
@@ -237,6 +239,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="SampleCameraConfiguration.h" />
     <ClInclude Include="Search.h" />
     <ClInclude Include="Transformation2D.h" />
+    <ClInclude Include="_generate.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BoundingBox.cpp" />

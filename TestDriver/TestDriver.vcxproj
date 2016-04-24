@@ -80,6 +80,7 @@
     <ClCompile Include="BoundingBoxTest.cpp" />
     <ClCompile Include="CameraTest.cpp" />
     <ClCompile Include="CameraTypeTest.cpp" />
+    <ClCompile Include="CETest.cpp" />
     <ClCompile Include="ClusterTest.cpp" />
     <ClCompile Include="ECTest.cpp" />
     <ClCompile Include="HomogeneTransformationTest.cpp" />

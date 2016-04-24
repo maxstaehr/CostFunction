@@ -22,10 +22,12 @@
     <ClCompile Include="InnerLoop.cpp">
       <Filter>Loop</Filter>
     </ClCompile>
-    <ClCompile Include="OuterLoop.cpp" />
     <ClCompile Include="CFIO.cpp" />
     <ClCompile Include="CameraSetup.cpp" />
     <ClCompile Include="CE.cpp" />
+    <ClCompile Include="OuterLoop.cpp">
+      <Filter>Loop</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BoundingBox.h" />
@@ -50,13 +52,18 @@
     <ClInclude Include="InnerLoop.h">
       <Filter>Loop</Filter>
     </ClInclude>
-    <ClInclude Include="OuterLoop.h" />
     <ClInclude Include="CFIO.h" />
     <ClInclude Include="CameraSetup.h" />
     <ClInclude Include="CE.h" />
+    <ClInclude Include="_generate.h" />
+    <ClInclude Include="OuterLoop.h">
+      <Filter>Loop</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="kernel.cu" />
+    <CudaCompile Include="comb_norep_lex.cu" />
+    <CudaCompile Include="comb_rep_lex.cu" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Loop">
